@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WidgetManifest",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "version",
+    "kind",
+    "category",
+    "permissions"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "prebuilt",
+        "custom_html"
+      ]
+    },
+    "category": {
+      "type": "string"
+    },
+    "supportedSizes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stateSchema": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

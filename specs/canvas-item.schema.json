@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanvasItem",
+  "type": "object",
+  "required": [
+    "id",
+    "workspaceId",
+    "boardId",
+    "type",
+    "x",
+    "y",
+    "width",
+    "height",
+    "content",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "workspaceId": {
+      "type": "string"
+    },
+    "boardId": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "sticky_note",
+        "markdown",
+        "image",
+        "link",
+        "iframe_embed",
+        "html_widget",
+        "task_list",
+        "board_link",
+        "section",
+        "kanban"
+      ]
+    },
+    "x": {
+      "type": "number"
+    },
+    "y": {
+      "type": "number"
+    },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
+    },
+    "content": {
+      "type": "object"
+    },
+    "style": {
+      "type": "object"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "deletedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

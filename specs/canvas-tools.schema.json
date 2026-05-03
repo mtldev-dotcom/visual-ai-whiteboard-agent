@@ -1,0 +1,81 @@
+{
+  "tools": [
+    {
+      "name": "create_board",
+      "description": "Create a new board in a workspace.",
+      "permissionLevel": 1,
+      "input": {
+        "workspaceId": "string",
+        "parentBoardId": "string|null",
+        "title": "string",
+        "description": "string|null"
+      },
+      "output": {
+        "boardId": "string",
+        "title": "string"
+      }
+    },
+    {
+      "name": "add_canvas_item",
+      "description": "Add a structured canvas item to a board.",
+      "permissionLevel": 1,
+      "input": {
+        "boardId": "string",
+        "type": "CanvasItem.type",
+        "x": "number",
+        "y": "number",
+        "width": "number",
+        "height": "number",
+        "content": "object",
+        "style": "object|null",
+        "metadata": "object|null"
+      },
+      "output": {
+        "itemId": "string",
+        "type": "string"
+      }
+    },
+    {
+      "name": "update_canvas_item",
+      "description": "Update an existing canvas item.",
+      "permissionLevel": 2,
+      "input": {
+        "itemId": "string",
+        "patch": "object"
+      },
+      "output": {
+        "itemId": "string",
+        "updatedFields": "string[]"
+      }
+    },
+    {
+      "name": "delete_canvas_item",
+      "description": "Soft delete an existing canvas item.",
+      "permissionLevel": 2,
+      "requiresConfirmation": true,
+      "input": {
+        "itemId": "string"
+      },
+      "output": {
+        "itemId": "string",
+        "deleted": "boolean"
+      }
+    },
+    {
+      "name": "generate_html_widget",
+      "description": "Generate a custom HTML widget draft for preview.",
+      "permissionLevel": 4,
+      "requiresConfirmation": true,
+      "input": {
+        "boardId": "string",
+        "prompt": "string",
+        "requestedPermissions": "string[]"
+      },
+      "output": {
+        "widgetDraftId": "string",
+        "permissionSummary": "string",
+        "previewAvailable": "boolean"
+      }
+    }
+  ]
+}
