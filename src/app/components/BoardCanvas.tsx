@@ -10,6 +10,7 @@ const zoomStep = 0.1;
 const minZoom = 0.3;
 const maxZoom = 2.5;
 const DEBOUNCE_MS = 600;
+const GRID_SIZE = 24;
 
 type CanvasItemContent = {
   title?: string;
@@ -18,6 +19,7 @@ type CanvasItemContent = {
   href?: string;
   html?: string;
   src?: string;
+  bgColor?: string;
   tasks?: { completed: boolean; title: string }[];
   columns?: {
     id: string;
@@ -50,39 +52,106 @@ function clampZoom(v: number) {
   return Math.min(maxZoom, Math.max(minZoom, v));
 }
 
-function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
+function ItemCard({
+  item,
+  onEdit,
+}: {
+  item: CanvasItem;
+  onEdit: () => void;
+}) {
   const base =
     "absolute inset-0 overflow-hidden rounded-xl border text-sm transition-shadow";
 
+  if (item.type === "shape") {
+    const bg = item.content.bgColor ?? "#dbeafe";
+    return (
+      <div
+        className="absolute inset-0 rounded-xl flex items-center justify-center overflow-hidden"
+        style={{
+          background: bg,
+          border: "none",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        {item.content.text && (
+          <p
+            className="px-3 text-sm font-medium text-center leading-snug"
+            style={{ color: "var(--text-1)" }}
+          >
+            {item.content.text}
+          </p>
+        )}
+        {!item.content.text && (
+          <button
+            className="absolute top-1 right-1.5 rounded px-1 py-0.5 text-[10px] opacity-0 hover:opacity-100 transition-opacity"
+            style={{ color: "var(--text-3)", background: "rgba(0,0,0,0.08)" }}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            type="button"
+          >
+            edit
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (item.type === "frame") {
+    const borderColor = item.content.bgColor ?? "var(--border-strong)";
+    const bgAlpha = item.content.bgColor ? `${item.content.bgColor}18` : "rgba(255,255,255,0.02)";
+    return (
+      <div
+        className="absolute inset-0 rounded-xl overflow-hidden"
+        style={{
+          background: bgAlpha,
+          border: `2px dashed ${borderColor}`,
+        }}
+      >
+        <div
+          className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest select-none"
+          style={{ color: item.content.bgColor ?? "var(--text-3)" }}
+        >
+          {item.content.title || "Frame"}
+        </div>
+      </div>
+    );
+  }
+
   if (item.type === "sticky_note") {
+    const bg = item.content.bgColor ?? "#fef9c3";
+    const headerBg = item.content.bgColor
+      ? `${item.content.bgColor}cc`
+      : "#fef08a";
+    const borderColor = item.content.bgColor ?? "#fde047";
+    const textColor = item.content.bgColor === "#1e293b" ? "#e2e8f0" : "#713f12";
     return (
       <div
         className={`${base} flex flex-col`}
         style={{
-          background: "#fef9c3",
-          borderColor: "#fde047",
+          background: bg,
+          borderColor: borderColor,
           boxShadow: "var(--shadow-card)",
         }}
       >
         <div
           className="flex items-center justify-between px-3 py-2"
-          style={{ background: "#fef08a", borderBottom: "1px solid #fde047" }}
+          style={{ background: headerBg, borderBottom: `1px solid ${borderColor}` }}
         >
-          <span className="truncate text-xs font-semibold text-yellow-900">
+          <span className="truncate text-xs font-semibold" style={{ color: textColor }}>
             {item.content.title || "Note"}
           </span>
           <button
-            className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs text-yellow-700 hover:bg-yellow-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
+            className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs hover:bg-black/10"
+            style={{ color: textColor }}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
             type="button"
           >
             Edit
           </button>
         </div>
-        <p className="flex-1 overflow-hidden px-3 py-2 text-xs leading-relaxed text-yellow-900 whitespace-pre-line">
+        <p
+          className="flex-1 overflow-hidden px-3 py-2 text-xs leading-relaxed whitespace-pre-line"
+          style={{ color: textColor }}
+        >
           {item.content.text}
         </p>
       </div>
@@ -90,18 +159,19 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
   }
 
   if (item.type === "text") {
+    const bg = item.content.bgColor ?? "var(--bg-surface)";
     return (
       <div
         className={`${base} flex flex-col`}
         style={{
-          background: "var(--bg-surface)",
-          borderColor: "var(--border)",
+          background: bg,
+          borderColor: item.content.bgColor ?? "var(--border)",
           boxShadow: "var(--shadow-card)",
         }}
       >
         <div
           className="flex items-center justify-between border-b px-3 py-2"
-          style={{ borderColor: "var(--border)" }}
+          style={{ borderColor: item.content.bgColor ?? "var(--border)" }}
         >
           <span
             className="truncate text-xs font-semibold"
@@ -111,10 +181,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
           </span>
           <button
             className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
             style={{ color: "var(--text-3)" }}
             type="button"
           >
@@ -260,9 +327,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
               <span
                 className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-sm border flex items-center justify-center"
                 style={{
-                  borderColor: task.completed
-                    ? "var(--accent)"
-                    : "var(--border-strong)",
+                  borderColor: task.completed ? "var(--accent)" : "var(--border-strong)",
                   background: task.completed ? "var(--accent)" : "transparent",
                 }}
               >
@@ -319,10 +384,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
           </span>
           <button
             className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
             style={{ color: "var(--text-3)" }}
             type="button"
           >
@@ -377,28 +439,26 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
   }
 
   if (item.type === "notes") {
+    const bg = item.content.bgColor ?? "#fffbf0";
     return (
       <div
         className={`${base} flex flex-col`}
         style={{
-          background: "#fffbf0",
-          borderColor: "#fed7aa",
+          background: bg,
+          borderColor: item.content.bgColor ?? "#fed7aa",
           boxShadow: "var(--shadow-card)",
         }}
       >
         <div
           className="flex items-center justify-between border-b px-3 py-2"
-          style={{ borderBottom: "1px solid #fed7aa" }}
+          style={{ borderBottom: `1px solid ${item.content.bgColor ?? "#fed7aa"}` }}
         >
           <span className="text-xs font-semibold text-orange-900">
             {item.content.title}
           </span>
           <button
             className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs text-orange-500 hover:bg-orange-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
             type="button"
           >
             Edit
@@ -429,22 +489,18 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
     );
   }
 
-  // Default / custom_html
   return (
     <div
       className={`${base} flex flex-col`}
       style={{
-        background: "var(--bg-surface)",
+        background: item.content.bgColor ?? "var(--bg-surface)",
         borderColor: "var(--border)",
         boxShadow: "var(--shadow-card)",
       }}
     >
       <div
         className="border-b px-3 py-2 text-xs font-semibold"
-        style={{
-          borderColor: "var(--border)",
-          color: "var(--text-1)",
-        }}
+        style={{ borderColor: "var(--border)", color: "var(--text-1)" }}
       >
         {item.content.title ?? item.type}
       </div>
@@ -469,16 +525,8 @@ const NEW_ITEM_DEFAULTS: Record<
   { width: number; height: number; content: CanvasItemContent }
 > = {
   text: { width: 220, height: 140, content: { title: "New text", text: "" } },
-  sticky_note: {
-    width: 200,
-    height: 180,
-    content: { title: "Note", text: "" },
-  },
-  task_list: {
-    width: 260,
-    height: 200,
-    content: { title: "Tasks", tasks: [] },
-  },
+  sticky_note: { width: 200, height: 180, content: { title: "Note", text: "" } },
+  task_list: { width: 260, height: 200, content: { title: "Tasks", tasks: [] } },
   kanban: {
     width: 480,
     height: 300,
@@ -491,7 +539,11 @@ const NEW_ITEM_DEFAULTS: Record<
       ],
     },
   },
+  shape: { width: 200, height: 150, content: { title: "", text: "" } },
+  frame: { width: 420, height: 320, content: { title: "Frame", text: "" } },
 };
+
+const AUTO_EDIT_TYPES = new Set(["text", "sticky_note", "shape", "frame", "notes"]);
 
 export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   const [items, setItems] = useState<CanvasItem[]>([]);
@@ -500,9 +552,11 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   const [zoom, setZoom] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<CanvasTool>("select");
+  const [activeColor, setActiveColor] = useState<string | null>(null);
   const [editState, setEditState] = useState<EditState>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmState>(null);
   const [undoToast, setUndoToast] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
   const [dragStart, setDragStart] = useState<{
     pointerId: number;
     x: number;
@@ -526,6 +580,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoStack = useRef<UndoSnapshot[]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
@@ -569,6 +624,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       if (undoToastTimer.current) clearTimeout(undoToastTimer.current);
+      if (panEndTimer.current) clearTimeout(panEndTimer.current);
     };
   }, []);
 
@@ -615,13 +671,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     setItems((prev) =>
       prev.map((item) =>
         item.id === snapshot.id
-          ? {
-              ...item,
-              height: snapshot.height,
-              width: snapshot.width,
-              x: snapshot.x,
-              y: snapshot.y,
-            }
+          ? { ...item, height: snapshot.height, width: snapshot.width, x: snapshot.x, y: snapshot.y }
           : item,
       ),
     );
@@ -648,21 +698,13 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       const tagName = target?.tagName;
-
-      if (
-        tagName === "INPUT" ||
-        tagName === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
+      if (tagName === "INPUT" || tagName === "TEXTAREA" || target?.isContentEditable) return;
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
         void undoCanvasChange();
       }
     }
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undoCanvasChange]);
@@ -670,7 +712,6 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   const finishItemDrag = useCallback(
     (pointerId: number) => {
       if (!itemDrag || itemDrag.pointerId !== pointerId) return;
-
       const item = items.find((candidate) => candidate.id === itemDrag.itemId);
       if (
         item &&
@@ -681,7 +722,6 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
       ) {
         pushUndoSnapshot(itemDrag.before);
       }
-
       setItemDrag(null);
     },
     [itemDrag, items, pushUndoSnapshot],
@@ -708,6 +748,14 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     );
   }
 
+  function openEditFor(item: CanvasItem) {
+    setEditState({
+      itemId: item.id,
+      title: item.content.title ?? "",
+      text: item.content.text ?? "",
+    });
+  }
+
   async function createItemAtPosition(
     type: string,
     clientX: number,
@@ -722,6 +770,10 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
       height: 140,
       content: { title: "New item", text: "" },
     };
+    const content = {
+      ...defaults.content,
+      ...(activeColor ? { bgColor: activeColor } : {}),
+    };
     const res = await fetch("/api/canvas-items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -732,24 +784,29 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
         y: y - defaults.height / 2,
         width: defaults.width,
         height: defaults.height,
-        content: defaults.content,
+        content,
       }),
     });
     const data = (await res.json()) as { item?: CanvasItem };
     if (data.item) {
-      setItems((prev) => [
-        ...prev,
-        {
-          id: data.item!.id,
-          type: data.item!.type,
-          x: data.item!.x,
-          y: data.item!.y,
-          width: data.item!.width,
-          height: data.item!.height,
-          content: data.item!.content as CanvasItemContent,
-        },
-      ]);
-      setSelectedId(data.item.id);
+      const newItem: CanvasItem = {
+        id: data.item.id,
+        type: data.item.type,
+        x: data.item.x,
+        y: data.item.y,
+        width: data.item.width,
+        height: data.item.height,
+        content: data.item.content as CanvasItemContent,
+      };
+      setItems((prev) => [...prev, newItem]);
+      setSelectedId(data.item!.id);
+      if (AUTO_EDIT_TYPES.has(type)) {
+        setEditState({
+          itemId: data.item.id,
+          title: data.item.content.title ?? "",
+          text: data.item.content.text ?? "",
+        });
+      }
     }
   }
 
@@ -808,9 +865,70 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     }
   }
 
+  function tidyCanvas() {
+    if (items.length === 0) return;
+    const GAP = 32;
+    const START = 64;
+    const COLS = Math.max(1, Math.ceil(Math.sqrt(items.length)));
+
+    const sorted = [...items].sort((a, b) => {
+      const rowA = Math.floor(a.y / 150);
+      const rowB = Math.floor(b.y / 150);
+      return rowA !== rowB ? rowA - rowB : a.x - b.x;
+    });
+
+    // Max height per row
+    const rowHeights: number[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const r = Math.floor(i / COLS);
+      rowHeights[r] = Math.max(rowHeights[r] ?? 0, sorted[i].height);
+    }
+
+    // Max width per column
+    const colWidths: number[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const c = i % COLS;
+      colWidths[c] = Math.max(colWidths[c] ?? 0, sorted[i].width);
+    }
+
+    // Cumulative positions
+    const rowY: number[] = [START];
+    for (let r = 0; r < rowHeights.length - 1; r++) {
+      rowY[r + 1] = rowY[r] + (rowHeights[r] ?? 0) + GAP;
+    }
+    const colX: number[] = [START];
+    for (let c = 0; c < colWidths.length - 1; c++) {
+      colX[c + 1] = colX[c] + (colWidths[c] ?? 0) + GAP;
+    }
+
+    const updates = sorted.map((item, idx) => ({
+      id: item.id,
+      x: colX[idx % COLS] ?? START,
+      y: rowY[Math.floor(idx / COLS)] ?? START,
+    }));
+
+    setItems((prev) =>
+      prev.map((item) => {
+        const u = updates.find((upd) => upd.id === item.id);
+        if (!u) return item;
+        persistPosition(item.id, u.x, u.y);
+        return { ...item, x: u.x, y: u.y };
+      }),
+    );
+  }
+
+  function triggerPanIndicator() {
+    setIsPanning(true);
+    if (panEndTimer.current) clearTimeout(panEndTimer.current);
+    panEndTimer.current = setTimeout(() => setIsPanning(false), 800);
+  }
+
   const isPanMode = activeTool === "hand";
-  const isCreateMode =
-    activeTool !== "select" && activeTool !== "hand" && activeTool !== "widget";
+  const isCreateMode = !["select", "hand", "widget", "arrow"].includes(activeTool);
+
+  const gridBgSize = GRID_SIZE * zoom;
+  const gridBgPosX = pan.x % gridBgSize;
+  const gridBgPosY = pan.y % gridBgSize;
 
   return (
     <div
@@ -834,10 +952,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
           >
             <span
               className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
-              style={{
-                borderColor: "var(--accent)",
-                borderTopColor: "transparent",
-              }}
+              style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
             />
             Loading board…
           </div>
@@ -855,10 +970,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               boxShadow: "var(--shadow-md)",
             }}
           >
-            <p
-              className="text-sm font-medium"
-              style={{ color: "var(--text-2)" }}
-            >
+            <p className="text-sm font-medium" style={{ color: "var(--text-2)" }}>
               No board selected
             </p>
             <p className="mt-1 text-xs" style={{ color: "var(--text-3)" }}>
@@ -878,10 +990,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               boxShadow: "var(--shadow-md)",
             }}
           >
-            <p
-              className="text-sm font-medium"
-              style={{ color: "var(--text-1)" }}
-            >
+            <p className="text-sm font-medium" style={{ color: "var(--text-1)" }}>
               Canvas is empty
             </p>
             <p className="mt-1 text-xs" style={{ color: "var(--text-3)" }}>
@@ -896,17 +1005,32 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
         ref={canvasRef}
         className="canvas-surface absolute inset-0 touch-none"
         style={{
-          cursor: isPanMode ? "grab" : isCreateMode ? "crosshair" : "default",
+          cursor: isPanMode
+            ? dragStart ? "grabbing" : "grab"
+            : isCreateMode
+            ? "crosshair"
+            : "default",
+          backgroundImage: `radial-gradient(circle, rgba(100,116,139,0.28) 1.5px, transparent 1.5px)`,
+          backgroundSize: `${gridBgSize}px ${gridBgSize}px`,
+          backgroundPosition: `${gridBgPosX}px ${gridBgPosY}px`,
         }}
         onClick={(e) => {
+          if (activeTool === "arrow") {
+            setActiveTool("select");
+            return;
+          }
           if (isCreateMode) {
-            void createItemAtPosition(activeTool, e.clientX, e.clientY);
+            const itemType = activeTool === "pen" ? "sticky_note" : activeTool;
+            void createItemAtPosition(itemType, e.clientX, e.clientY);
             setActiveTool("select");
             return;
           }
           setSelectedId(null);
         }}
-        onPointerCancel={() => setDragStart(null)}
+        onPointerCancel={() => {
+          setDragStart(null);
+          setIsPanning(false);
+        }}
         onPointerDown={(e) => {
           if (isCreateMode) return;
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -925,6 +1049,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
             x: dragStart.panX + e.clientX - dragStart.x,
             y: dragStart.panY + e.clientY - dragStart.y,
           });
+          triggerPanIndicator();
         }}
         onPointerUp={(e) => {
           e.currentTarget.releasePointerCapture(e.pointerId);
@@ -936,14 +1061,13 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
             setZoom((z) => clampZoom(z - e.deltaY * 0.01));
           } else {
             setPan((p) => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
+            triggerPanIndicator();
           }
         }}
       >
         <div
           className="origin-top-left"
-          style={{
-            transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
-          }}
+          style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})` }}
         >
           <div className="relative h-[3000px] w-[3000px]">
             {items.map((item) => {
@@ -965,6 +1089,10 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedId(item.id);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    openEditFor(item);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -1008,30 +1136,17 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                     finishItemDrag(e.pointerId);
                   }}
                 >
-                  <ItemCard
-                    item={item}
-                    onEdit={() =>
-                      setEditState({
-                        itemId: item.id,
-                        title: item.content.title ?? "",
-                        text: item.content.text ?? "",
-                      })
-                    }
-                  />
+                  <ItemCard item={item} onEdit={() => openEditFor(item)} />
 
                   {/* Selection ring + handles */}
                   {selected && (
                     <>
-                      {/* Selection ring */}
                       <div
                         className="pointer-events-none absolute -inset-1 rounded-xl"
-                        style={{
-                          outline: "2px solid var(--accent)",
-                          outlineOffset: "2px",
-                        }}
+                        style={{ outline: "2px solid var(--accent)", outlineOffset: "2px" }}
                       />
 
-                      {/* Context actions — top */}
+                      {/* Context actions */}
                       <div
                         className="absolute -top-9 left-0 flex items-center gap-1 rounded-lg border px-1.5 py-1"
                         style={{
@@ -1042,20 +1157,8 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
                       >
-                        <ActionBtn
-                          label="Edit"
-                          onClick={() =>
-                            setEditState({
-                              itemId: item.id,
-                              title: item.content.title ?? "",
-                              text: item.content.text ?? "",
-                            })
-                          }
-                        />
-                        <ActionBtn
-                          label="Copy"
-                          onClick={() => copyItem(item)}
-                        />
+                        <ActionBtn label="Edit" onClick={() => openEditFor(item)} />
+                        <ActionBtn label="Copy" onClick={() => copyItem(item)} />
                         <ActionBtn label="Refresh" onClick={onRefreshNeeded} />
                         <ActionBtn
                           danger
@@ -1112,6 +1215,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
         </div>
       </div>
 
+      {/* Undo toast */}
       {undoToast && (
         <div
           className="absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs font-semibold"
@@ -1126,13 +1230,35 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
         </div>
       )}
 
+      {/* Pan position indicator (n8n style) */}
+      {isPanning && (
+        <div
+          className="absolute bottom-20 left-4 z-20 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium tabular-nums transition-opacity"
+          style={{
+            background: "var(--bg-elevated)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--shadow-md)",
+            color: "var(--text-2)",
+          }}
+        >
+          <span style={{ color: "var(--text-3)" }}>x</span>
+          <span>{Math.round(-pan.x / zoom)}</span>
+          <span style={{ color: "var(--border)" }}>·</span>
+          <span style={{ color: "var(--text-3)" }}>y</span>
+          <span>{Math.round(-pan.y / zoom)}</span>
+        </div>
+      )}
+
       {/* Floating canvas toolbar */}
       <CanvasToolbar
         activeTool={activeTool}
+        activeColor={activeColor}
         zoom={zoom}
         onToolChange={setActiveTool}
+        onColorChange={setActiveColor}
         onZoomIn={() => setZoom((z) => clampZoom(z + zoomStep))}
         onZoomOut={() => setZoom((z) => clampZoom(z - zoomStep))}
+        onTidy={tidyCanvas}
       />
 
       {/* Mobile bottom sheet for selected item */}
@@ -1163,10 +1289,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
             <button
               className="rounded-lg border p-1.5"
               onClick={() => setSelectedId(null)}
-              style={{
-                borderColor: "var(--border)",
-                color: "var(--text-3)",
-              }}
+              style={{ borderColor: "var(--border)", color: "var(--text-3)" }}
               type="button"
             >
               ✕
@@ -1174,15 +1297,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
           </div>
           <div className="mt-3 grid grid-cols-4 gap-2">
             {[
-              {
-                label: "Edit",
-                action: () =>
-                  setEditState({
-                    itemId: selectedItem.id,
-                    title: selectedItem.content.title ?? "",
-                    text: selectedItem.content.text ?? "",
-                  }),
-              },
+              { label: "Edit", action: () => openEditFor(selectedItem) },
               { label: "Copy", action: () => copyItem(selectedItem) },
               { label: "Refresh", action: onRefreshNeeded },
               {
@@ -1196,9 +1311,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                 key={label}
                 onClick={action}
                 style={{
-                  background: danger
-                    ? "var(--danger-light)"
-                    : "var(--bg-surface)",
+                  background: danger ? "var(--danger-light)" : "var(--bg-surface)",
                   borderColor: danger ? "var(--danger)" : "var(--border)",
                   color: danger ? "var(--danger)" : "var(--text-1)",
                 }}
@@ -1227,10 +1340,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3
-              className="mb-4 text-sm font-semibold"
-              style={{ color: "var(--text-1)" }}
-            >
+            <h3 className="mb-4 text-sm font-semibold" style={{ color: "var(--text-1)" }}>
               Edit item
             </h3>
             <input
@@ -1252,6 +1362,12 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               onChange={(e) =>
                 setEditState((s) => s && { ...s, text: e.target.value })
               }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  void saveEdit();
+                }
+              }}
               placeholder="Content"
               rows={4}
               style={{
@@ -1265,10 +1381,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               <button
                 className="rounded-xl border px-4 py-2 text-sm"
                 onClick={() => setEditState(null)}
-                style={{
-                  borderColor: "var(--border)",
-                  color: "var(--text-2)",
-                }}
+                style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
                 type="button"
               >
                 Cancel
@@ -1276,10 +1389,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               <button
                 className="rounded-xl px-4 py-2 text-sm font-semibold"
                 onClick={saveEdit}
-                style={{
-                  background: "var(--accent)",
-                  color: "var(--accent-fg)",
-                }}
+                style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
                 type="button"
               >
                 Save
@@ -1305,10 +1415,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3
-              className="mb-1 text-sm font-semibold"
-              style={{ color: "var(--text-1)" }}
-            >
+            <h3 className="mb-1 text-sm font-semibold" style={{ color: "var(--text-1)" }}>
               Delete this item?
             </h3>
             <p className="mb-5 text-xs" style={{ color: "var(--text-3)" }}>
@@ -1318,10 +1425,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               <button
                 className="rounded-xl border px-4 py-2 text-sm"
                 onClick={() => setConfirmDelete(null)}
-                style={{
-                  borderColor: "var(--border)",
-                  color: "var(--text-2)",
-                }}
+                style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
                 type="button"
               >
                 Cancel
@@ -1329,10 +1433,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               <button
                 className="rounded-xl px-4 py-2 text-sm font-semibold"
                 onClick={() => deleteItem(confirmDelete.itemId)}
-                style={{
-                  background: "var(--danger)",
-                  color: "var(--danger-fg)",
-                }}
+                style={{ background: "var(--danger)", color: "var(--danger-fg)" }}
                 type="button"
               >
                 Delete
@@ -1361,9 +1462,7 @@ function ActionBtn({
         e.stopPropagation();
         onClick();
       }}
-      style={{
-        color: danger ? "var(--danger)" : "var(--text-2)",
-      }}
+      style={{ color: danger ? "var(--danger)" : "var(--text-2)" }}
       onMouseEnter={(e) =>
         ((e.currentTarget as HTMLElement).style.background = danger
           ? "var(--danger-light)"

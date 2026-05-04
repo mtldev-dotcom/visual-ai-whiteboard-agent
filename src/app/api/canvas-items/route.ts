@@ -17,6 +17,9 @@ const VALID_TYPES = [
   "board_link",
   "section",
   "kanban",
+  "shape",
+  "frame",
+  "notes",
 ];
 
 export async function POST(request: Request) {

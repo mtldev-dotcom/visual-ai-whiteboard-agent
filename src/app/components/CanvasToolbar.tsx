@@ -1,12 +1,17 @@
 "use client";
 
 import {
+  AlignJustify,
+  ArrowRight,
   CheckSquare,
+  Frame,
   Hand,
   LayoutGrid,
   Minus,
   MousePointer2,
+  PenTool,
   Plus,
+  Square,
   StickyNote,
   Type,
 } from "lucide-react";
@@ -15,22 +20,40 @@ import { useEffect } from "react";
 export type CanvasTool =
   | "select"
   | "hand"
+  | "pen"
+  | "shape"
+  | "frame"
+  | "arrow"
   | "text"
   | "sticky_note"
   | "task_list"
   | "widget";
 
-const NAV_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] =
-  [
-    { id: "select", Icon: MousePointer2, label: "Select  V" },
-    { id: "hand", Icon: Hand, label: "Pan  H" },
-  ];
+export const PALETTE: { value: string | null; label: string; bg: string; ring: string }[] = [
+  { value: null, label: "None", bg: "var(--bg-surface)", ring: "var(--border-strong)" },
+  { value: "#fef9c3", label: "Yellow", bg: "#fef9c3", ring: "#fde047" },
+  { value: "#dbeafe", label: "Blue", bg: "#dbeafe", ring: "#93c5fd" },
+  { value: "#dcfce7", label: "Green", bg: "#dcfce7", ring: "#86efac" },
+  { value: "#fce7f3", label: "Pink", bg: "#fce7f3", ring: "#f9a8d4" },
+  { value: "#f3e8ff", label: "Purple", bg: "#f3e8ff", ring: "#d8b4fe" },
+  { value: "#fed7aa", label: "Orange", bg: "#fed7aa", ring: "#fb923c" },
+  { value: "#fee2e2", label: "Red", bg: "#fee2e2", ring: "#fca5a5" },
+  { value: "#1e293b", label: "Dark", bg: "#1e293b", ring: "#475569" },
+];
 
-const CREATE_TOOLS: {
-  id: CanvasTool;
-  Icon: React.ElementType;
-  label: string;
-}[] = [
+const NAV_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] = [
+  { id: "select", Icon: MousePointer2, label: "Select  V" },
+  { id: "hand", Icon: Hand, label: "Pan  H" },
+];
+
+const DRAW_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] = [
+  { id: "pen", Icon: PenTool, label: "Pen  P" },
+  { id: "shape", Icon: Square, label: "Shape  R" },
+  { id: "frame", Icon: Frame, label: "Frame  F" },
+  { id: "arrow", Icon: ArrowRight, label: "Arrow  A" },
+];
+
+const CREATE_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] = [
   { id: "text", Icon: Type, label: "Text  T" },
   { id: "sticky_note", Icon: StickyNote, label: "Sticky  S" },
   { id: "task_list", Icon: CheckSquare, label: "Task list  K" },
@@ -39,52 +62,47 @@ const CREATE_TOOLS: {
 
 type Props = {
   activeTool: CanvasTool;
+  activeColor: string | null;
   zoom: number;
   onToolChange: (tool: CanvasTool) => void;
+  onColorChange: (color: string | null) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onTidy: () => void;
 };
 
 export function CanvasToolbar({
   activeTool,
+  activeColor,
   zoom,
   onToolChange,
+  onColorChange,
   onZoomIn,
   onZoomOut,
+  onTidy,
 }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (
         e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.isContentEditable
       )
         return;
       switch (e.key.toLowerCase()) {
-        case "v":
-          onToolChange("select");
-          break;
-        case "h":
-          onToolChange("hand");
-          break;
-        case "t":
-          onToolChange("text");
-          break;
-        case "s":
-          onToolChange("sticky_note");
-          break;
-        case "k":
-          onToolChange("task_list");
-          break;
-        case "w":
-          onToolChange("widget");
-          break;
+        case "v": onToolChange("select"); break;
+        case "h": onToolChange("hand"); break;
+        case "p": onToolChange("pen"); break;
+        case "r": onToolChange("shape"); break;
+        case "f": onToolChange("frame"); break;
+        case "a": onToolChange("arrow"); break;
+        case "t": onToolChange("text"); break;
+        case "s": onToolChange("sticky_note"); break;
+        case "k": onToolChange("task_list"); break;
+        case "w": onToolChange("widget"); break;
         case "+":
-        case "=":
-          onZoomIn();
-          break;
-        case "-":
-          onZoomOut();
-          break;
+        case "=": onZoomIn(); break;
+        case "-": onZoomOut(); break;
       }
     }
     window.addEventListener("keydown", onKey);
@@ -92,7 +110,42 @@ export function CanvasToolbar({
   }, [onToolChange, onZoomIn, onZoomOut]);
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center">
+    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex flex-col items-center gap-2">
+      {/* Color palette */}
+      <div
+        className="pointer-events-auto flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5"
+        style={{
+          background: "var(--bg-elevated)",
+          borderColor: "var(--border)",
+          boxShadow: "var(--shadow-md)",
+        }}
+      >
+        {PALETTE.map((c) => {
+          const isActive = activeColor === c.value;
+          return (
+            <button
+              key={c.label}
+              title={c.label}
+              type="button"
+              className="relative h-5 w-5 rounded-full border-2 transition-all hover:scale-110 active:scale-95"
+              style={{
+                background: c.bg,
+                borderColor: isActive ? "var(--accent)" : c.ring,
+                boxShadow: isActive ? "0 0 0 2px var(--accent)" : undefined,
+              }}
+              onClick={() => onColorChange(c.value)}
+            >
+              {c.value === null && (
+                <svg viewBox="0 0 12 12" className="absolute inset-0.5" aria-hidden>
+                  <line x1="1" y1="11" x2="11" y2="1" stroke="var(--text-3)" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main toolbar */}
       <div
         className="pointer-events-auto flex items-center gap-0.5 rounded-xl border p-1.5"
         style={{
@@ -101,35 +154,36 @@ export function CanvasToolbar({
           boxShadow: "var(--shadow-lg)",
         }}
       >
-        {/* Nav tools */}
         {NAV_TOOLS.map(({ id, Icon, label }) => (
-          <ToolBtn
-            key={id}
-            active={activeTool === id}
-            label={label}
-            onClick={() => onToolChange(id)}
-          >
+          <ToolBtn key={id} active={activeTool === id} label={label} onClick={() => onToolChange(id)}>
             <Icon size={17} />
           </ToolBtn>
         ))}
 
         <Divider />
 
-        {/* Create tools */}
+        {DRAW_TOOLS.map(({ id, Icon, label }) => (
+          <ToolBtn key={id} active={activeTool === id} label={label} onClick={() => onToolChange(id)}>
+            <Icon size={17} />
+          </ToolBtn>
+        ))}
+
+        <Divider />
+
         {CREATE_TOOLS.map(({ id, Icon, label }) => (
-          <ToolBtn
-            key={id}
-            active={activeTool === id}
-            label={label}
-            onClick={() => onToolChange(id)}
-          >
+          <ToolBtn key={id} active={activeTool === id} label={label} onClick={() => onToolChange(id)}>
             <Icon size={17} />
           </ToolBtn>
         ))}
 
         <Divider />
 
-        {/* Zoom */}
+        <ToolBtn label="Tidy canvas" onClick={onTidy}>
+          <AlignJustify size={15} />
+        </ToolBtn>
+
+        <Divider />
+
         <ToolBtn label="Zoom out  −" onClick={onZoomOut}>
           <Minus size={15} />
         </ToolBtn>
@@ -165,20 +219,14 @@ function ToolBtn({
       onClick={onClick}
       style={
         active
-          ? {
-              background: "var(--accent-light)",
-              color: "var(--accent)",
-            }
-          : {
-              color: "var(--text-2)",
-            }
+          ? { background: "var(--accent-light)", color: "var(--accent)" }
+          : { color: "var(--text-2)" }
       }
       title={label}
       type="button"
       onMouseEnter={(e) => {
         if (!active)
-          (e.currentTarget as HTMLElement).style.background =
-            "var(--accent-light)";
+          (e.currentTarget as HTMLElement).style.background = "var(--accent-light)";
       }}
       onMouseLeave={(e) => {
         if (!active) (e.currentTarget as HTMLElement).style.background = "";
@@ -190,7 +238,5 @@ function ToolBtn({
 }
 
 function Divider() {
-  return (
-    <div className="mx-1 h-5 w-px" style={{ background: "var(--border)" }} />
-  );
+  return <div className="mx-1 h-5 w-px" style={{ background: "var(--border)" }} />;
 }
