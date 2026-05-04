@@ -86,7 +86,6 @@ Deliverables:
 - Widget manifest format.
 - Widget library.
 - Task list widget.
-- Notes widget.
 - Kanban or markdown widget.
 
 Exit criteria:

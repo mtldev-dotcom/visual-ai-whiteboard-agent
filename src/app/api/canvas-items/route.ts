@@ -14,7 +14,6 @@ const VALID_TYPES = [
   "iframe_embed",
   "html_widget",
   "task_list",
-  "notes",
   "board_link",
   "section",
   "kanban",

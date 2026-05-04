@@ -10,7 +10,6 @@ Examples:
 
 - Task list.
 - Kanban.
-- Notes.
 - Markdown reader.
 - Rich text editor.
 - Reminders.

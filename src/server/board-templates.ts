@@ -26,12 +26,21 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
     items: [
       {
         type: "sticky_note",
-        x: 60, y: 60, width: 220, height: 160,
-        content: { title: "Project Goals", text: "What does success look like?\n\n1. \n2. \n3. " },
+        x: 60,
+        y: 60,
+        width: 220,
+        height: 160,
+        content: {
+          title: "Project Goals",
+          text: "What does success look like?\n\n1. \n2. \n3. ",
+        },
       },
       {
         type: "task_list",
-        x: 320, y: 60, width: 280, height: 240,
+        x: 320,
+        y: 60,
+        width: 280,
+        height: 240,
         content: {
           title: "Launch Checklist",
           tasks: [
@@ -44,11 +53,18 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
       },
       {
         type: "kanban",
-        x: 60, y: 260, width: 520, height: 280,
+        x: 60,
+        y: 260,
+        width: 520,
+        height: 280,
         content: {
           title: "Sprint Board",
           columns: [
-            { id: "backlog", title: "Backlog", cards: [{ id: "b1", title: "Research phase" }] },
+            {
+              id: "backlog",
+              title: "Backlog",
+              cards: [{ id: "b1", title: "Research phase" }],
+            },
             { id: "doing", title: "In Progress", cards: [] },
             { id: "review", title: "Review", cards: [] },
             { id: "done", title: "Done", cards: [] },
@@ -56,9 +72,15 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
         },
       },
       {
-        type: "notes",
-        x: 620, y: 260, width: 260, height: 160,
-        content: { title: "Meeting Notes", text: "Date:\nAttendees:\n\nKey decisions:\n" },
+        type: "sticky_note",
+        x: 620,
+        y: 260,
+        width: 260,
+        height: 160,
+        content: {
+          title: "Meeting Notes",
+          text: "Date:\nAttendees:\n\nKey decisions:\n",
+        },
       },
     ],
   },
@@ -69,22 +91,34 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
     items: [
       {
         type: "sticky_note",
-        x: 60, y: 60, width: 200, height: 160,
+        x: 60,
+        y: 60,
+        width: 200,
+        height: 160,
         content: { title: "Idea 💡", text: "Write your first idea here." },
       },
       {
         type: "sticky_note",
-        x: 300, y: 60, width: 200, height: 160,
+        x: 300,
+        y: 60,
+        width: 200,
+        height: 160,
         content: { title: "Idea 💡", text: "Another idea…" },
       },
       {
         type: "sticky_note",
-        x: 540, y: 60, width: 200, height: 160,
+        x: 540,
+        y: 60,
+        width: 200,
+        height: 160,
         content: { title: "Idea 💡", text: "Keep going!" },
       },
       {
         type: "kanban",
-        x: 60, y: 260, width: 520, height: 260,
+        x: 60,
+        y: 260,
+        width: 520,
+        height: 260,
         content: {
           title: "Prioritise Ideas",
           columns: [
@@ -103,7 +137,10 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
     items: [
       {
         type: "task_list",
-        x: 60, y: 60, width: 260, height: 220,
+        x: 60,
+        y: 60,
+        width: 260,
+        height: 220,
         content: {
           title: "This Week ✅",
           tasks: [
@@ -114,17 +151,26 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
       },
       {
         type: "sticky_note",
-        x: 360, y: 60, width: 220, height: 160,
+        x: 360,
+        y: 60,
+        width: 220,
+        height: 160,
         content: { title: "Wins 🎉", text: "What went well this week?" },
       },
       {
         type: "sticky_note",
-        x: 620, y: 60, width: 220, height: 160,
+        x: 620,
+        y: 60,
+        width: 220,
+        height: 160,
         content: { title: "Blockers 🚧", text: "What slowed you down?" },
       },
       {
         type: "task_list",
-        x: 360, y: 260, width: 280, height: 200,
+        x: 360,
+        y: 260,
+        width: 280,
+        height: 200,
         content: {
           title: "Next Week 🗓️",
           tasks: [

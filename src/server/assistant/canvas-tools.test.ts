@@ -43,6 +43,16 @@ describe("validateAddCanvasItemInput", () => {
       ok: false,
     });
   });
+
+  it("rejects removed notes item type", () => {
+    expect(validateAddCanvasItemInput({ ...validInput, type: "notes" })).toEqual(
+      {
+        error:
+          "type must be one of: text, sticky_note, task_list, kanban, markdown, image, link, html_widget.",
+        ok: false,
+      },
+    );
+  });
 });
 
 describe("validateUpdateCanvasItemInput", () => {

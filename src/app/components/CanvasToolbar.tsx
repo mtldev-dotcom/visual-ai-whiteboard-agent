@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  AlignLeft,
   CheckSquare,
   Hand,
   LayoutGrid,
@@ -18,7 +17,6 @@ export type CanvasTool =
   | "hand"
   | "text"
   | "sticky_note"
-  | "notes"
   | "task_list"
   | "widget";
 
@@ -35,7 +33,6 @@ const CREATE_TOOLS: {
 }[] = [
   { id: "text", Icon: Type, label: "Text  T" },
   { id: "sticky_note", Icon: StickyNote, label: "Sticky  S" },
-  { id: "notes", Icon: AlignLeft, label: "Notes  N" },
   { id: "task_list", Icon: CheckSquare, label: "Task list  K" },
   { id: "widget", Icon: LayoutGrid, label: "Widget  W" },
 ];
@@ -74,9 +71,6 @@ export function CanvasToolbar({
           break;
         case "s":
           onToolChange("sticky_note");
-          break;
-        case "n":
-          onToolChange("notes");
           break;
         case "k":
           onToolChange("task_list");

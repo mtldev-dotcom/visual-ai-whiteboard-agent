@@ -1,6 +1,6 @@
 "use client";
 
-import { AlignLeft, CheckSquare, Columns3, Plus } from "lucide-react";
+import { CheckSquare, Columns3, Plus } from "lucide-react";
 import { useState } from "react";
 
 const widgets = [
@@ -13,16 +13,6 @@ const widgets = [
     defaultContent: { title: "Tasks", tasks: [] },
     defaultWidth: 280,
     defaultHeight: 200,
-  },
-  {
-    category: "Notes",
-    description: "Quick-capture notes",
-    name: "Notes",
-    icon: AlignLeft,
-    type: "notes",
-    defaultContent: { title: "Notes", text: "" },
-    defaultWidth: 300,
-    defaultHeight: 160,
   },
   {
     category: "Productivity",
@@ -320,13 +310,27 @@ function WidgetPreview({ widget }: { widget: (typeof widgets)[number] }) {
   return (
     <div
       className="rounded-xl border p-3"
-      style={{ background: "#fffbf0", borderColor: "#fed7aa" }}
+      style={{
+        background: "var(--bg-surface)",
+        borderColor: "var(--border)",
+      }}
     >
-      <p className="mb-2 text-xs font-semibold text-orange-900">Notes</p>
+      <p
+        className="mb-2 text-xs font-semibold"
+        style={{ color: "var(--text-1)" }}
+      >
+        Widget
+      </p>
       <div className="space-y-1.5">
-        <div className="h-2 rounded bg-orange-200" />
-        <div className="h-2 w-5/6 rounded bg-orange-200" />
-        <div className="h-2 w-2/3 rounded bg-orange-200" />
+        <div className="h-2 rounded" style={{ background: "var(--border)" }} />
+        <div
+          className="h-2 w-5/6 rounded"
+          style={{ background: "var(--border)" }}
+        />
+        <div
+          className="h-2 w-2/3 rounded"
+          style={{ background: "var(--border)" }}
+        />
       </div>
     </div>
   );

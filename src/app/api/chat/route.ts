@@ -273,7 +273,6 @@ function getToolInputSchema(toolName: string): Record<string, unknown> {
             enum: [
               "text",
               "sticky_note",
-              "notes",
               "task_list",
               "kanban",
               "markdown",

@@ -34,7 +34,7 @@ Each flow lists:
 2. Click **Create account**.
 3. Confirm you are automatically signed in and redirected to `/`.
 4. Confirm a workspace and Welcome Board are created.
-5. Confirm the Welcome Board contains starter items: sticky note, notes, task list, and Kanban.
+5. Confirm the Welcome Board contains starter items: sticky notes, task list, and Kanban.
 
 **What works now:** form validation, `POST /api/auth/signup`, NextAuth sign-in, workspace creation, onboarding board seed.
 
@@ -125,7 +125,6 @@ Canvas items are persisted structured objects. The following types render in the
 | `link`        | Link card with URL                            |
 | `image`       | Image preview card                            |
 | `task_list`   | Checkbox list card                            |
-| `notes`       | Warm notes card                               |
 | `kanban`      | Three-column workflow board                   |
 | `html_widget` | Sandboxed iframe widget with run confirmation |
 
@@ -137,10 +136,10 @@ Add items via the canvas toolbar, assistant chat, or widget library.
 
 **Where:** `/`, canvas toolbar
 
-1. Pick Text, Sticky, Notes, or Task List from the bottom toolbar.
+1. Pick Text, Sticky, or Task List from the bottom toolbar.
 2. Click on the canvas.
 3. Confirm the item appears at the clicked location and is selected.
-4. Try keyboard shortcuts outside inputs: `V`, `H`, `T`, `S`, `N`, `K`, `W`, `+`, and `-`.
+4. Try keyboard shortcuts outside inputs: `V`, `H`, `T`, `S`, `K`, `W`, `+`, and `-`.
 
 **What works now:** toolbar mode selection, keyboard shortcuts, persisted POST to `/api/canvas-items`.
 
@@ -282,7 +281,7 @@ The assistant has access to these implemented tools:
 
 1. Select a board.
 2. Scroll to **Widgets**.
-3. Confirm cards exist for Task List, Notes, and Kanban.
+3. Confirm cards exist for Task List and Kanban.
 4. Click a widget.
 5. Confirm a preview modal opens with name, description, mini preview, Cancel, and Add to board.
 6. Click **Cancel** and confirm nothing is created.

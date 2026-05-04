@@ -74,7 +74,7 @@ Priority legend:
 - [x] `P0` Define widget manifest format.
 - [x] `P0` Build widget library UI.
 - [x] `P0` Add task list widget.
-- [x] `P0` Add notes widget.
+- [x] `P0` Consolidate duplicate notes widget into sticky notes.
 - [x] `P1` Add Kanban widget.
 - [ ] `P1` Add markdown reader widget.
 - [ ] `P1` Add rich text editor widget.

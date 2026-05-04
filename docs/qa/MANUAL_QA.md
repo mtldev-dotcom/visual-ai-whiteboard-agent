@@ -3,10 +3,12 @@
 **App stage:** Production-ready MVP (auth, real DB, OpenRouter LLM, all flows wired).
 
 **Before testing:**
+
 ```bash
 docker compose up -d postgres
 npm run dev
 ```
+
 Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM flows.
 
 ---
@@ -66,7 +68,7 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 
 - [ ] Open widget library (scroll below board list in sidebar, or Widgets drawer on mobile).
 - [ ] Click "Task List" — new task list item appears on the active board.
-- [ ] Click "Notes" — new notes item appears.
+- [ ] Click "Kanban" — new Kanban item appears on the active board.
 - [ ] Both items persist after refresh.
 
 ## 8. Tasks page

@@ -30,7 +30,7 @@ export async function seedOnboardingBoard(workspaceId: string) {
       },
     },
     {
-      type: "notes",
+      type: "sticky_note",
       x: 320,
       y: 60,
       width: 260,

@@ -43,6 +43,17 @@ type DeleteCanvasItemInput = {
   confirmed?: boolean;
 };
 
+const ASSISTANT_CANVAS_ITEM_TYPES = [
+  "text",
+  "sticky_note",
+  "task_list",
+  "kanban",
+  "markdown",
+  "image",
+  "link",
+  "html_widget",
+];
+
 function isObject(input: unknown): input is Record<string, unknown> {
   return typeof input === "object" && input !== null && !Array.isArray(input);
 }
@@ -72,6 +83,13 @@ export function validateAddCanvasItemInput(
 
   if (typeof input.type !== "string" || input.type.trim().length === 0) {
     return { error: "type is required.", ok: false };
+  }
+
+  if (!ASSISTANT_CANVAS_ITEM_TYPES.includes(input.type.trim())) {
+    return {
+      error: `type must be one of: ${ASSISTANT_CANVAS_ITEM_TYPES.join(", ")}.`,
+      ok: false,
+    };
   }
 
   for (const key of ["x", "y", "width", "height"]) {

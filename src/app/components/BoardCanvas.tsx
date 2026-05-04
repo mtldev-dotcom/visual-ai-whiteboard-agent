@@ -474,11 +474,6 @@ const NEW_ITEM_DEFAULTS: Record<
     height: 180,
     content: { title: "Note", text: "" },
   },
-  notes: {
-    width: 260,
-    height: 180,
-    content: { title: "Notes", text: "" },
-  },
   task_list: {
     width: 260,
     height: 200,

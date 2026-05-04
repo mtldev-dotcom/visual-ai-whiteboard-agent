@@ -24,7 +24,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - Signup can be disabled per environment with `APP_SIGNUP=disable`; login remains available and the signup API returns 403.
 - JWT session with `userId` + `workspaceId`. Next.js 16 proxy guards all routes.
 - `getOrCreateWorkspaceForUser` creates workspace on first login.
-- Onboarding board auto-seeded on signup: Welcome Board with sticky note, notes, task list, and Kanban.
+- Onboarding board auto-seeded on signup: Welcome Board with sticky notes, task list, and Kanban.
 
 ### Boards & Canvas
 
@@ -33,8 +33,8 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - 3 board templates: Project Kickoff, Brainstorm Session, Weekly Review.
 - `BoardCanvas`: pan/zoom, drag-to-move, resize, select, floating action bar, mobile bottom sheet.
 - Client undo for the last move/resize states with `Ctrl+Z` / `Cmd+Z`, optimistic PATCH rollback, and a 3-second toast.
-- Item types: text, sticky_note, notes, task_list, kanban, markdown, image, link, html_widget.
-- Click-to-create via toolbar tools (V/H/T/S/N/K shortcuts).
+- Item types: text, sticky_note, task_list, kanban, markdown, image, link, html_widget.
+- Click-to-create via toolbar tools (V/H/T/S/K shortcuts).
 - Edit modal, copy, delete with confirmation. Debounced PATCH on move/resize.
 - Card shadow system and composite canvas grid texture.
 
@@ -73,7 +73,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - CSS design token system: `--bg-*`, `--text-*`, `--accent*`, `--border*`, `--shadow-*`, `--canvas-*`.
 - Light/dark mode: persistent via localStorage, `ThemeProvider` context, `<html class="dark">`.
 - Collapsible sidebars, compact 44px header, mobile slide-up drawers, bottom nav.
-- Widget library: Task List, Notes, Kanban, with preview modal before insertion.
+- Widget library: Task List and Kanban, with preview modal before insertion.
 - `/tasks`: task center with create form, priority, dueDate, mark-complete.
 - `/core`: markdown editor for assistant context files.
 - Login/signup cards with CSS var styling.
