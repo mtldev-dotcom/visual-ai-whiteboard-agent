@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 
 type ChatMessage = {
   id: string;
@@ -8,53 +8,138 @@ type ChatMessage = {
   text: string;
 };
 
-type ToolExecutionMessage = {
+type ToolCard = {
   id: string;
   role: "tool";
+  toolName: string;
   status: "success" | "error" | "pending";
   summary: string;
-  toolName: string;
 };
 
-type AssistantPanelMessage = ChatMessage | ToolExecutionMessage;
+type Message = ChatMessage | ToolCard;
 
-const initialMessages: AssistantPanelMessage[] = [
+type Props = {
+  boardId: string | null;
+  onCanvasChanged?: () => void;
+};
+
+const WELCOME: Message[] = [
   {
-    id: "assistant-welcome",
+    id: "welcome",
     role: "assistant",
-    text: "I can help shape this board.",
-  },
-  {
-    id: "tool-demo-create-board",
-    role: "tool",
-    status: "success",
-    summary: "Created demo board shell.",
-    toolName: "create_board",
+    text: "I can help shape this board. Ask me to create boards, add notes, or organize your workspace.",
   },
 ];
 
-export function AssistantPanel() {
-  const [messages, setMessages] = useState(initialMessages);
+export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
+  const [messages, setMessages] = useState<Message[]>(WELCOME);
   const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  function submitMessage(event: FormEvent<HTMLFormElement>) {
+  const scrollToBottom = useCallback(() => {
+    setTimeout(
+      () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+      50,
+    );
+  }, []);
+
+  async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const text = draft.trim();
+    if (!text || pending) return;
 
-    if (!text) {
-      return;
-    }
-
-    setMessages((current) => [
-      ...current,
-      {
-        id: `user-${Date.now()}`,
-        role: "user",
-        text,
-      },
-    ]);
+    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", text };
+    setMessages((prev) => [...prev, userMsg]);
     setDraft("");
+    setPending(true);
+    scrollToBottom();
+
+    const pendingCard: ToolCard = {
+      id: `pending-${Date.now()}`,
+      role: "tool",
+      toolName: "thinking",
+      status: "pending",
+      summary: "Assistant is thinking…",
+    };
+    setMessages((prev) => [...prev, pendingCard]);
+
+    try {
+      const history = [...messages, userMsg]
+        .filter(
+          (m): m is ChatMessage => m.role === "user" || m.role === "assistant",
+        )
+        .map((m) => ({ role: m.role, content: m.text }));
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history, boardId }),
+      });
+
+      const data = (await res.json()) as {
+        content?: string;
+        toolCalls?: {
+          toolName: string;
+          status: "success" | "error";
+          summary: string;
+        }[];
+        error?: string;
+      };
+
+      setMessages((prev) => prev.filter((m) => m.id !== pendingCard.id));
+
+      if (!res.ok || data.error) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: "assistant",
+            text: data.error ?? "Something went wrong. Please try again.",
+          },
+        ]);
+        return;
+      }
+
+      const newMessages: Message[] = [];
+
+      for (const tc of data.toolCalls ?? []) {
+        newMessages.push({
+          id: `tc-${Date.now()}-${tc.toolName}`,
+          role: "tool",
+          toolName: tc.toolName,
+          status: tc.status,
+          summary: tc.summary,
+        });
+      }
+
+      if (data.content) {
+        newMessages.push({
+          id: `a-${Date.now()}`,
+          role: "assistant",
+          text: data.content,
+        });
+      }
+
+      if (newMessages.length) {
+        setMessages((prev) => [...prev, ...newMessages]);
+        if ((data.toolCalls ?? []).some((tc) => tc.status === "success")) {
+          onCanvasChanged?.();
+        }
+        scrollToBottom();
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== pendingCard.id),
+        {
+          id: `err-${Date.now()}`,
+          role: "assistant",
+          text: "Network error. Please try again.",
+        },
+      ]);
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -69,7 +154,15 @@ export function AssistantPanel() {
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-semibold">{message.toolName}</span>
-                <span className="rounded-md bg-[#2f5d50] px-2 py-1 text-xs font-semibold text-white">
+                <span
+                  className={`rounded-md px-2 py-1 text-xs font-semibold text-white ${
+                    message.status === "success"
+                      ? "bg-[#2f5d50]"
+                      : message.status === "error"
+                        ? "bg-red-500"
+                        : "bg-[#9ca3af]"
+                  }`}
+                >
                   {message.status}
                 </span>
               </div>
@@ -88,16 +181,19 @@ export function AssistantPanel() {
             </div>
           ),
         )}
+        <div ref={bottomRef} />
       </div>
       <form className="mt-3 flex gap-2" onSubmit={submitMessage}>
         <input
-          className="min-h-11 flex-1 rounded-md border border-[#c7bfae] bg-white px-3 text-sm"
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Ask AI..."
+          className="min-h-11 flex-1 rounded-md border border-[#c7bfae] bg-white px-3 text-sm disabled:opacity-60"
+          disabled={pending}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={boardId ? "Ask AI…" : "Select a board first…"}
           value={draft}
         />
         <button
-          className="min-h-11 rounded-md bg-[#2f5d50] px-4 text-sm font-semibold text-white"
+          className="min-h-11 rounded-md bg-[#2f5d50] px-4 text-sm font-semibold text-white disabled:opacity-60"
+          disabled={pending || !draft.trim() || !boardId}
           type="submit"
         >
           Send

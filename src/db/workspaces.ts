@@ -30,3 +30,24 @@ export function listWorkspacesForOwner(
     orderBy: { updatedAt: "desc" },
   });
 }
+
+export async function getOrCreateWorkspaceForUser(
+  ownerUserId: string,
+  displayName: string,
+): Promise<Workspace> {
+  const prisma = getPrismaClient();
+
+  const existing = await prisma.workspace.findFirst({
+    where: { ownerUserId },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (existing) return existing;
+
+  return prisma.workspace.create({
+    data: {
+      ownerUserId,
+      name: `${displayName}'s Workspace`,
+    },
+  });
+}

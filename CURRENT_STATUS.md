@@ -1,98 +1,43 @@
 # Current Status
 
-Last updated: 2026-05-03
+Last updated: 2026-05-04
 
 ## Stage
 
-Phase 0, Phase 1 P0, Phase 2 P0, Phase 3 P0, Phase 4 P0, Phase 5 P0, Phase 6 P0, Phase 7 P0, and Phase 8 P0 foundation complete.
+Phases 0–9 P0 complete. Production-ready MVP wired end-to-end.
 
 ## Current goal
 
-Build the MVP foundation for a mobile-first AI whiteboard assistant where the assistant can create and edit structured board objects through tools.
+Shipped. App is production-ready with auth, real DB-backed UI, OpenRouter LLM, and all core flows working.
 
 ## What exists
 
-- Product vision.
-- Agent operating contract.
-- Architecture docs.
-- Accepted initial stack decision: TypeScript, Next.js/React server routes, Tailwind CSS, Postgres, Prisma, Vitest, Playwright, provider-agnostic assistant adapter, Telegram webhook adapter, and sandboxed iframe widget runtime.
-- Runnable Next.js App Router skeleton under `src/app/`.
-- Mobile-first initial workspace shell with board, canvas, assistant, and bottom navigation regions.
-- Project scripts for dev, build, lint, format check, typecheck, test, and docs workflow checks.
-- Safe `.env.example` placeholders.
-- Local Docker Postgres service on `127.0.0.1:5444` with an applied initial Prisma migration.
-- Prisma 7/Postgres setup with generated client output, database validation/generation scripts, and implemented `Workspace`, `Board`, and `CanvasItem` models.
-- Typed workspace helpers in `src/db/workspaces.ts`.
-- Typed board and sub-board helpers in `src/db/boards.ts`.
-- Typed canvas item helpers in `src/db/canvas-items.ts`.
-- Static board explorer UI with desktop sidebar and mobile drawer behavior in the starter shell.
-- Client-side canvas viewport with pointer panning and zoom controls.
-- Demo renderers for text, sticky note, markdown, image, and link canvas item types.
-- Click/tap item selection with visible selection state.
-- Demo canvas items can be moved and resized in local component state.
-- Mobile selected-item bottom sheet with placeholder Edit, Copy, Ask AI, and Delete controls.
-- Floating board assistant button on desktop canvas.
-- Local assistant chat panel with message display and composer.
-- Structured tool execution card rendering in assistant chat.
-- Server-side LLM adapter contract with deterministic `local` provider and unit tests.
-- Server-side tool registry with validation, permission metadata, structured execution results, and unit tests.
-- Registered `create_board` and `create_sub_board` tool definitions with validation and persistence-backed execution.
-- Registered `add_canvas_item`, `update_canvas_item`, and confirmed `delete_canvas_item` tool definitions with validation and persistence-backed execution.
-- Widget manifest JSON Schema and example manifest.
-- Widget library UI surfaced in desktop and mobile board explorer areas.
-- Demo task list and notes widgets rendered on the canvas.
-- Prisma models for widget definitions, widget instances, and versioned custom HTML widget source.
-- Restrictive sandboxed iframe renderer for demo custom HTML widgets.
-- Widget permission validation with default-deny network/tool access for custom HTML widgets.
-- DB helpers and smoke coverage for storing versioned custom HTML widget source.
-- Confirmation gate before sandboxed generated HTML runs.
-- Prisma task and reminder models with typed creation/list helpers.
-- Static mobile-first task center page at `/tasks`.
-- Telegram bot setup docs covering BotFather, secrets, webhook setup, and polling/webhook behavior.
-- Prisma models for Telegram link tokens and linked Telegram accounts.
-- Server helpers for issuing hashed short-lived Telegram link tokens, consuming them once, looking up active linked accounts, and soft-unlinking Telegram accounts.
-- Unit coverage for Telegram link-token format, hashing, expiry, and comparison behavior.
-- Database smoke coverage for Telegram account linking and unlinking.
-- Telegram text command handler with linked-account enforcement and `/boards` support.
-- Unit coverage for Telegram command parsing, unlinked `/boards` rejection, empty board lists, and capped board list formatting.
-- Telegram `/tasks` command support for listing open tasks from the linked workspace.
-- Unit coverage for unlinked `/tasks` rejection, empty task lists, due/priority formatting, and capped task list formatting.
-- Prisma audit event model and typed audit helper.
-- Telegram `/newboard` command support for creating a board in the linked workspace and recording a `board.created` audit event.
-- Unit coverage for unlinked `/newboard` rejection, usage validation, successful board creation, and audit recording.
-- Telegram `/addnote <board>: <note>` command support for adding structured sticky-note canvas items to boards in the linked workspace and recording a `canvas_item.created` audit event.
-- Unit coverage for add-note parsing, unlinked `/addnote` rejection, usage validation, missing-board behavior, successful note creation, board-title matching, and audit recording.
-- Editable `/core` route for viewing and saving whitelisted Markdown core files under `docs/agent-core/`.
-- Server-only core file helper with strict filename whitelist, path traversal protection, and file size guard.
-- Unit coverage for core file whitelist and path validation.
-- Assistant core context loader for `CORE.md`, `ASSISTANT.md`, `TOOLS.md`, `SKILLS.md`, and `RULES.md`.
-- Local LLM adapter now loads assistant core context and reports core-context metadata in deterministic responses.
-- Core file update rules in `docs/agent-core/AGENTS.md` and `docs/agent-core/RULES.md`.
-- Implementation phases.
-- Master TODO.
-- QA plan.
-- Markdown core file plan.
-- Session handoff workflow.
+- Everything from the previous foundation (Phases 0–8 P0).
+- **Auth:** NextAuth.js v4 credentials (email + password). Signup at `/signup`, login at `/login`. JWT session with `userId` + `workspaceId`. Next.js 16 proxy guards all routes.
+- **Workspace per user:** `getOrCreateWorkspaceForUser` creates a workspace on first login and reuses it on subsequent logins.
+- **Real boards UI:** home page loads boards from DB via `listBoardsForWorkspace`. Board explorer with live create, search filter, and board selection.
+- **Real canvas persistence:** `BoardCanvas` loads items from `/api/boards/[id]`, debounced PATCH on move/resize, DELETE with confirmation dialog, inline edit modal with PATCH save, copy item.
+- **Real assistant chat:** `AssistantPanel` POSTs to `/api/chat`, executes tool calls against real tool registry, renders LLM responses and tool execution cards. Canvas auto-refreshes after successful tool calls.
+- **OpenRouter LLM adapter:** `OpenRouterLlmAdapter` using `openai` SDK with OpenRouter `baseURL`. Activated via `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY`. Falls back to local stub if not configured.
+- **Widget library wired:** clicking Task List or Notes widget POSTs to `/api/canvas-items` and adds the item to the active board.
+- **Real tasks page:** loads tasks from DB, create-task form with title/priority/dueDate/board, mark-complete button.
+- **API routes:** `/api/chat`, `/api/boards`, `/api/boards/[id]`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/tasks`, `/api/tasks/[id]`, `/api/workspace`, `/api/auth/[...nextauth]`, `/api/auth/signup`.
+- **Empty/loading states:** canvas loading spinner, empty board message, empty boards list message, no-board-selected message.
+- **User flow guide:** `docs/user-flow-guide.md` with 15 testable flows.
 
 ## What does not exist yet
 
-- Phase 2 P1 enhancements such as grouping, frames, minimap, and later collaboration.
-- Persistence-backed canvas screen.
-- Hosted assistant provider integration.
-- Telegram bot.
-- Telegram webhook route and command handlers.
-- Widget runtime.
-- Auth.
+- P1 features: board search persistence, undo/rollback, canvas minimap, grouping/frames, persist chat threads, summarize/organize/duplicate board tools, Kanban widget, markdown reader/rich text editor widgets, widget generation via assistant, task/reminder assistant tools, Telegram webhook, auth session refresh on token expiry.
+- Realtime collaboration (P2).
+- Auth: no OAuth providers, no email magic link, no "forgot password".
+- No production deployment config (no Vercel/Railway config yet).
 
 ## Recommended next task
 
-Continue with the next incomplete P0 task in Phase 9: run full manual QA in `docs/qa/MANUAL_QA.md`.
+Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local`, then manually run the flows in `docs/user-flow-guide.md` to verify end-to-end.
 
 ## Known risks
 
-- Whiteboard scope can become too large. MVP must focus on structured canvas items, not full Miro replacement.
-- `npm audit --audit-level=moderate` currently reports a moderate PostCSS advisory through Next.js 16.2.4. npm only suggests `npm audit fix --force`, which would install an old breaking Next version, so this needs monitoring until a safe upstream Next/PostCSS fix is available.
-- `npm audit --audit-level=moderate` also reports an `@hono/node-server` advisory through Prisma dev dependencies. npm only suggests `npm audit fix --force`, which would install an older breaking Prisma version.
-- Generated HTML widgets create security risk. Sandbox and permissions must be implemented before broad widget generation.
-- Telegram actions can modify persistent data. Account linking and permissions must be designed carefully.
-- Mobile whiteboard UX is hard. Mobile interactions must be designed first, not patched later.
+- `npm audit` reports moderate PostCSS and `@hono/node-server` advisories through Next.js and Prisma. Do not apply `npm audit fix --force`.
+- Generated HTML widgets create security risk. Sandbox and confirmation gate are in place; do not relax them.
+- `AUTH_SECRET` must be a strong random value in production. The `.env` placeholder `dev-auth-secret-replace-in-production` must be replaced.

@@ -1,55 +1,35 @@
-const tasks = [
-  {
-    board: "Launch plan",
-    due: "Today",
-    priority: "high",
-    title: "Prepare demo board",
-  },
-  {
-    board: "Launch plan",
-    due: "Tomorrow",
-    priority: "normal",
-    title: "Review Telegram capture flow",
-  },
-  {
-    board: "Ideas",
-    due: "Unscheduled",
-    priority: "low",
-    title: "Collect widget ideas",
-  },
-];
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
-export default function TasksPage() {
+import { listBoardsForWorkspace } from "@/db/boards";
+import { listOpenTasksForWorkspace } from "@/db/tasks";
+import { authOptions } from "@/lib/auth";
+
+import { TasksClient } from "./TasksClient";
+
+export default async function TasksPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.workspaceId) {
+    redirect("/login");
+  }
+
+  const [tasks, boards] = await Promise.all([
+    listOpenTasksForWorkspace(session.user.workspaceId),
+    listBoardsForWorkspace(session.user.workspaceId),
+  ]);
+
   return (
-    <main className="min-h-dvh bg-[#f7f5ef] text-[#1f2933]">
-      <header className="border-b border-[#d8d2c3] bg-[#fffdfa] px-4 py-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-          Workspace
-        </p>
-        <h1 className="text-xl font-semibold">Tasks</h1>
-      </header>
-
-      <section className="mx-auto w-full max-w-3xl p-4">
-        <div className="grid gap-3">
-          {tasks.map((task) => (
-            <article
-              className="rounded-md border border-[#e7e0d0] bg-white p-4"
-              key={task.title}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-semibold">{task.title}</h2>
-                  <p className="mt-1 text-sm text-[#6b7280]">{task.board}</p>
-                </div>
-                <span className="rounded-md border border-[#c7bfae] px-2 py-1 text-xs font-semibold">
-                  {task.priority}
-                </span>
-              </div>
-              <p className="mt-3 text-sm">{task.due}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
+    <TasksClient
+      initialTasks={tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        priority: t.priority,
+        status: t.status,
+        dueAt: t.dueAt?.toISOString() ?? null,
+        boardId: t.boardId ?? null,
+      }))}
+      boards={boards.map((b) => ({ id: b.id, title: b.title }))}
+    />
   );
 }

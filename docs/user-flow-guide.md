@@ -115,16 +115,16 @@ Each flow lists:
 
 The demo canvas renders eight item types. Locate and inspect each one:
 
-| Item | Visual style | Location on canvas |
-|---|---|---|
-| Sticky note ("Positioning") | Yellow background | Top-left |
-| Text block ("Launch tasks") | White, plain text | Top-center |
-| Markdown block ("Demo outline") | Green tint, pre-formatted | Mid-left |
-| Link card ("Product brief") | Blue tint, link URL | Mid-center |
-| Image ("Reference image") | White with SVG globe | Top-right |
-| Task list widget ("Launch checklist") | White, checkbox list | Mid-right |
-| Notes widget ("Notes") | Warm cream background | Bottom-left |
-| Sandboxed HTML widget ("Sandboxed HTML") | White iframe | Bottom-right |
+| Item                                     | Visual style              | Location on canvas |
+| ---------------------------------------- | ------------------------- | ------------------ |
+| Sticky note ("Positioning")              | Yellow background         | Top-left           |
+| Text block ("Launch tasks")              | White, plain text         | Top-center         |
+| Markdown block ("Demo outline")          | Green tint, pre-formatted | Mid-left           |
+| Link card ("Product brief")              | Blue tint, link URL       | Mid-center         |
+| Image ("Reference image")                | White with SVG globe      | Top-right          |
+| Task list widget ("Launch checklist")    | White, checkbox list      | Mid-right          |
+| Notes widget ("Notes")                   | Warm cream background     | Bottom-left        |
+| Sandboxed HTML widget ("Sandboxed HTML") | White iframe              | Bottom-right       |
 
 1. Scroll or zoom to see all eight items.
 2. Confirm each item renders with correct colors and content.
@@ -308,12 +308,12 @@ The demo canvas renders eight item types. Locate and inspect each one:
 
 **Where:** any page
 
-| From | To | Method |
-|---|---|---|
-| `/` | `/tasks` | Mobile bottom nav "Tasks" tab, or direct URL |
-| `/` | `/core` | Desktop header "Core" link, mobile bottom nav "Core" tab, or direct URL |
-| `/core` | `/` | "Board" link in `/core` header |
-| `/tasks` | `/` | Browser back button or direct URL |
+| From     | To       | Method                                                                  |
+| -------- | -------- | ----------------------------------------------------------------------- |
+| `/`      | `/tasks` | Mobile bottom nav "Tasks" tab, or direct URL                            |
+| `/`      | `/core`  | Desktop header "Core" link, mobile bottom nav "Core" tab, or direct URL |
+| `/core`  | `/`      | "Board" link in `/core` header                                          |
+| `/tasks` | `/`      | Browser back button or direct URL                                       |
 
 **What works:** all three routes render without error. Navigation links are wired.
 
@@ -325,10 +325,10 @@ The demo canvas renders eight item types. Locate and inspect each one:
 
 Test at these widths using browser DevTools:
 
-| Width | Expected layout |
-|---|---|
-| 390 px (iPhone) | Single column, Boards drawer, mobile bottom nav |
-| 768 px (tablet) | Single column, Boards drawer, mobile bottom nav |
+| Width              | Expected layout                                           |
+| ------------------ | --------------------------------------------------------- |
+| 390 px (iPhone)    | Single column, Boards drawer, mobile bottom nav           |
+| 768 px (tablet)    | Single column, Boards drawer, mobile bottom nav           |
 | 1024 px+ (desktop) | Three-column: sidebar + canvas + assistant, no bottom nav |
 
 1. At 390 px: bottom nav visible, sidebar hidden, drawer toggle visible.
