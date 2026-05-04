@@ -4,63 +4,55 @@ Date: 2026-05-04
 
 ## Summary
 
-Finished the three items in `PLAN.md`: canvas undo/rollback for move and resize, widget preview before insertion, and live Telegram webhook wiring with a registration script. Updated the relevant architecture/core docs, `TODO.md`, `CURRENT_STATUS.md`, and this handoff.
-
-Follow-up doc check: `ADHD.md` and `docs/user-flow-guide.md` were stale and have been updated to match the current implemented app state.
+Added an environment-controlled signup gate. New account creation is enabled by default, but setting `APP_SIGNUP=disable` disables the signup UI and blocks direct signup API requests while keeping login available for existing users.
 
 ## What changed
 
-- `BoardCanvas` now keeps a 20-entry client undo stack for item move/resize states.
-- `Ctrl+Z` / `Cmd+Z` reverts the most recent move/resize with an optimistic local update and a PATCH back to `/api/canvas-items/[id]`.
-- A small top-center toast confirms when a canvas change is undone.
-- `WidgetLibrary` now opens a preview modal with widget name, description, static preview, Add, and Cancel before creating the canvas item.
-- Added `POST /api/telegram/webhook` for Telegram message updates.
-- The webhook route validates `TELEGRAM_WEBHOOK_SECRET` via `x-telegram-bot-api-secret-token` when configured.
-- `/start <token>` now consumes a Telegram link token from the webhook route.
-- Linked Telegram text commands are dispatched through the existing command handler and replies are sent with Telegram `sendMessage`.
-- Added `scripts/register-telegram-webhook.ts` and `npm run telegram:webhook`.
-- Rewrote `ADHD.md` to remove stale "missing PLAN.md items" guidance and add current Telegram/widget/undo status.
-- Rewrote `docs/user-flow-guide.md` to reflect persistent chat, server-side board search, templates, Kanban, widget preview, canvas undo, task/reminder tools, and Telegram webhook setup.
+- Added `src/lib/signup.ts` with shared signup availability logic.
+- Updated `POST /api/auth/signup` to return `403` when signup is disabled.
+- Split login and signup forms into client components so their pages can read server environment at request time.
+- Marked `/login` and `/signup` as dynamic routes so production env changes are not baked into static HTML.
+- `/signup` now shows a disabled state when signup is off.
+- `/login` hides the "Create one" link when signup is off.
+- Added unit coverage for `APP_SIGNUP` behavior.
+- Documented `APP_SIGNUP=enable` / `APP_SIGNUP=disable` in local, deployment, QA, and user-flow docs.
 
 ## Files changed this session
 
-- `src/app/components/BoardCanvas.tsx`
-- `src/app/components/WidgetLibrary.tsx`
-- `src/app/api/telegram/webhook/route.ts`
-- `scripts/register-telegram-webhook.ts`
-- `package.json`
+- `.env.example`
 - `README.md`
-- `docs/architecture/CANVAS_ENGINE.md`
-- `docs/architecture/WIDGET_RUNTIME.md`
-- `docs/architecture/TELEGRAM_INTEGRATION.md`
-- `docs/agent-core/TOOLS.md`
-- `TODO.md`
-- `PLAN.md`
 - `CURRENT_STATUS.md`
+- `TODO.md`
 - `SESSION_HANDOFF.md`
-- `ADHD.md`
+- `docs/deployment/DOKPLOY_HETZNER.md`
+- `docs/qa/MANUAL_QA.md`
 - `docs/user-flow-guide.md`
+- `src/app/api/auth/signup/route.ts`
+- `src/app/login/LoginForm.tsx`
+- `src/app/login/page.tsx`
+- `src/app/signup/SignupForm.tsx`
+- `src/app/signup/page.tsx`
+- `src/lib/signup.ts`
+- `src/lib/signup.test.ts`
 
 ## Checks run
 
-- `npx prettier --write` on files changed this session: passed
 - `npm run typecheck`: passed
 - `npm run lint`: passed
-- `npm test -- --run`: passed, 51 tests
-- `npm run build`: passed, includes `/api/telegram/webhook`
+- `npm test -- --run`: passed, 57 tests
 - `npm run docs:check`: passed
-- `npm run format:check`: failed on pre-existing unrelated formatting issues
-- `npx prettier --write ADHD.md docs/user-flow-guide.md`: passed
+- `npm run build`: passed
 
 ## Checks skipped
 
-- Live Telegram bot test skipped. It requires a real `TELEGRAM_BOT_TOKEN`, public HTTPS `APP_URL`, and webhook registration against Telegram.
+- Manual browser QA was not run.
+- Live production/Dokploy verification was not run.
 
 ## Known issues
 
-- `npm run format:check` still reports pre-existing formatting issues in files outside this session's scoped edits, including `docs/qa/MANUAL_QA.md` and several files from the prior session. `ADHD.md` and `docs/user-flow-guide.md` have been formatted.
-- Telegram webhook errors from `sendMessage` currently throw, so Telegram may retry failed updates. This is acceptable for MVP but should be reviewed if duplicate replies become an issue.
+- Existing uncommitted changes from earlier work are still present in the worktree and were not reverted.
+- To apply a changed `APP_SIGNUP` value in a deployed container, update the environment and restart/redeploy the app.
 
 ## Next recommended task
 
-Implement the next P1 item from `TODO.md`: board links as canvas items or `organize_board`, depending on whether the next priority is navigation or assistant-driven layout.
+Create the first production account with signup enabled, then set `APP_SIGNUP=disable` in production and verify `/signup`, `/login`, and direct `POST /api/auth/signup` behavior against the deployed domain.

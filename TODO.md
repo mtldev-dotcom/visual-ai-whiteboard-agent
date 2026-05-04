@@ -145,11 +145,13 @@ Priority legend:
 - [x] `P1` Add empty states and loading states.
 - [~] `P1` Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)
 - [x] `P1` Add demo board templates.
+- [~] `P2` Add production deployment config. (Dokploy Dockerfile + guide ready for test deploy; production hardening still pending)
 - [ ] `P2` Add analytics/events with privacy review.
 
 ## Production wiring — completed 2026-05-04
 
 - [x] `P0` Implement NextAuth v4 credentials auth (signup + login).
+- [x] `P1` Add `APP_SIGNUP=disable` environment gate for new account creation.
 - [x] `P0` Wire home page to real boards from DB (async server component).
 - [x] `P0` Wire canvas to real DB-backed items (load, move, resize, delete, edit, copy).
 - [x] `P0` Wire AssistantPanel to real LLM via /api/chat with tool call loop.

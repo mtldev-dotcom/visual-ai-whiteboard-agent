@@ -21,6 +21,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 ### Auth
 
 - NextAuth.js v4 credentials (email + password). Signup at `/signup`, login at `/login`.
+- Signup can be disabled per environment with `APP_SIGNUP=disable`; login remains available and the signup API returns 403.
 - JWT session with `userId` + `workspaceId`. Next.js 16 proxy guards all routes.
 - `getOrCreateWorkspaceForUser` creates workspace on first login.
 - Onboarding board auto-seeded on signup: Welcome Board with sticky note, notes, task list, and Kanban.
@@ -41,6 +42,9 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 
 - OpenRouter LLM adapter (any model via `OPENROUTER_MODEL`). Falls back to local stub.
 - Persistent chat threads: one `ChatThread` per board. Messages saved to DB after each turn. History loaded on board switch.
+- Final assistant responses after tool calls receive tool results as explicit grounding data, so board summaries use actual canvas item output instead of guessing from chat history.
+- Runtime chat context includes current date/time, selected board ID, and instructions to use board query tools before answering questions about visible board contents.
+- The chat route supports multi-step tool execution, so requests like "delete that note" can list items first, then call `delete_canvas_item`, then respond only after the write tool succeeds.
 - Registered chat tools:
   - `create_board`, `create_sub_board`
   - `add_canvas_item`, `update_canvas_item`, `delete_canvas_item`
@@ -48,10 +52,19 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
   - `create_task`, `list_tasks`, `create_reminder`, `list_reminders`
 - Tool execution cards in chat UI (success/error/pending states).
 - Canvas auto-refreshes after successful tool calls.
+- Assistant board/canvas tools verify workspace ownership before reading or mutating boards/items.
 
 ### API routes
 
-`/api/auth/[...nextauth]`, `/api/auth/signup`, `/api/boards`, `/api/boards/[id]`, `/api/boards/from-template`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/chat`, `/api/chat/thread`, `/api/tasks`, `/api/tasks/[id]`, `/api/telegram/webhook`, `/api/workspace`
+`/api/auth/[...nextauth]`, `/api/auth/signup`, `/api/boards`, `/api/boards/[id]`, `/api/boards/from-template`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/chat`, `/api/chat/thread`, `/api/health`, `/api/tasks`, `/api/tasks/[id]`, `/api/telegram/webhook`, `/api/workspace`
+
+### Deployment
+
+- Dockerfile-based deploy is ready for Dokploy test deployment.
+- Deploy image uses Node.js 22 Debian slim with OpenSSL for Prisma.
+- Container start runs `prisma migrate deploy` before `next start -H 0.0.0.0`.
+- Public health check exists at `/api/health`.
+- Dokploy/Hetzner guide: `docs/deployment/DOKPLOY_HETZNER.md`.
 
 ### UI/UX
 

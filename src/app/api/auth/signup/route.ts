@@ -3,10 +3,18 @@ import { NextResponse } from "next/server";
 import { getPrismaClient } from "@/db/client";
 import { getOrCreateWorkspaceForUser } from "@/db/workspaces";
 import { hashPassword } from "@/lib/password";
+import { isSignupEnabled } from "@/lib/signup";
 import { seedOnboardingBoard } from "@/server/onboarding";
 
 export async function POST(request: Request) {
   try {
+    if (!isSignupEnabled()) {
+      return NextResponse.json(
+        { error: "Signup is currently disabled." },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { email, password, name } = body as {
       email?: string;

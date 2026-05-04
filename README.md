@@ -50,10 +50,20 @@ Copy `.env.example` to `.env.local` and fill in:
 ```bash
 DATABASE_URL=postgresql://visual_whiteboard:visual_whiteboard_dev@localhost:5444/visual_whiteboard_ai
 AUTH_SECRET=<generate with: openssl rand -base64 32>
+NEXTAUTH_URL=http://localhost:3000
+APP_SIGNUP=enable
 LLM_PROVIDER=openrouter
 OPENROUTER_API_KEY=<your key from openrouter.ai>
 OPENROUTER_MODEL=anthropic/claude-3-haiku   # or any OpenRouter model
 ```
+
+To disable new account creation locally or in production, set:
+
+```bash
+APP_SIGNUP=disable
+```
+
+Login remains available for existing users.
 
 To use the deterministic local stub (no API key needed):
 
@@ -72,13 +82,14 @@ Open `http://localhost:3000`.
 
 ## Routes
 
-| Route     | Description                                           |
-| --------- | ----------------------------------------------------- |
-| `/signup` | Create an account                                     |
-| `/login`  | Sign in                                               |
-| `/`       | Whiteboard workspace — boards, canvas, assistant chat |
-| `/tasks`  | Task center — create and complete tasks               |
-| `/core`   | Editable Markdown core files for the assistant        |
+| Route         | Description                                           |
+| ------------- | ----------------------------------------------------- |
+| `/signup`     | Create an account                                     |
+| `/login`      | Sign in                                               |
+| `/`           | Whiteboard workspace — boards, canvas, assistant chat |
+| `/tasks`      | Task center — create and complete tasks               |
+| `/core`       | Editable Markdown core files for the assistant        |
+| `/api/health` | Public health check for deployment platforms          |
 
 ## Useful checks
 
@@ -96,6 +107,8 @@ npm run telegram:webhook
 ```
 
 `npm run telegram:webhook` registers `APP_URL/api/telegram/webhook` with Telegram using `TELEGRAM_BOT_TOKEN` and optional `TELEGRAM_WEBHOOK_SECRET`.
+
+For a Dokploy/Hetzner test deploy, see `docs/deployment/DOKPLOY_HETZNER.md`.
 
 ## Recommended first instruction for coding agents
 

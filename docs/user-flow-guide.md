@@ -38,6 +38,8 @@ Each flow lists:
 
 **What works now:** form validation, `POST /api/auth/signup`, NextAuth sign-in, workspace creation, onboarding board seed.
 
+**Signup control:** set `APP_SIGNUP=disable` to block new account creation. `/signup` then shows a disabled state, `/login` hides the create-account link, and direct signup API calls return 403.
+
 **Known limitations:** no email verification, OAuth, magic link, or forgot-password flow.
 
 ---

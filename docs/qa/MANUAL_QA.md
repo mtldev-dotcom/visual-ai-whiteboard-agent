@@ -19,6 +19,7 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Sign out and sign back in with same credentials.
 - [ ] Wrong password → shows error, stays on `/login`.
 - [ ] Unauthenticated request to `/tasks` → redirects to `/login`.
+- [ ] With `APP_SIGNUP=disable`, `/signup` shows account creation disabled, `/login` hides "Create one", and direct `POST /api/auth/signup` returns 403.
 
 ## 2. Create board from chat
 
