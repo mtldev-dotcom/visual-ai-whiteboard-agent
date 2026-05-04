@@ -19,6 +19,13 @@ export type ChatToolCall = {
   output?: unknown;
 };
 
+const BOARD_ID_TOOLS = new Set([
+  "add_canvas_item",
+  "summarize_board",
+  "list_canvas_items",
+]);
+const MAX_TOOL_ROUNDS = 4;
+
 export async function POST(request: Request) {
   const { session, error } = await requireSession();
   if (error) return error;
@@ -53,18 +60,16 @@ export async function POST(request: Request) {
     return {
       name: full.name,
       description: full.description,
-      inputSchema: {
-        type: "object",
-        additionalProperties: true,
-      },
+      inputSchema: getToolInputSchema(full.name),
     };
   });
 
   const coreContext = await loadAssistantCoreContext();
 
-  let boardContext = "";
+  const runtimeContext = buildRuntimeContext(body.boardId);
+  let boardContext = runtimeContext;
   if (body.boardId) {
-    boardContext = `\n\nCurrent board ID: ${body.boardId}. Use this boardId when adding canvas items.`;
+    boardContext += `\n\nCurrent board ID: ${body.boardId}. Use this exact boardId for board and canvas tools.`;
   }
 
   const llmMessages: LlmMessage[] = body.messages.map((m) => ({
@@ -74,30 +79,46 @@ export async function POST(request: Request) {
 
   const adapter = createLlmAdapter();
 
-  const firstResponse = await adapter.complete({
-    messages: llmMessages,
-    coreContext: coreContext
-      ? coreContext + boardContext
-      : boardContext || null,
-    tools: llmToolDefs,
-  });
-
   const executedToolCalls: ChatToolCall[] = [];
+  const toolResultMessages: LlmMessage[] = [...llmMessages];
+  let assistantContent: string | null = null;
 
-  if (firstResponse.toolCalls.length > 0) {
-    const toolResultMessages: LlmMessage[] = [...llmMessages];
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const response = await adapter.complete({
+      messages: toolResultMessages,
+      coreContext:
+        round === 0
+          ? coreContext
+            ? coreContext + boardContext
+            : boardContext || null
+          : buildToolFollowupContext(),
+      tools: llmToolDefs,
+    });
 
-    if (firstResponse.content) {
+    assistantContent = response.content;
+
+    if (response.toolCalls.length === 0) {
+      break;
+    }
+
+    if (response.content) {
       toolResultMessages.push({
         role: "assistant",
-        content: firstResponse.content,
+        content: response.content,
       });
     }
 
-    for (const toolCall of firstResponse.toolCalls) {
-      const result = await registry.execute(
+    for (const toolCall of response.toolCalls) {
+      const normalizedInput = normalizeToolInput(
         toolCall.name,
         toolCall.input,
+        {
+          boardId: body.boardId,
+        },
+      );
+      const result = await registry.execute(
+        toolCall.name,
+        normalizedInput,
         toolContext,
       );
       executedToolCalls.push({
@@ -109,30 +130,233 @@ export async function POST(request: Request) {
 
       toolResultMessages.push({
         role: "tool",
-        content: JSON.stringify({ toolCallId: toolCall.id, result }),
+        content: JSON.stringify({
+          toolCallId: toolCall.id,
+          toolName: toolCall.name,
+          input: normalizedInput,
+          result,
+        }),
       });
     }
+  }
 
+  if (executedToolCalls.length > 0) {
     const finalResponse = await adapter.complete({
       messages: toolResultMessages,
-      coreContext: null,
+      coreContext: buildFinalResponseContext(),
       tools: [],
     });
 
-    await persistTurn(body.threadId, body.messages, executedToolCalls, finalResponse.content);
+    assistantContent = finalResponse.content;
+
+    await persistTurn(
+      body.threadId,
+      body.messages,
+      executedToolCalls,
+      finalResponse.content,
+    );
 
     return NextResponse.json({
-      content: finalResponse.content,
+      content: assistantContent,
       toolCalls: executedToolCalls,
     });
   }
 
-  await persistTurn(body.threadId, body.messages, executedToolCalls, firstResponse.content);
+  await persistTurn(
+    body.threadId,
+    body.messages,
+    executedToolCalls,
+    assistantContent,
+  );
 
   return NextResponse.json({
-    content: firstResponse.content,
+    content: assistantContent,
     toolCalls: executedToolCalls,
   });
+}
+
+function buildRuntimeContext(boardId: string | undefined) {
+  const now = new Date();
+  return [
+    `Current date/time: ${now.toISOString()}.`,
+    "Assume the user's local timezone is America/Toronto unless they say otherwise.",
+    "For relative reminder phrases like 'tomorrow', 'tmr', or 'next Friday', convert them to an ISO 8601 remindAt before calling create_reminder.",
+    "When the user asks what is on the board, what you can see, to summarize the board, or to find/update/delete an existing item, call summarize_board or list_canvas_items before answering.",
+    "When the user asks to delete or update an existing item and you need the item ID, first call list_canvas_items, then call delete_canvas_item or update_canvas_item in a follow-up tool call. Do not claim the change happened until the write tool succeeds.",
+    "Board and item tool results are authoritative. Never invent item titles, item counts, board names, or content.",
+    "If no board is selected, ask the user to select or create a board before making board changes.",
+    boardId
+      ? "A board is selected. Prefer using the selected board for board-specific commands unless the user clearly names another board."
+      : "No board is selected.",
+  ].join("\n");
+}
+
+function buildToolFollowupContext() {
+  return [
+    "You are continuing after one or more tool calls.",
+    "If the user requested a board mutation and the previous tool result only identified candidate items, call the needed write tool now.",
+    "For delete requests, call delete_canvas_item with confirmed=true after identifying the target item.",
+    "For update requests, call update_canvas_item after identifying the target item.",
+    "Do not produce a final success message for a mutation unless the mutation tool has succeeded.",
+  ].join("\n");
+}
+
+function buildFinalResponseContext() {
+  return [
+    "You are writing the final response after tool execution.",
+    "Use tool result data as authoritative.",
+    "For board summaries, mention the actual item count, item types, titles, and visible content from the tool result.",
+    "Do not mention items or content that are not present in the tool result.",
+    "If the user asked to delete, update, or create something, only say it was done if the corresponding delete_canvas_item, update_canvas_item, add_canvas_item, create_task, create_reminder, create_board, or create_sub_board tool succeeded.",
+    "If only list_canvas_items or summarize_board ran, say what you found and what still needs to happen; do not claim a mutation happened.",
+    "If a tool failed, explain the failure and what the user can do next.",
+  ].join("\n");
+}
+
+function normalizeToolInput(
+  toolName: string,
+  input: Record<string, unknown>,
+  context: { boardId?: string },
+) {
+  const normalized = { ...input };
+
+  if (
+    context.boardId &&
+    BOARD_ID_TOOLS.has(toolName) &&
+    typeof normalized.boardId !== "string"
+  ) {
+    normalized.boardId = context.boardId;
+  }
+
+  if (
+    context.boardId &&
+    (toolName === "create_task" || toolName === "create_reminder") &&
+    normalized.boardId === undefined
+  ) {
+    normalized.boardId = context.boardId;
+  }
+
+  return normalized;
+}
+
+function getToolInputSchema(toolName: string): Record<string, unknown> {
+  const objectBase = { type: "object", additionalProperties: false };
+
+  switch (toolName) {
+    case "create_board":
+      return {
+        ...objectBase,
+        required: ["title"],
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+        },
+      };
+    case "create_sub_board":
+      return {
+        ...objectBase,
+        required: ["parentBoardId", "title"],
+        properties: {
+          parentBoardId: { type: "string" },
+          title: { type: "string" },
+          description: { type: "string" },
+        },
+      };
+    case "add_canvas_item":
+      return {
+        ...objectBase,
+        required: ["boardId", "type", "x", "y", "width", "height", "content"],
+        properties: {
+          boardId: { type: "string" },
+          type: {
+            type: "string",
+            enum: [
+              "text",
+              "sticky_note",
+              "notes",
+              "task_list",
+              "kanban",
+              "markdown",
+              "image",
+              "link",
+              "html_widget",
+            ],
+          },
+          x: { type: "number" },
+          y: { type: "number" },
+          width: { type: "number" },
+          height: { type: "number" },
+          content: { type: "object", additionalProperties: true },
+          style: { type: "object", additionalProperties: true },
+          metadata: { type: "object", additionalProperties: true },
+          safetyMetadata: { type: "object", additionalProperties: true },
+        },
+      };
+    case "update_canvas_item":
+      return {
+        ...objectBase,
+        required: ["itemId"],
+        properties: {
+          itemId: { type: "string" },
+          x: { type: "number" },
+          y: { type: "number" },
+          width: { type: "number" },
+          height: { type: "number" },
+          content: { type: "object", additionalProperties: true },
+          style: { type: "object", additionalProperties: true },
+          metadata: { type: "object", additionalProperties: true },
+          safetyMetadata: { type: "object", additionalProperties: true },
+        },
+      };
+    case "delete_canvas_item":
+      return {
+        ...objectBase,
+        required: ["itemId", "confirmed"],
+        properties: {
+          itemId: { type: "string" },
+          confirmed: { type: "boolean", enum: [true] },
+        },
+      };
+    case "summarize_board":
+    case "list_canvas_items":
+      return {
+        ...objectBase,
+        required: ["boardId"],
+        properties: {
+          boardId: { type: "string" },
+        },
+      };
+    case "create_task":
+      return {
+        ...objectBase,
+        required: ["title"],
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["low", "normal", "high"] },
+          boardId: { type: "string" },
+          dueAt: { type: "string", description: "ISO 8601 date string" },
+        },
+      };
+    case "create_reminder":
+      return {
+        ...objectBase,
+        required: ["title", "remindAt"],
+        properties: {
+          title: { type: "string" },
+          remindAt: { type: "string", description: "ISO 8601 date string" },
+          boardId: { type: "string" },
+        },
+      };
+    case "list_tasks":
+    case "list_reminders":
+      return {
+        ...objectBase,
+        properties: {},
+      };
+    default:
+      return { type: "object", additionalProperties: true };
+  }
 }
 
 async function persistTurn(

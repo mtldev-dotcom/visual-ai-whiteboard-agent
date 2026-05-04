@@ -1,4 +1,4 @@
-import { createBoard, createSubBoard } from "../../db/boards";
+import { createBoard, createSubBoard, getBoardById } from "../../db/boards";
 
 import type {
   ToolDefinition,
@@ -93,6 +93,16 @@ export const createBoardTool: ToolDefinition<CreateBoardInput> = {
 export const createSubBoardTool: ToolDefinition<CreateSubBoardInput> = {
   description: "Create a sub-board under an existing board.",
   execute: async (input, context) => {
+    const parentBoard = await getBoardById(input.parentBoardId);
+
+    if (!parentBoard || parentBoard.workspaceId !== context.workspaceId) {
+      return {
+        error: "Parent board not found.",
+        ok: false,
+        summary: "Parent board not found.",
+      };
+    }
+
     const board = await createSubBoard({
       createdBy: actorToCreatedBy(context.actor.type),
       description: input.description,

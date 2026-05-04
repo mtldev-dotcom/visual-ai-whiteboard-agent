@@ -1,8 +1,10 @@
 import {
   createCanvasItem,
+  getCanvasItemById,
   softDeleteCanvasItem,
   updateCanvasItem,
 } from "../../db/canvas-items";
+import { getBoardById } from "../../db/boards";
 
 import type { Prisma } from "@/generated/prisma/client";
 import type {
@@ -155,6 +157,16 @@ export function validateDeleteCanvasItemInput(
 export const addCanvasItemTool: ToolDefinition<AddCanvasItemInput> = {
   description: "Add a structured item to a board canvas.",
   execute: async (input, context) => {
+    const board = await getBoardById(input.boardId);
+
+    if (!board || board.workspaceId !== context.workspaceId) {
+      return {
+        error: "Board not found.",
+        ok: false,
+        summary: "Board not found.",
+      };
+    }
+
     const item = await createCanvasItem({
       boardId: input.boardId,
       content: input.content as Prisma.InputJsonObject,
@@ -185,7 +197,17 @@ export const addCanvasItemTool: ToolDefinition<AddCanvasItemInput> = {
 
 export const updateCanvasItemTool: ToolDefinition<UpdateCanvasItemInput> = {
   description: "Update a structured canvas item.",
-  execute: async (input) => {
+  execute: async (input, context) => {
+    const existing = await getCanvasItemById(input.itemId);
+
+    if (!existing || existing.workspaceId !== context.workspaceId) {
+      return {
+        error: "Item not found.",
+        ok: false,
+        summary: "Item not found.",
+      };
+    }
+
     const item = await updateCanvasItem({
       content: input.content as Prisma.InputJsonObject | undefined,
       height: input.height,
@@ -213,7 +235,17 @@ export const updateCanvasItemTool: ToolDefinition<UpdateCanvasItemInput> = {
 
 export const deleteCanvasItemTool: ToolDefinition<DeleteCanvasItemInput> = {
   description: "Soft delete a canvas item after confirmation.",
-  execute: async (input) => {
+  execute: async (input, context) => {
+    const existing = await getCanvasItemById(input.itemId);
+
+    if (!existing || existing.workspaceId !== context.workspaceId) {
+      return {
+        error: "Item not found.",
+        ok: false,
+        summary: "Item not found.",
+      };
+    }
+
     const item = await softDeleteCanvasItem(input.itemId);
 
     return {

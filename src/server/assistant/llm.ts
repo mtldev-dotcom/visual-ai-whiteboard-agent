@@ -98,6 +98,11 @@ class OpenRouterLlmAdapter implements LlmAdapter {
     for (const m of request.messages) {
       if (m.role === "system" || m.role === "user" || m.role === "assistant") {
         messages.push({ role: m.role, content: m.content });
+      } else if (m.role === "tool") {
+        messages.push({
+          role: "user",
+          content: `Tool result for grounding. Use this data as authoritative and do not invent board or item details:\n${m.content}`,
+        });
       }
     }
 

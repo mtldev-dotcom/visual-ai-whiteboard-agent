@@ -12,6 +12,10 @@ This file documents assistant tools. It must stay synchronized with implemented 
 - `add_canvas_item`
 - `update_canvas_item`
 - `delete_canvas_item`
+- `summarize_board`
+- `list_canvas_items`
+
+Board and item answers must be grounded in tool results. Use `summarize_board` before describing what is visible on a board. Use `list_canvas_items` before targeting an existing item for update or delete.
 
 ## Telegram commands
 
