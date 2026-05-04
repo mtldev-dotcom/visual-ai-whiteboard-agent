@@ -1,31 +1,175 @@
 @import "tailwindcss";
 
+/* Class-based dark mode for manual toggle */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Design tokens ──────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-app: #eeecea;
+  --bg-surface: #ffffff;
+  --bg-sidebar: #f8f7f5;
+  --bg-canvas: #f0efed;
+  --bg-elevated: #ffffff;
+  --bg-overlay: rgba(0, 0, 0, 0.45);
+
+  --border: #e2dfd8;
+  --border-strong: #cac6bc;
+
+  --text-1: #18181b;
+  --text-2: #71717a;
+  --text-3: #a1a1aa;
+
+  --accent: #2f5d50;
+  --accent-hover: #245044;
+  --accent-fg: #ffffff;
+  --accent-light: #e6f0ec;
+  --accent-light-hover: #d4e8e0;
+
+  --danger: #dc2626;
+  --danger-fg: #ffffff;
+  --danger-light: #fef2f2;
+
+  --canvas-dot: #d5d1c9;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 8px 40px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --bg-app: #0c0c0d;
+  --bg-surface: #1c1c1f;
+  --bg-sidebar: #161618;
+  --bg-canvas: #111113;
+  --bg-elevated: #242428;
+  --bg-overlay: rgba(0, 0, 0, 0.65);
+
+  --border: #2c2c30;
+  --border-strong: #3c3c42;
+
+  --text-1: #f4f4f5;
+  --text-2: #a1a1aa;
+  --text-3: #52525b;
+
+  --accent: #34d399;
+  --accent-hover: #6ee7b7;
+  --accent-fg: #052e16;
+  --accent-light: #064e3b;
+  --accent-light-hover: #065f46;
+
+  --danger: #f87171;
+  --danger-fg: #450a0a;
+  --danger-light: #1c0606;
+
+  --canvas-dot: #1e1e22;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 8px 40px rgba(0, 0, 0, 0.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Canvas grid ────────────────────────────────────────────────── */
+.canvas-surface {
+  background-color: var(--bg-canvas);
+  background-image: radial-gradient(
+    circle,
+    var(--canvas-dot) 1.2px,
+    transparent 1.2px
+  );
+  background-size: 24px 24px;
+}
+
+/* ─── Global base ────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
+}
+
+/* ─── Animations ─────────────────────────────────────────────────── */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.animate-fade-in {
+  animation: fade-in 0.15s ease;
+}
+.animate-scale-in {
+  animation: scale-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }

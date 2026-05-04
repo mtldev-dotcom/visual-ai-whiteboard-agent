@@ -11,7 +11,16 @@
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('next-auth:', p.dependencies['next-auth']\\); console.log\\('bcryptjs:', p.dependencies['bcryptjs']\\); console.log\\('openai:', p.dependencies['openai']\\);\")",
       "Bash(npx prisma *)",
       "Bash(npm test *)",
-      "Bash(npx prettier *)"
+      "Bash(npx prettier *)",
+      "Bash(grep -E \"\\\\.md$\")",
+      "Bash(Get-Content package.json)",
+      "Bash(Select-String -Pattern '\"dev\"')",
+      "Bash(ipconfig)",
+      "PowerShell(cd \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\"; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\"; npx next dev -H 0.0.0.0 -p 3000')",
+      "PowerShell(Stop-Process -Name \"node\" -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\"; npx next dev -H 0.0.0.0 -p 3000')",
+      "Bash(npx skills *)",
+      "Bash(npm ls *)",
+      "Bash(npx eslint *)"
     ],
     "additionalDirectories": [
       "d:\\DEV-D\\visual-ai-whiteboard-agent\\src\\app\\api\\auth",

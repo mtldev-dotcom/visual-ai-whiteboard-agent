@@ -1,12 +1,14 @@
 "use client";
 
+import { AlignLeft, CheckSquare, Plus } from "lucide-react";
 import { useState } from "react";
 
 const widgets = [
   {
     category: "Productivity",
-    description: "Checklist widget for board-level tasks.",
+    description: "Checklist for board-level tasks",
     name: "Task List",
+    icon: CheckSquare,
     type: "task_list",
     defaultContent: { title: "Tasks", tasks: [] },
     defaultWidth: 280,
@@ -14,8 +16,9 @@ const widgets = [
   },
   {
     category: "Notes",
-    description: "Plain notes widget for quick capture.",
+    description: "Quick-capture notes",
     name: "Notes",
+    icon: AlignLeft,
     type: "notes",
     defaultContent: { title: "Notes", text: "" },
     defaultWidth: 300,
@@ -55,31 +58,92 @@ export function WidgetLibrary({ activeBoardId, onItemAdded }: Props) {
   }
 
   return (
-    <section className="mt-6">
-      <h2 className="text-sm font-semibold">Widgets</h2>
-      <div className="mt-3 space-y-2">
-        {widgets.map((widget) => (
-          <button
-            className="block w-full rounded-md border border-[#e7e0d0] bg-white p-3 text-left text-sm transition-colors hover:bg-[#f7f5ef] disabled:opacity-50"
-            disabled={!activeBoardId || adding === widget.type}
-            key={widget.name}
-            onClick={() => addWidget(widget)}
-            type="button"
-          >
-            <span className="block font-semibold">{widget.name}</span>
-            <span className="mt-1 block text-xs text-[#6b7280]">
-              {widget.category}
-            </span>
-            <span className="mt-2 block text-[#4b5563]">
-              {widget.description}
-            </span>
-          </button>
-        ))}
-        {!activeBoardId && (
-          <p className="px-1 text-xs text-[#9ca3af]">
-            Select a board to add widgets.
-          </p>
-        )}
+    <section className="mt-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-widest"
+          style={{ color: "var(--text-3)" }}
+        >
+          Widgets
+        </span>
+      </div>
+
+      {!activeBoardId && (
+        <p className="text-xs" style={{ color: "var(--text-3)" }}>
+          Select a board to add widgets.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        {widgets.map((widget) => {
+          const Icon = widget.icon;
+          const isAdding = adding === widget.type;
+          return (
+            <button
+              className="flex flex-col gap-1.5 rounded-xl border p-3 text-left text-xs transition-all disabled:opacity-40"
+              disabled={!activeBoardId || isAdding}
+              key={widget.name}
+              onClick={() => addWidget(widget)}
+              style={{
+                background: "var(--bg-surface)",
+                borderColor: "var(--border)",
+              }}
+              type="button"
+              onMouseEnter={(e) => {
+                if (activeBoardId)
+                  (e.currentTarget as HTMLElement).style.borderColor =
+                    "var(--accent)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  "var(--border)";
+              }}
+            >
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-lg"
+                style={{
+                  background: "var(--accent-light)",
+                  color: "var(--accent)",
+                }}
+              >
+                {isAdding ? (
+                  <span
+                    className="h-3 w-3 animate-spin rounded-full border border-t-transparent"
+                    style={{
+                      borderColor: "var(--accent)",
+                      borderTopColor: "transparent",
+                    }}
+                  />
+                ) : (
+                  <Icon size={14} />
+                )}
+              </div>
+              <span
+                className="font-semibold"
+                style={{ color: "var(--text-1)" }}
+              >
+                {widget.name}
+              </span>
+              <span style={{ color: "var(--text-3)" }}>
+                {widget.description}
+              </span>
+            </button>
+          );
+        })}
+
+        {/* Placeholder for more widgets */}
+        <button
+          className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed p-3 text-xs transition-colors"
+          disabled
+          style={{
+            borderColor: "var(--border)",
+            color: "var(--text-3)",
+          }}
+          type="button"
+        >
+          <Plus size={16} />
+          <span>More soon</span>
+        </button>
       </div>
     </section>
   );

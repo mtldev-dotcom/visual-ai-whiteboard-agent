@@ -1,5 +1,6 @@
 "use client";
 
+import { Bot, Send, Wrench } from "lucide-react";
 import { FormEvent, useCallback, useRef, useState } from "react";
 
 type ChatMessage = {
@@ -36,6 +37,7 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(
@@ -60,7 +62,7 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
       role: "tool",
       toolName: "thinking",
       status: "pending",
-      summary: "Assistant is thinking…",
+      summary: "Working on it…",
     };
     setMessages((prev) => [...prev, pendingCard]);
 
@@ -139,66 +141,175 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
       ]);
     } finally {
       setPending(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }
 
   return (
-    <aside className="flex min-h-[320px] flex-col border-t border-[#d8d2c3] bg-[#fffdfa] p-4 lg:border-l lg:border-t-0">
-      <h2 className="text-sm font-semibold">Assistant</h2>
-      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-        {messages.map((message) =>
-          message.role === "tool" ? (
-            <div
-              className="rounded-md border border-[#c7bfae] bg-[#f7f5ef] p-3 text-sm"
-              key={message.id}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold">{message.toolName}</span>
-                <span
-                  className={`rounded-md px-2 py-1 text-xs font-semibold text-white ${
-                    message.status === "success"
-                      ? "bg-[#2f5d50]"
-                      : message.status === "error"
-                        ? "bg-red-500"
-                        : "bg-[#9ca3af]"
-                  }`}
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      style={{ background: "var(--bg-sidebar)" }}
+    >
+      {/* Header */}
+      <div
+        className="flex shrink-0 items-center gap-2 border-b px-4 py-3"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <div
+          className="flex h-6 w-6 items-center justify-center rounded-lg"
+          style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+        >
+          <Bot size={14} />
+        </div>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "var(--text-1)" }}
+        >
+          AI Assistant
+        </span>
+        {pending && (
+          <span className="ml-auto text-xs" style={{ color: "var(--text-3)" }}>
+            thinking…
+          </span>
+        )}
+      </div>
+
+      {/* Message list */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 py-3">
+        {messages.map((message) => {
+          if (message.role === "tool") {
+            return (
+              <div
+                className="animate-fade-in rounded-xl border p-3"
+                key={message.id}
+                style={{
+                  background:
+                    message.status === "pending"
+                      ? "var(--bg-surface)"
+                      : message.status === "success"
+                        ? "var(--accent-light)"
+                        : "var(--danger-light)",
+                  borderColor:
+                    message.status === "pending"
+                      ? "var(--border)"
+                      : message.status === "success"
+                        ? "var(--accent)"
+                        : "var(--danger)",
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <Wrench
+                      size={12}
+                      style={{
+                        color:
+                          message.status === "success"
+                            ? "var(--accent)"
+                            : message.status === "pending"
+                              ? "var(--text-3)"
+                              : "var(--danger)",
+                      }}
+                    />
+                    <span
+                      className="text-xs font-semibold font-mono"
+                      style={{ color: "var(--text-1)" }}
+                    >
+                      {message.toolName}
+                    </span>
+                  </div>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                    style={
+                      message.status === "success"
+                        ? {
+                            background: "var(--accent)",
+                            color: "var(--accent-fg)",
+                          }
+                        : message.status === "error"
+                          ? {
+                              background: "var(--danger)",
+                              color: "var(--danger-fg)",
+                            }
+                          : {
+                              background: "var(--border)",
+                              color: "var(--text-2)",
+                            }
+                    }
+                  >
+                    {message.status}
+                  </span>
+                </div>
+                <p
+                  className="mt-1.5 text-xs leading-relaxed"
+                  style={{ color: "var(--text-2)" }}
                 >
-                  {message.status}
-                </span>
+                  {message.summary}
+                </p>
               </div>
-              <p className="mt-2 text-[#4b5563]">{message.summary}</p>
-            </div>
-          ) : (
+            );
+          }
+
+          return (
             <div
-              className={`rounded-md border p-3 text-sm ${
-                message.role === "user"
-                  ? "ml-8 border-[#b9c6d3] bg-[#eef5fb]"
-                  : "mr-8 border-[#e7e0d0] bg-white"
+              className={`animate-fade-in max-w-[92%] rounded-xl px-3 py-2.5 text-sm leading-relaxed ${
+                message.role === "user" ? "ml-auto" : "mr-auto"
               }`}
               key={message.id}
+              style={
+                message.role === "user"
+                  ? {
+                      background: "var(--accent)",
+                      color: "var(--accent-fg)",
+                    }
+                  : {
+                      background: "var(--bg-surface)",
+                      color: "var(--text-1)",
+                      border: "1px solid var(--border)",
+                    }
+              }
             >
               {message.text}
             </div>
-          ),
-        )}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
-      <form className="mt-3 flex gap-2" onSubmit={submitMessage}>
-        <input
-          className="min-h-11 flex-1 rounded-md border border-[#c7bfae] bg-white px-3 text-sm disabled:opacity-60"
-          disabled={pending}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={boardId ? "Ask AI…" : "Select a board first…"}
-          value={draft}
-        />
-        <button
-          className="min-h-11 rounded-md bg-[#2f5d50] px-4 text-sm font-semibold text-white disabled:opacity-60"
-          disabled={pending || !draft.trim() || !boardId}
-          type="submit"
+
+      {/* Input */}
+      <form
+        className="shrink-0 border-t p-3"
+        onSubmit={submitMessage}
+        style={{ borderColor: "var(--border)" }}
+      >
+        <div
+          className="flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors"
+          style={{
+            background: "var(--bg-surface)",
+            borderColor: "var(--border)",
+          }}
         >
-          Send
-        </button>
+          <input
+            ref={inputRef}
+            className="flex-1 bg-transparent text-sm outline-none"
+            disabled={pending}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={boardId ? "Ask AI…" : "Select a board first…"}
+            style={{ color: "var(--text-1)" }}
+            value={draft}
+          />
+          <button
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
+            disabled={pending || !draft.trim() || !boardId}
+            style={{
+              background: "var(--accent)",
+              color: "var(--accent-fg)",
+            }}
+            type="submit"
+          >
+            <Send size={13} />
+          </button>
+        </div>
       </form>
-    </aside>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut } from "next-auth/react";
+import { ChevronRight, FolderOpen, Plus, Search } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { WidgetLibrary } from "./WidgetLibrary";
@@ -16,6 +16,7 @@ type Props = {
   activeBoardId: string | null;
   onBoardSelect: (boardId: string) => void;
   onBoardCreated: (board: Board) => void;
+  onItemAdded?: () => void;
 };
 
 export function BoardExplorer({
@@ -23,11 +24,13 @@ export function BoardExplorer({
   activeBoardId,
   onBoardSelect,
   onBoardCreated,
+  onItemAdded,
 }: Props) {
   const [boards, setBoards] = useState(initialBoards);
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const filtered = search.trim()
     ? boards.filter((b) => b.title.toLowerCase().includes(search.toLowerCase()))
@@ -53,6 +56,7 @@ export function BoardExplorer({
         onBoardCreated(data.board!);
         onBoardSelect(data.board!.id);
         setNewTitle("");
+        setShowCreate(false);
       }
     } finally {
       setCreating(false);
@@ -60,82 +64,194 @@ export function BoardExplorer({
   }, [newTitle, onBoardCreated, onBoardSelect]);
 
   return (
-    <>
-      <h2 className="text-sm font-semibold">Boards</h2>
-      <div className="mt-3">
+    <div className="flex flex-col gap-1">
+      {/* Section header */}
+      <div className="flex items-center justify-between pb-1">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-widest"
+          style={{ color: "var(--text-3)" }}
+        >
+          Boards
+        </span>
+        <button
+          className="flex h-6 w-6 items-center justify-center rounded-md transition-colors"
+          onClick={() => setShowCreate((v) => !v)}
+          style={{ color: "var(--text-3)" }}
+          title="New board"
+          type="button"
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLElement).style.background =
+              "var(--accent-light)")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLElement).style.background = "")
+          }
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div
+        className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5"
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "var(--border)",
+        }}
+      >
+        <Search size={12} style={{ color: "var(--text-3)" }} />
         <input
-          className="min-h-11 w-full rounded-md border border-[#c7bfae] bg-white px-3 text-sm"
+          className="flex-1 bg-transparent text-xs outline-none"
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search boards"
+          placeholder="Search boards…"
+          style={{ color: "var(--text-1)" }}
           value={search}
         />
       </div>
 
-      <div className="mt-3 space-y-1">
-        {topLevel.length === 0 && !search && (
-          <p className="px-2 py-3 text-sm text-[#9ca3af]">
-            No boards yet. Create one below.
-          </p>
-        )}
-        {topLevel.map((board) => (
-          <div key={board.id}>
+      {/* Create form */}
+      {showCreate && (
+        <div
+          className="animate-scale-in rounded-lg border p-2"
+          style={{
+            background: "var(--bg-surface)",
+            borderColor: "var(--accent)",
+          }}
+        >
+          <input
+            autoFocus
+            className="mb-2 w-full rounded-md border px-2.5 py-1.5 text-xs outline-none"
+            onKeyDown={(e) => e.key === "Enter" && createBoard()}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Board name…"
+            style={{
+              background: "var(--bg-sidebar)",
+              borderColor: "var(--border)",
+              color: "var(--text-1)",
+            }}
+            value={newTitle}
+          />
+          <div className="flex gap-1.5">
             <button
-              className={`block w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                activeBoardId === board.id
-                  ? "border-[#2f5d50] bg-[#e8f2ee] font-semibold"
-                  : "border-[#e7e0d0] bg-white hover:bg-[#f7f5ef]"
-              }`}
-              onClick={() => onBoardSelect(board.id)}
+              className="flex-1 rounded-md py-1 text-xs font-medium transition-colors"
+              disabled={creating || !newTitle.trim()}
+              onClick={createBoard}
+              style={{
+                background: "var(--accent)",
+                color: "var(--accent-fg)",
+                opacity: creating || !newTitle.trim() ? 0.5 : 1,
+              }}
+              type="button"
             >
-              {board.title}
+              {creating ? "Creating…" : "Create"}
             </button>
-            {subBoards(board.id).map((sub) => (
-              <button
-                className={`mt-1 block w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                  activeBoardId === sub.id
-                    ? "border-[#2f5d50] bg-[#e8f2ee] font-semibold"
-                    : "border-[#e7e0d0] bg-white hover:bg-[#f7f5ef]"
-                }`}
-                key={sub.id}
-                onClick={() => onBoardSelect(sub.id)}
-                style={{ paddingLeft: "30px" }}
-              >
-                {sub.title}
-              </button>
-            ))}
+            <button
+              className="rounded-md px-2 py-1 text-xs"
+              onClick={() => {
+                setShowCreate(false);
+                setNewTitle("");
+              }}
+              style={{ color: "var(--text-3)" }}
+              type="button"
+            >
+              Cancel
+            </button>
           </div>
-        ))}
+        </div>
+      )}
+
+      {/* Board list */}
+      <div className="mt-1 flex flex-col gap-0.5">
+        {topLevel.length === 0 && !search && (
+          <div
+            className="flex flex-col items-center gap-2 rounded-xl py-6 text-center"
+            style={{ color: "var(--text-3)" }}
+          >
+            <FolderOpen size={28} />
+            <p className="text-xs">No boards yet</p>
+            <button
+              className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+              onClick={() => setShowCreate(true)}
+              style={{
+                background: "var(--accent-light)",
+                color: "var(--accent)",
+              }}
+              type="button"
+            >
+              Create one
+            </button>
+          </div>
+        )}
+
+        {topLevel.map((board) => {
+          const subs = subBoards(board.id);
+          const isActive = activeBoardId === board.id;
+          return (
+            <div key={board.id}>
+              <button
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors"
+                onClick={() => onBoardSelect(board.id)}
+                style={{
+                  background: isActive ? "var(--accent-light)" : "transparent",
+                  color: isActive ? "var(--accent)" : "var(--text-2)",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive)
+                    (e.currentTarget as HTMLElement).style.background =
+                      "var(--bg-surface)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive)
+                    (e.currentTarget as HTMLElement).style.background = "";
+                }}
+                type="button"
+              >
+                <FolderOpen size={13} />
+                <span className="flex-1 truncate">{board.title}</span>
+                {subs.length > 0 && (
+                  <ChevronRight size={11} style={{ color: "var(--text-3)" }} />
+                )}
+              </button>
+              {subs.map((sub) => (
+                <button
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 pl-7 text-left text-xs font-medium transition-colors"
+                  key={sub.id}
+                  onClick={() => onBoardSelect(sub.id)}
+                  style={{
+                    background:
+                      activeBoardId === sub.id
+                        ? "var(--accent-light)"
+                        : "transparent",
+                    color:
+                      activeBoardId === sub.id
+                        ? "var(--accent)"
+                        : "var(--text-3)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeBoardId !== sub.id)
+                      (e.currentTarget as HTMLElement).style.background =
+                        "var(--bg-surface)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeBoardId !== sub.id)
+                      (e.currentTarget as HTMLElement).style.background = "";
+                  }}
+                  type="button"
+                >
+                  <span
+                    className="h-3 w-3 rounded-sm border"
+                    style={{ borderColor: "var(--border)" }}
+                  />
+                  <span className="flex-1 truncate">{sub.title}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })}
       </div>
 
-      <div className="mt-4 flex gap-2">
-        <input
-          className="min-h-10 flex-1 rounded-md border border-[#c7bfae] bg-white px-3 text-sm"
-          onKeyDown={(e) => e.key === "Enter" && createBoard()}
-          onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="New board name"
-          value={newTitle}
-        />
-        <button
-          className="min-h-10 rounded-md bg-[#2f5d50] px-3 text-sm font-semibold text-white disabled:opacity-50"
-          disabled={creating || !newTitle.trim()}
-          onClick={createBoard}
-          type="button"
-        >
-          {creating ? "…" : "+"}
-        </button>
-      </div>
-
-      <WidgetLibrary activeBoardId={activeBoardId} />
-
-      <div className="mt-6 border-t border-[#e7e0d0] pt-4">
-        <button
-          className="text-xs text-[#9ca3af] hover:text-[#6b7280]"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          type="button"
-        >
-          Sign out
-        </button>
-      </div>
-    </>
+      {/* Widget library */}
+      <WidgetLibrary activeBoardId={activeBoardId} onItemAdded={onItemAdded} />
+    </div>
   );
 }

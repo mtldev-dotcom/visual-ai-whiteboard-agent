@@ -5,6 +5,100 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
 
+function AuthCard({
+  children,
+  title,
+  subtitle,
+}: {
+  children: React.ReactNode;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <main
+      className="flex min-h-dvh items-center justify-center px-4 py-12"
+      style={{ background: "var(--bg-app)" }}
+    >
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-bold"
+            style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
+          >
+            W
+          </div>
+          <div className="text-center">
+            <h1
+              className="text-xl font-semibold"
+              style={{ color: "var(--text-1)" }}
+            >
+              {title}
+            </h1>
+            <p className="mt-0.5 text-sm" style={{ color: "var(--text-3)" }}>
+              {subtitle}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="rounded-2xl border p-6"
+          style={{
+            background: "var(--bg-surface)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--shadow-lg)",
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function InputField({
+  id,
+  label,
+  hint,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  id: string;
+  label: string;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <label
+        className="mb-1.5 flex items-center justify-between text-xs font-medium"
+        htmlFor={id}
+      >
+        <span style={{ color: "var(--text-1)" }}>{label}</span>
+        {hint && (
+          <span className="font-normal" style={{ color: "var(--text-3)" }}>
+            {hint}
+          </span>
+        )}
+      </label>
+      <input
+        {...props}
+        className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors"
+        id={id}
+        style={{
+          background: "var(--bg-app)",
+          borderColor: "var(--border)",
+          color: "var(--text-1)",
+        }}
+        onFocus={(e) => {
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)";
+        }}
+        onBlur={(e) => {
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+        }}
+      />
+    </div>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,14 +113,12 @@ function LoginForm() {
     event.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
-
       if (result?.error) {
         setError("Invalid email or password.");
       } else {
@@ -39,75 +131,67 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#f7f5ef] px-4 text-[#1f2933]">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold">Sign in</h1>
-          <p className="mt-1 text-sm text-[#6b7280]">Visual AI Whiteboard</p>
-        </div>
-
-        <form
-          className="rounded-md border border-[#d8d2c3] bg-[#fffdfa] p-6"
-          onSubmit={handleSubmit}
-        >
-          {error ? (
-            <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="grid gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium" htmlFor="email">
-                Email
-              </label>
-              <input
-                autoComplete="email"
-                className="min-h-11 w-full rounded-md border border-[#c7bfae] bg-white px-3 text-sm"
-                id="email"
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                type="email"
-                value={email}
-              />
-            </div>
-
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="password"
-              >
-                Password
-              </label>
-              <input
-                autoComplete="current-password"
-                className="min-h-11 w-full rounded-md border border-[#c7bfae] bg-white px-3 text-sm"
-                id="password"
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                type="password"
-                value={password}
-              />
-            </div>
-
-            <button
-              className="min-h-11 w-full rounded-md bg-[#2f5d50] text-sm font-semibold text-white disabled:opacity-60"
-              disabled={loading}
-              type="submit"
-            >
-              {loading ? "Signing in…" : "Sign in"}
-            </button>
+    <AuthCard subtitle="Visual AI Whiteboard" title="Welcome back">
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        {error && (
+          <div
+            className="rounded-xl px-3 py-2.5 text-sm"
+            style={{
+              background: "var(--danger-light)",
+              color: "var(--danger)",
+            }}
+          >
+            {error}
           </div>
-        </form>
+        )}
 
-        <p className="mt-4 text-center text-sm text-[#6b7280]">
-          No account?{" "}
-          <Link className="font-semibold text-[#2f5d50]" href="/signup">
-            Sign up
-          </Link>
-        </p>
-      </div>
-    </main>
+        <InputField
+          autoComplete="email"
+          id="email"
+          label="Email"
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          type="email"
+          value={email}
+        />
+        <InputField
+          autoComplete="current-password"
+          id="password"
+          label="Password"
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          type="password"
+          value={password}
+        />
+
+        <button
+          className="w-full rounded-xl py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
+          disabled={loading}
+          style={{
+            background: "var(--accent)",
+            color: "var(--accent-fg)",
+            marginTop: "4px",
+          }}
+          type="submit"
+        >
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
+      </form>
+
+      <p
+        className="mt-5 text-center text-xs"
+        style={{ color: "var(--text-3)" }}
+      >
+        No account?{" "}
+        <Link
+          className="font-semibold"
+          href="/signup"
+          style={{ color: "var(--accent)" }}
+        >
+          Create one
+        </Link>
+      </p>
+    </AuthCard>
   );
 }
 
