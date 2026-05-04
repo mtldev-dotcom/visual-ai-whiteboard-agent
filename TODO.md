@@ -145,7 +145,7 @@ Priority legend:
 - [x] `P1` Add empty states and loading states.
 - [~] `P1` Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)
 - [x] `P1` Add demo board templates.
-- [~] `P2` Add production deployment config. (Dokploy Dockerfile + guide ready for test deploy; production hardening still pending)
+- [~] `P2` Add production deployment config. (Dokploy Dockerfile + guide ready for test deploy; Docker build verified locally; production hardening still pending)
 - [ ] `P2` Add analytics/events with privacy review.
 
 ## Production wiring — completed 2026-05-04

@@ -4,55 +4,37 @@ Date: 2026-05-04
 
 ## Summary
 
-Added an environment-controlled signup gate. New account creation is enabled by default, but setting `APP_SIGNUP=disable` disables the signup UI and blocks direct signup API requests while keeping login available for existing users.
+Fixed the Dokploy Dockerfile build path after switching away from Nixpacks. The Dockerfile already used Node.js 22, but the Next.js builder stage did not receive the Prisma generated client, causing `@/generated/prisma/client` imports to fail during `next build`.
 
 ## What changed
 
-- Added `src/lib/signup.ts` with shared signup availability logic.
-- Updated `POST /api/auth/signup` to return `403` when signup is disabled.
-- Split login and signup forms into client components so their pages can read server environment at request time.
-- Marked `/login` and `/signup` as dynamic routes so production env changes are not baked into static HTML.
-- `/signup` now shows a disabled state when signup is off.
-- `/login` hides the "Create one" link when signup is off.
-- Added unit coverage for `APP_SIGNUP` behavior.
-- Documented `APP_SIGNUP=enable` / `APP_SIGNUP=disable` in local, deployment, QA, and user-flow docs.
+- Updated `Dockerfile` to copy `/app/src/generated` from the dependency stage into the builder stage before `npm run build`.
+- Updated the Dokploy guide to note that the Prisma client is generated and copied into the build stage.
+- Added a Dokploy troubleshooting note for accidental Nixpacks/Node 18 deployments.
+- Updated deployment status and TODO notes.
 
 ## Files changed this session
 
-- `.env.example`
-- `README.md`
+- `Dockerfile`
 - `CURRENT_STATUS.md`
 - `TODO.md`
 - `SESSION_HANDOFF.md`
 - `docs/deployment/DOKPLOY_HETZNER.md`
-- `docs/qa/MANUAL_QA.md`
-- `docs/user-flow-guide.md`
-- `src/app/api/auth/signup/route.ts`
-- `src/app/login/LoginForm.tsx`
-- `src/app/login/page.tsx`
-- `src/app/signup/SignupForm.tsx`
-- `src/app/signup/page.tsx`
-- `src/lib/signup.ts`
-- `src/lib/signup.test.ts`
 
 ## Checks run
 
-- `npm run typecheck`: passed
-- `npm run lint`: passed
-- `npm test -- --run`: passed, 57 tests
-- `npm run docs:check`: passed
-- `npm run build`: passed
+- `docker build -t visual-ai-whiteboard-agent:test .`: passed
 
 ## Checks skipped
 
-- Manual browser QA was not run.
-- Live production/Dokploy verification was not run.
+- Live Dokploy redeploy was not run from this workspace.
+- Browser/manual QA was not run.
 
 ## Known issues
 
-- Existing uncommitted changes from earlier work are still present in the worktree and were not reverted.
-- To apply a changed `APP_SIGNUP` value in a deployed container, update the environment and restart/redeploy the app.
+- `npm audit` still reports existing moderate advisories during Docker dependency install. Do not apply `npm audit fix --force` without review.
+- Dokploy must use Dockerfile deployment with Dockerfile path `Dockerfile`; Nixpacks will need explicit Node.js 22 configuration if used.
 
 ## Next recommended task
 
-Create the first production account with signup enabled, then set `APP_SIGNUP=disable` in production and verify `/signup`, `/login`, and direct `POST /api/auth/signup` behavior against the deployed domain.
+Redeploy in Dokploy using Dockerfile mode, then verify `https://your-domain.example/api/health` and create the initial production account while `APP_SIGNUP=enable`.
