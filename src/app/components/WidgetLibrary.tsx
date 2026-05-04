@@ -1,6 +1,6 @@
 "use client";
 
-import { AlignLeft, CheckSquare, Plus } from "lucide-react";
+import { AlignLeft, CheckSquare, Columns3, Plus } from "lucide-react";
 import { useState } from "react";
 
 const widgets = [
@@ -23,6 +23,23 @@ const widgets = [
     defaultContent: { title: "Notes", text: "" },
     defaultWidth: 300,
     defaultHeight: 160,
+  },
+  {
+    category: "Productivity",
+    description: "Visual columns for workflow stages",
+    name: "Kanban",
+    icon: Columns3,
+    type: "kanban",
+    defaultContent: {
+      title: "Kanban",
+      columns: [
+        { id: "todo", title: "To Do", cards: [] },
+        { id: "doing", title: "In Progress", cards: [] },
+        { id: "done", title: "Done", cards: [] },
+      ],
+    },
+    defaultWidth: 480,
+    defaultHeight: 300,
   },
 ];
 

@@ -35,7 +35,7 @@ Priority legend:
 - [x] `P0` Implement create/read/update/delete for boards.
 - [x] `P0` Implement create/read/update/delete for canvas items.
 - [ ] `P1` Implement board links as canvas items.
-- [ ] `P1` Implement board search.
+- [x] `P1` Implement board search.
 - [ ] `P1` Add undo/rollback model for canvas changes.
 
 ## Phase 2 — Canvas UI
@@ -62,11 +62,12 @@ Priority legend:
 - [x] `P0` Implement `add_canvas_item` tool.
 - [x] `P0` Implement `update_canvas_item` tool.
 - [x] `P0` Implement `delete_canvas_item` tool with safe confirmation behavior.
-- [ ] `P1` Implement `summarize_board` tool.
+- [x] `P1` Implement `summarize_board` tool.
+- [x] `P1` Implement `list_canvas_items` tool.
 - [ ] `P1` Implement `organize_board` tool.
 - [ ] `P1` Implement `duplicate_board` tool.
 - [ ] `P1` Implement `rollback_canvas_change` tool.
-- [ ] `P1` Persist chat threads and tool calls.
+- [x] `P1` Persist chat threads and tool calls.
 
 ## Phase 4 — Prebuilt widgets
 
@@ -74,7 +75,7 @@ Priority legend:
 - [x] `P0` Build widget library UI.
 - [x] `P0` Add task list widget.
 - [x] `P0` Add notes widget.
-- [ ] `P1` Add Kanban widget.
+- [x] `P1` Add Kanban widget.
 - [ ] `P1` Add markdown reader widget.
 - [ ] `P1` Add rich text editor widget.
 - [ ] `P1` Add reminders widget.
@@ -104,8 +105,9 @@ Priority legend:
 - [ ] `P1` Add recurring schedule model.
 - [ ] `P1` Add cron-like schedules with guardrails.
 - [ ] `P1` Add notification preferences.
-- [ ] `P1` Add assistant tool for task creation.
-- [ ] `P1` Add assistant tool for reminder creation.
+- [x] `P1` Add assistant tool for task creation.
+- [x] `P1` Add assistant tool for reminder creation.
+- [x] `P1` Add assistant tools: list_tasks, list_reminders.
 - [ ] `P2` Add daily digest.
 
 ## Phase 7 — Telegram integration
@@ -138,10 +140,10 @@ Priority legend:
 - [x] `P0` Verify permission boundaries. (requireSession() on all routes; soft-delete enforced)
 - [x] `P0` Verify generated widget sandboxing. (iframe sandbox confirmed; confirmation gate in place)
 - [!] `P0` Verify Telegram account linking and command safety. (Telegram deferred; server-side handlers unit-tested)
-- [ ] `P1` Add onboarding flow.
+- [x] `P1` Add onboarding flow.
 - [x] `P1` Add empty states and loading states.
 - [~] `P1` Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)
-- [ ] `P1` Add demo board templates.
+- [x] `P1` Add demo board templates.
 - [ ] `P2` Add analytics/events with privacy review.
 
 ## Production wiring — completed 2026-05-04

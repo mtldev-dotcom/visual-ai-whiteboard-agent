@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronRight, FolderOpen, Plus, Search } from "lucide-react";
-import { useCallback, useState } from "react";
+import { ChevronRight, FolderOpen, LayoutTemplate, Plus, Search } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { WidgetLibrary } from "./WidgetLibrary";
 
@@ -28,17 +28,39 @@ export function BoardExplorer({
 }: Props) {
   const [boards, setBoards] = useState(initialBoards);
   const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Board[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState<{ id: string; name: string; description: string }[]>([]);
+  const [applyingTemplate, setApplyingTemplate] = useState<string | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filtered = search.trim()
-    ? boards.filter((b) => b.title.toLowerCase().includes(search.toLowerCase()))
-    : boards;
+  useEffect(() => {
+    const q = search.trim();
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      if (!q) {
+        setSearchResults(null);
+        return;
+      }
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/boards?q=${encodeURIComponent(q)}`);
+        const data = (await res.json()) as { boards?: Board[] };
+        setSearchResults(data.boards ?? []);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }, [search]);
 
-  const topLevel = filtered.filter((b) => !b.parentBoardId);
+  const displayed = search.trim() ? (searchResults ?? boards) : boards;
+  const topLevel = displayed.filter((b) => !b.parentBoardId);
   const subBoards = (parentId: string) =>
-    filtered.filter((b) => b.parentBoardId === parentId);
+    displayed.filter((b) => b.parentBoardId === parentId);
 
   const createBoard = useCallback(async () => {
     const title = newTitle.trim();
@@ -63,6 +85,35 @@ export function BoardExplorer({
     }
   }, [newTitle, onBoardCreated, onBoardSelect]);
 
+  async function openTemplates() {
+    setShowTemplates(true);
+    if (templates.length) return;
+    const res = await fetch("/api/boards/from-template");
+    const data = (await res.json()) as { templates?: { id: string; name: string; description: string }[] };
+    setTemplates(data.templates ?? []);
+  }
+
+  async function applyTemplate(templateId: string) {
+    setApplyingTemplate(templateId);
+    try {
+      const res = await fetch("/api/boards/from-template", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId }),
+      });
+      const data = (await res.json()) as { boardId?: string; boardTitle?: string };
+      if (data.boardId && data.boardTitle) {
+        const board: Board = { id: data.boardId, title: data.boardTitle, parentBoardId: null };
+        setBoards((prev) => [board, ...prev]);
+        onBoardCreated(board);
+        onBoardSelect(board.id);
+        setShowTemplates(false);
+      }
+    } finally {
+      setApplyingTemplate(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-1">
       {/* Section header */}
@@ -73,23 +124,82 @@ export function BoardExplorer({
         >
           Boards
         </span>
-        <button
-          className="flex h-6 w-6 items-center justify-center rounded-md transition-colors"
-          onClick={() => setShowCreate((v) => !v)}
-          style={{ color: "var(--text-3)" }}
-          title="New board"
-          type="button"
-          onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLElement).style.background =
-              "var(--accent-light)")
-          }
-          onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLElement).style.background = "")
-          }
-        >
-          <Plus size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            className="flex h-6 w-6 items-center justify-center rounded-md transition-colors"
+            onClick={openTemplates}
+            style={{ color: "var(--text-3)" }}
+            title="Use a template"
+            type="button"
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLElement).style.background = "var(--accent-light)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLElement).style.background = "")
+            }
+          >
+            <LayoutTemplate size={13} />
+          </button>
+          <button
+            className="flex h-6 w-6 items-center justify-center rounded-md transition-colors"
+            onClick={() => setShowCreate((v) => !v)}
+            style={{ color: "var(--text-3)" }}
+            title="New board"
+            type="button"
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLElement).style.background = "var(--accent-light)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLElement).style.background = "")
+            }
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
+
+      {/* Template picker */}
+      {showTemplates && (
+        <div
+          className="animate-scale-in rounded-lg border p-3"
+          style={{ background: "var(--bg-surface)", borderColor: "var(--accent)" }}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold" style={{ color: "var(--text-1)" }}>
+              Templates
+            </span>
+            <button
+              onClick={() => setShowTemplates(false)}
+              style={{ color: "var(--text-3)" }}
+              type="button"
+              className="text-xs"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {templates.map((t) => (
+              <button
+                className="rounded-lg border p-2 text-left text-xs transition-colors disabled:opacity-50"
+                disabled={applyingTemplate === t.id}
+                key={t.id}
+                onClick={() => applyTemplate(t.id)}
+                style={{ background: "var(--bg-sidebar)", borderColor: "var(--border)", color: "var(--text-1)" }}
+                type="button"
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLElement).style.borderColor = "var(--accent)")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLElement).style.borderColor = "var(--border)")
+                }
+              >
+                <div className="font-semibold">{t.name}</div>
+                <div style={{ color: "var(--text-3)" }}>{t.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div
@@ -107,6 +217,12 @@ export function BoardExplorer({
           style={{ color: "var(--text-1)" }}
           value={search}
         />
+        {searching && (
+          <span
+            className="h-3 w-3 animate-spin rounded-full border border-t-transparent"
+            style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
+          />
+        )}
       </div>
 
       {/* Create form */}

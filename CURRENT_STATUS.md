@@ -4,40 +4,75 @@ Last updated: 2026-05-04
 
 ## Stage
 
-Phases 0–9 P0 complete. Production-ready MVP wired end-to-end.
+P0 complete + P1 in progress (7 of 10 done). App is production-ready with a growing set of AI tools, persistent chat, and a polished canvas UI.
 
 ## Current goal
 
-Shipped. App is production-ready with auth, real DB-backed UI, OpenRouter LLM, and all core flows working.
+Complete the remaining P1 items: undo/rollback (#8), widget preview (#9), Telegram webhook (#10).
 
 ## What exists
 
-- Everything from the previous foundation (Phases 0–8 P0).
-- **Auth:** NextAuth.js v4 credentials (email + password). Signup at `/signup`, login at `/login`. JWT session with `userId` + `workspaceId`. Next.js 16 proxy guards all routes.
-- **Workspace per user:** `getOrCreateWorkspaceForUser` creates a workspace on first login and reuses it on subsequent logins.
-- **Real boards UI:** home page loads boards from DB via `listBoardsForWorkspace`. Board explorer with live create, search filter, and board selection.
-- **Real canvas persistence:** `BoardCanvas` loads items from `/api/boards/[id]`, debounced PATCH on move/resize, DELETE with confirmation dialog, inline edit modal with PATCH save, copy item.
-- **Real assistant chat:** `AssistantPanel` POSTs to `/api/chat`, executes tool calls against real tool registry, renders LLM responses and tool execution cards. Canvas auto-refreshes after successful tool calls.
-- **OpenRouter LLM adapter:** `OpenRouterLlmAdapter` using `openai` SDK with OpenRouter `baseURL`. Activated via `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY`. Falls back to local stub if not configured.
-- **Widget library wired:** clicking Task List or Notes widget POSTs to `/api/canvas-items` and adds the item to the active board.
-- **Real tasks page:** loads tasks from DB, create-task form with title/priority/dueDate/board, mark-complete button.
-- **API routes:** `/api/chat`, `/api/boards`, `/api/boards/[id]`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/tasks`, `/api/tasks/[id]`, `/api/workspace`, `/api/auth/[...nextauth]`, `/api/auth/signup`.
-- **Empty/loading states:** canvas loading spinner, empty board message, empty boards list message, no-board-selected message.
-- **User flow guide:** `docs/user-flow-guide.md` with 15 testable flows.
+### Foundation
+- Prisma schema — 13 models (User, Workspace, Board, CanvasItem, WidgetDefinition, WidgetInstance, CustomHtmlWidgetSource, Task, Reminder, TelegramLinkToken, TelegramAccount, AuditEvent, **ChatThread**, **ChatMessage**).
+- All DB helpers in `src/db/`.
+- Docker Compose Postgres on port 5444.
 
-## What does not exist yet
+### Auth
+- NextAuth.js v4 credentials (email + password). Signup at `/signup`, login at `/login`.
+- JWT session with `userId` + `workspaceId`. Next.js 16 proxy guards all routes.
+- `getOrCreateWorkspaceForUser` creates workspace on first login.
+- **Onboarding board** auto-seeded on signup: Welcome Board with sticky note, notes, task list, and Kanban.
 
-- P1 features: board search persistence, undo/rollback, canvas minimap, grouping/frames, persist chat threads, summarize/organize/duplicate board tools, Kanban widget, markdown reader/rich text editor widgets, widget generation via assistant, task/reminder assistant tools, Telegram webhook, auth session refresh on token expiry.
+### Boards & Canvas
+- `listBoardsForWorkspace`, `searchBoardsForWorkspace` (case-insensitive, limit 30).
+- `BoardExplorer` — live create, server-side debounced search (300ms, spinner), board selection, **template picker** (LayoutTemplate icon).
+- **3 board templates**: Project Kickoff, Brainstorm Session, Weekly Review.
+- `BoardCanvas` — pan/zoom, drag-to-move, resize, select, floating action bar, mobile bottom sheet.
+- Item types: text, sticky_note, notes, task_list, **kanban**, markdown, image, link, html_widget.
+- Click-to-create via toolbar tools (V/H/T/S/N/K shortcuts).
+- Edit modal, copy, delete with confirmation. Debounced PATCH on move/resize.
+- **Card shadow system** — `--shadow-card` CSS var with multi-layer shadow + 1px inset ring. Cards float off the canvas in both light and dark mode.
+- **Canvas texture** — 3-layer composite: dot-grid + horizontal lines + vertical lines (32px). Figma-style grid.
+
+### AI Assistant
+- OpenRouter LLM adapter (any model via `OPENROUTER_MODEL`). Falls back to local stub.
+- **Persistent chat threads** — one `ChatThread` per board. Messages saved to DB after each turn. History loaded on board switch.
+- **9 registered tools** in chat:
+  - `create_board`, `create_sub_board`
+  - `add_canvas_item`, `update_canvas_item`, `delete_canvas_item`
+  - `summarize_board`, `list_canvas_items`
+  - `create_task`, `list_tasks`, `create_reminder`, `list_reminders`
+- Tool execution cards in chat UI (success/error/pending states).
+- Canvas auto-refreshes after successful tool calls.
+
+### API routes
+`/api/auth/[...nextauth]`, `/api/auth/signup`, `/api/boards`, `/api/boards/[id]`, `/api/boards/from-template`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/chat`, `/api/chat/thread`, `/api/tasks`, `/api/tasks/[id]`, `/api/workspace`
+
+### UI/UX
+- CSS design token system — `--bg-*`, `--text-*`, `--accent*`, `--border*`, `--shadow-*`, `--canvas-*`.
+- Light/dark mode — persistent via localStorage, `ThemeProvider` context, `<html class="dark">`.
+- Collapsible sidebars, compact 44px header, mobile slide-up drawers, bottom nav.
+- Widget library: Task List, Notes, **Kanban**.
+- `/tasks` — task center with create form, priority, dueDate, mark-complete.
+- `/core` — markdown editor for assistant context files.
+- Login/signup cards with CSS var styling.
+
+## What does NOT exist yet
+
+- Undo/rollback for canvas changes (P1 — next).
+- Widget preview before insert (P1).
+- Telegram live webhook (P1 — server handlers exist, webhook registration missing).
+- `organize_board` tool (auto-layout).
+- Canvas minimap / grouping / frames (P2).
 - Realtime collaboration (P2).
-- Auth: no OAuth providers, no email magic link, no "forgot password".
-- No production deployment config (no Vercel/Railway config yet).
-
-## Recommended next task
-
-Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local`, then manually run the flows in `docs/user-flow-guide.md` to verify end-to-end.
+- OAuth / magic link auth (P2).
+- Production deployment config (P2).
+- Chat message timestamps in UI.
+- Full E2E test suite.
 
 ## Known risks
 
-- `npm audit` reports moderate PostCSS and `@hono/node-server` advisories through Next.js and Prisma. Do not apply `npm audit fix --force`.
-- Generated HTML widgets create security risk. Sandbox and confirmation gate are in place; do not relax them.
-- `AUTH_SECRET` must be a strong random value in production. The `.env` placeholder `dev-auth-secret-replace-in-production` must be replaced.
+- `npm audit` reports moderate PostCSS and `@hono/node-server` advisories. Do not apply `--force`.
+- `AUTH_SECRET=dev-auth-secret-replace-in-production` in `.env` — replace before any real deployment.
+- Generated HTML widgets: sandbox + confirmation gate in place; do not relax.
+- No CSRF protection on `/api/auth/signup` beyond bcrypt cost.

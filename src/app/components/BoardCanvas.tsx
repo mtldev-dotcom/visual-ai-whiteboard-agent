@@ -19,6 +19,7 @@ type CanvasItemContent = {
   html?: string;
   src?: string;
   tasks?: { completed: boolean; title: string }[];
+  columns?: { id: string; title: string; cards: { id: string; title: string }[] }[];
 };
 
 type CanvasItem = {
@@ -49,7 +50,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
         style={{
           background: "#fef9c3",
           borderColor: "#fde047",
-          boxShadow: "2px 3px 8px rgba(0,0,0,0.12)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div
@@ -84,7 +85,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
         style={{
           background: "var(--bg-surface)",
           borderColor: "var(--border)",
-          boxShadow: "var(--shadow-sm)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div
@@ -127,7 +128,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
           background: "var(--bg-surface)",
           borderColor: "var(--accent)",
           borderLeftWidth: "3px",
-          boxShadow: "var(--shadow-sm)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div
@@ -153,7 +154,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
         style={{
           background: "var(--bg-surface)",
           borderColor: "var(--border)",
-          boxShadow: "var(--shadow-sm)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <Image
@@ -181,7 +182,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
           background: "var(--bg-surface)",
           borderColor: "#93c5fd",
           borderTopWidth: "3px",
-          boxShadow: "var(--shadow-sm)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div className="px-3 pt-2">
@@ -215,7 +216,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
         style={{
           background: "var(--bg-surface)",
           borderColor: "var(--border)",
-          boxShadow: "var(--shadow-sm)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div
@@ -282,6 +283,88 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
     );
   }
 
+  if (item.type === "kanban") {
+    type KanbanCard = { id: string; title: string };
+    type KanbanColumn = { id: string; title: string; cards: KanbanCard[] };
+    const columns = (item.content.columns ?? []) as KanbanColumn[];
+    return (
+      <div
+        className={`${base} flex flex-col`}
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "var(--border)",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        <div
+          className="flex items-center justify-between border-b px-3 py-2"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <span
+            className="text-xs font-semibold"
+            style={{ color: "var(--text-1)" }}
+          >
+            {item.content.title ?? "Kanban"}
+          </span>
+          <button
+            className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            style={{ color: "var(--text-3)" }}
+            type="button"
+          >
+            Edit
+          </button>
+        </div>
+        <div className="flex min-h-0 flex-1 gap-2 overflow-x-auto p-2">
+          {columns.map((col) => (
+            <div
+              className="flex w-32 shrink-0 flex-col gap-1.5 rounded-lg p-2"
+              key={col.id}
+              style={{ background: "var(--bg-app)" }}
+            >
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: "var(--text-3)" }}
+              >
+                {col.title}
+              </span>
+              <span
+                className="text-[10px] font-medium"
+                style={{ color: "var(--text-3)" }}
+              >
+                {col.cards.length} card{col.cards.length !== 1 ? "s" : ""}
+              </span>
+              {col.cards.map((card, i) => (
+                <div
+                  className="rounded-lg border px-2 py-1.5 text-[11px] leading-snug"
+                  key={card.id ?? i}
+                  style={{
+                    background: "var(--bg-surface)",
+                    borderColor: "var(--border)",
+                    color: "var(--text-1)",
+                  }}
+                >
+                  {card.title}
+                </div>
+              ))}
+              {col.cards.length === 0 && (
+                <p
+                  className="text-[10px] italic"
+                  style={{ color: "var(--text-3)" }}
+                >
+                  Empty
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (item.type === "notes") {
     return (
       <div
@@ -289,7 +372,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
         style={{
           background: "#fffbf0",
           borderColor: "#fed7aa",
-          boxShadow: "var(--shadow-sm)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div
@@ -324,7 +407,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
         style={{
           background: "var(--bg-surface)",
           borderColor: "var(--border)",
-          boxShadow: "var(--shadow-md)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <SandboxedHtmlWidget
@@ -342,7 +425,7 @@ function ItemCard({ item, onEdit }: { item: CanvasItem; onEdit: () => void }) {
       style={{
         background: "var(--bg-surface)",
         borderColor: "var(--border)",
-        boxShadow: "var(--shadow-sm)",
+        boxShadow: "var(--shadow-card)",
       }}
     >
       <div
@@ -389,6 +472,18 @@ const NEW_ITEM_DEFAULTS: Record<
     width: 260,
     height: 200,
     content: { title: "Tasks", tasks: [] },
+  },
+  kanban: {
+    width: 480,
+    height: 300,
+    content: {
+      title: "Kanban",
+      columns: [
+        { id: "todo", title: "To Do", cards: [] },
+        { id: "doing", title: "In Progress", cards: [] },
+        { id: "done", title: "Done", cards: [] },
+      ],
+    },
   },
 };
 

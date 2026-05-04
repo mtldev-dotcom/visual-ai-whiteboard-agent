@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getPrismaClient } from "@/db/client";
 import { getOrCreateWorkspaceForUser } from "@/db/workspaces";
 import { hashPassword } from "@/lib/password";
+import { seedOnboardingBoard } from "@/server/onboarding";
 
 export async function POST(request: Request) {
   try {
@@ -50,7 +51,8 @@ export async function POST(request: Request) {
       },
     });
 
-    await getOrCreateWorkspaceForUser(user.id, user.name ?? user.email);
+    const workspace = await getOrCreateWorkspaceForUser(user.id, user.name ?? user.email);
+    await seedOnboardingBoard(workspace.id);
 
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch {

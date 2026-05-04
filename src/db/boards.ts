@@ -90,6 +90,22 @@ export function archiveBoard(boardId: string): Promise<Board> {
   });
 }
 
+export function searchBoardsForWorkspace(
+  workspaceId: string,
+  query: string,
+): Promise<Board[]> {
+  const prisma = getPrismaClient();
+  return prisma.board.findMany({
+    where: {
+      workspaceId,
+      archivedAt: null,
+      title: { contains: query, mode: "insensitive" },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 30,
+  });
+}
+
 export function listSubBoards(parentBoardId: string): Promise<Board[]> {
   const prisma = getPrismaClient();
 

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { appendMessages } from "@/db/chat";
 import { registerBoardTools } from "@/server/assistant/board-tools";
+import { registerBoardQueryTools } from "@/server/assistant/board-query-tools";
 import { registerCanvasTools } from "@/server/assistant/canvas-tools";
+import { registerTaskTools } from "@/server/assistant/task-tools";
 import { createLlmAdapter, type LlmMessage } from "@/server/assistant/llm";
 import { createToolRegistry } from "@/server/assistant/tools";
 import { loadAssistantCoreContext } from "@/server/core-files";
@@ -23,6 +26,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     messages?: IncomingMessage[];
     boardId?: string;
+    threadId?: string;
   };
 
   if (!body.messages?.length) {
@@ -34,7 +38,9 @@ export async function POST(request: Request) {
 
   const registry = createToolRegistry();
   registerBoardTools(registry);
+  registerBoardQueryTools(registry);
   registerCanvasTools(registry);
+  registerTaskTools(registry);
 
   const toolContext = {
     workspaceId: session.workspaceId,
@@ -113,14 +119,44 @@ export async function POST(request: Request) {
       tools: [],
     });
 
+    await persistTurn(body.threadId, body.messages, executedToolCalls, finalResponse.content);
+
     return NextResponse.json({
       content: finalResponse.content,
       toolCalls: executedToolCalls,
     });
   }
 
+  await persistTurn(body.threadId, body.messages, executedToolCalls, firstResponse.content);
+
   return NextResponse.json({
     content: firstResponse.content,
     toolCalls: executedToolCalls,
   });
+}
+
+async function persistTurn(
+  threadId: string | undefined,
+  incomingMessages: IncomingMessage[] | undefined,
+  toolCalls: ChatToolCall[],
+  assistantContent: string | null,
+) {
+  if (!threadId || !incomingMessages?.length) return;
+  const lastUser = incomingMessages[incomingMessages.length - 1];
+  const toSave: Parameters<typeof appendMessages>[1] = [];
+  if (lastUser.role === "user") {
+    toSave.push({ role: "user", content: lastUser.content });
+  }
+  for (const tc of toolCalls) {
+    toSave.push({
+      role: "tool",
+      content: tc.summary,
+      toolName: tc.toolName,
+      toolStatus: tc.status,
+    });
+  }
+  if (assistantContent) {
+    toSave.push({ role: "assistant", content: assistantContent });
+  }
+  await appendMessages(threadId, toSave);
 }

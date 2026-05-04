@@ -1,7 +1,7 @@
 "use client";
 
 import { Bot, Send, Wrench } from "lucide-react";
-import { FormEvent, useCallback, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 type ChatMessage = {
   id: string;
@@ -19,23 +19,48 @@ type ToolCard = {
 
 type Message = ChatMessage | ToolCard;
 
+type DbMessage = {
+  id: string;
+  role: string;
+  content: string;
+  toolName?: string | null;
+  toolStatus?: string | null;
+};
+
 type Props = {
   boardId: string | null;
   onCanvasChanged?: () => void;
 };
 
-const WELCOME: Message[] = [
-  {
-    id: "welcome",
-    role: "assistant",
-    text: "I can help shape this board. Ask me to create boards, add notes, or organize your workspace.",
-  },
-];
+const WELCOME: Message = {
+  id: "welcome",
+  role: "assistant",
+  text: "I can help shape this board. Ask me to create boards, add notes, or organize your workspace.",
+};
+
+function dbToMessage(m: DbMessage): Message {
+  if (m.role === "tool") {
+    return {
+      id: m.id,
+      role: "tool",
+      toolName: m.toolName ?? "tool",
+      status: (m.toolStatus as "success" | "error") ?? "success",
+      summary: m.content,
+    };
+  }
+  return {
+    id: m.id,
+    role: m.role as "user" | "assistant",
+    text: m.content,
+  };
+}
 
 export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
-  const [messages, setMessages] = useState<Message[]>(WELCOME);
+  const [messages, setMessages] = useState<Message[]>([WELCOME]);
+  const [threadId, setThreadId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,6 +70,38 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
       50,
     );
   }, []);
+
+  // Load thread history whenever boardId changes
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadThread() {
+      setLoadingHistory(true);
+      setMessages([WELCOME]);
+      setThreadId(null);
+      try {
+        const url = boardId
+          ? `/api/chat/thread?boardId=${boardId}`
+          : `/api/chat/thread`;
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          threadId: string;
+          messages: DbMessage[];
+        };
+        setThreadId(data.threadId);
+        if (data.messages.length > 0) {
+          setMessages(data.messages.map(dbToMessage));
+          scrollToBottom();
+        }
+      } catch {
+        // aborted or network error — keep welcome message
+      } finally {
+        setLoadingHistory(false);
+      }
+    }
+    void loadThread();
+    return () => controller.abort();
+  }, [boardId, scrollToBottom]);
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,7 +133,7 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, boardId }),
+        body: JSON.stringify({ messages: history, boardId, threadId }),
       });
 
       const data = (await res.json()) as {
@@ -167,9 +224,9 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
         >
           AI Assistant
         </span>
-        {pending && (
+        {(pending || loadingHistory) && (
           <span className="ml-auto text-xs" style={{ color: "var(--text-3)" }}>
-            thinking…
+            {loadingHistory ? "loading…" : "thinking…"}
           </span>
         )}
       </div>
@@ -291,7 +348,7 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
           <input
             ref={inputRef}
             className="flex-1 bg-transparent text-sm outline-none"
-            disabled={pending}
+            disabled={pending || loadingHistory}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={boardId ? "Ask AI…" : "Select a board first…"}
             style={{ color: "var(--text-1)" }}
@@ -299,7 +356,7 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
           />
           <button
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
-            disabled={pending || !draft.trim() || !boardId}
+            disabled={pending || loadingHistory || !draft.trim() || !boardId}
             style={{
               background: "var(--accent)",
               color: "var(--accent-fg)",

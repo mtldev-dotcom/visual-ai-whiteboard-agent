@@ -4,14 +4,21 @@ import {
   createBoard,
   createSubBoard,
   listBoardsForWorkspace,
+  searchBoardsForWorkspace,
 } from "@/db/boards";
 import { requireSession } from "@/lib/session";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { session, error } = await requireSession();
   if (error) return error;
 
-  const boards = await listBoardsForWorkspace(session.workspaceId);
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q")?.trim() ?? "";
+
+  const boards = q
+    ? await searchBoardsForWorkspace(session.workspaceId, q)
+    : await listBoardsForWorkspace(session.workspaceId);
+
   return NextResponse.json({ boards });
 }
 
