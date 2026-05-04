@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>visual-ai-whiteboard-agent</title>
+<style>
+:root {
+  --bg: #fff;
+  --bg-sidebar: #f8f9fa;
+  --bg-code: #f4f4f5;
+  --bg-hr: #e5e7eb;
+  --text: #1a1a2e;
+  --text-2: #555;
+  --text-sidebar: #374151;
+  --link: #2563eb;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --code: #dc2626;
+  --shadow: 0 1px 3px rgba(0,0,0,.08);
+  --scrollbar: #d1d5db;
+}
+.dark {
+  --bg: #111827;
+  --bg-sidebar: #1f2937;
+  --bg-code: #1e293b;
+  --bg-hr: #374151;
+  --text: #f1f5f9;
+  --text-2: #9ca3af;
+  --text-sidebar: #d1d5db;
+  --link: #60a5fa;
+  --border: #374151;
+  --accent: #3b82f6;
+  --code: #f87171;
+  --shadow: 0 1px 3px rgba(0,0,0,.3);
+  --scrollbar: #4b5563;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  min-height: 100dvh;
+}
+/* ─── Sidebar ─── */
+#sidebar {
+  width: 270px;
+  min-width: 270px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  overflow-y: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  transition: transform .25s ease;
+}
+#sidebar::-webkit-scrollbar { width: 6px; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
+.sidebar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-part {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-2);
+  margin: 16px 0 4px;
+  padding-left: 4px;
+}
+.nav-part:first-child { margin-top: 0; }
+.nav-chapter {
+  display: block;
+  font-size: 13px;
+  color: var(--text-sidebar);
+  text-decoration: none;
+  padding: 5px 8px;
+  border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+.nav-chapter:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.nav-chapter.active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+/* ─── Main ─── */
+#main {
+  flex: 1;
+  margin-left: 270px;
+  padding: 40px 48px 80px;
+  max-width: 860px;
+  min-width: 0;
+}
+/* ─── Header bar ─── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 50;
+  padding-top: 8px;
+}
+.btn {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.btn:hover { background: var(--border); }
+.menu-btn { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; padding: 4px; }
+/* ─── Typography ─── */
+.chapter { margin-bottom: 60px; }
+.chapter:target { animation: highlight .6s ease-out; }
+@keyframes highlight { from { background: color-mix(in srgb, var(--accent) 10%, transparent); } to { background: transparent; } }
+h1 { font-size: 1.9em; margin: 0 0 .6em; font-weight: 800; letter-spacing: -.02em; line-height: 1.25; color: var(--text); scroll-margin-top: 80px; }
+h2 { font-size: 1.4em; margin: 1.4em 0 .5em; font-weight: 700; scroll-margin-top: 80px; color: var(--text); }
+h3 { font-size: 1.15em; margin: 1.1em 0 .4em; font-weight: 600; scroll-margin-top: 80px; color: var(--text-2); }
+h4, h5, h6 { font-size: 1em; margin: 1em 0 .3em; font-weight: 600; color: var(--text-2); }
+p { margin: .5em 0; font-size: 15px; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+strong { font-weight: 700; }
+em { font-style: italic; }
+code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: .88em; background: var(--bg-code); padding: 2px 5px; border-radius: 4px; color: var(--code); }
+pre { background: var(--bg-code); padding: 16px 18px; border-radius: 8px; overflow-x: auto; margin: 12px 0; border: 1px solid var(--border); }
+pre code { background: none; padding: 0; color: var(--text); font-size: .85em; line-height: 1.55; }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px; margin: 12px 0; background: color-mix(in srgb, var(--accent) 5%, transparent); border-radius: 0 6px 6px 0; color: var(--text-2); }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; font-size: 15px; }
+hr { border: none; border-top: 1px solid var(--bg-hr); margin: 24px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+th { background: var(--bg-sidebar); font-weight: 600; }
+img { max-width: 100%; border-radius: 6px; }
+.chapter-nav { display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+.cn-prev, .cn-next { color: var(--accent); font-size: 14px; font-weight: 600; }
+/* ─── Overlay ─── */
+#overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 99; }
+/* ─── Mobile ─── */
+@media (max-width: 768px) {
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; padding: 16px 18px 60px; }
+  .menu-btn { display: block; }
+  #overlay.show { display: block; }
+  h1 { font-size: 1.5em; }
+  h2 { font-size: 1.2em; }
+  .toolbar { gap: 8px; padding-top: 4px; }
+}
+</style>
+</head>
+<body>
+<div id="overlay"></div>
+<nav id="sidebar">
+  <div class="sidebar-title">visual-ai-whiteboard-agent</div>
+  <a href="#ch-ADHD" class="nav-chapter" data-chapter="ADHD.md">ADHD Quick Reference</a>
+<a href="#ch-AGENTS" class="nav-chapter" data-chapter="AGENTS.md">Agent Operating Contract</a>
+<a href="#ch-CURRENT_STATUS" class="nav-chapter" data-chapter="CURRENT_STATUS.md">Current Status</a>
+<a href="#ch-MANIFEST" class="nav-chapter" data-chapter="MANIFEST.md">Manifest</a>
+<a href="#ch-PLAN" class="nav-chapter" data-chapter="PLAN.md">Remaining Work Plan</a>
+<a href="#ch-SESSION_HANDOFF" class="nav-chapter" data-chapter="SESSION_HANDOFF.md">Latest Session Handoff</a>
+<a href="#ch-TODO" class="nav-chapter" data-chapter="TODO.md">Master TODO</a>
+</nav>
+<main id="main">
+  <div class="toolbar">
+    <button class="menu-btn" id="menuBtn" title="Menu">☰</button>
+    <span style="font-weight:700;font-size:15px;color:var(--text);flex:1;">visual-ai-whiteboard-agent</span>
+    <button class="btn" id="themeBtn" title="Toggle dark mode">🌓</button>
+  </div>
+  <section class="chapter" id="ch-ADHD" data-chapter="ADHD.md" data-index="1">
+<h1 id="adhd-quick-reference">ADHD Quick Reference</h1>
+
+<p>Fast context restoration for this project. Read this first when starting a session.</p>
+
+<hr>
+
+<h2 id="what-is-this">What is this?</h2>
+
+<p>A <strong>mobile-first AI whiteboard app</strong>. Users chat with an AI assistant that creates boards, adds canvas items (sticky notes, Kanban, task lists, etc.), manages tasks and reminders, and persists everything to Postgres.</p>
+
+<hr>
+
+<h2 id="current-state-p1-in-progress">Current state - P1 in progress</h2>
+
+<ul>
+<li>Auth works (signup -> auto-onboarding board -> login).</li>
+<li>Canvas persists (move, resize, edit, delete, copy, click-to-create).</li>
+<li>Canvas has client undo for the last move/resize states with <code>Ctrl+Z</code> / <code>Cmd+Z</code>.</li>
+<li>Chat history persists to DB (survives page refresh, loads on board switch).</li>
+<li>Real LLM via OpenRouter, with local stub fallback.</li>
+<li>Board templates: Project Kickoff, Brainstorm Session, Weekly Review.</li>
+<li>Server-side board search with 300ms debounce.</li>
+<li>Widgets: Task List, Notes, Kanban, with preview before insertion.</li>
+<li>Telegram webhook route exists and can be registered with <code>npm run telegram:webhook</code>.</li>
+<li>Cards have shadow/depth. Canvas has dot+grid texture.</li>
+</ul>
+
+<p><strong>Still missing (P1):</strong> board links as canvas items, <code>organize_board</code>, assistant <code>rollback_canvas_change</code>, Telegram <code>/remind</code> and <code>/summarize</code>, widget version history, and more widgets.</p>
+
+<hr>
+
+<h2 id="start-the-app-in-3-steps">Start the app in 3 steps</h2>
+
+<pre><code class="language-bash">docker compose up -d postgres   # 1. database
+npm install                     # 2. deps (skip if done)
+npm run dev                     # 3. -&gt; http://localhost:3000</code></pre>
+
+<hr>
+
+<h2 id="critical-env-vars-env-local-overrides-env">Critical env vars (<code>.env.local</code> overrides <code>.env</code>)</h2>
+
+<tr><th>Var</th><th>Value</th></tr>
+<tr><td><code>DATABASE_URL</code></td><td>Local Postgres URL on port 5444</td></tr>
+<tr><th><code>AUTH_SECRET</code></th><th>Required for NextAuth</th></tr>
+<tr><th><code>LLM_PROVIDER</code></th><th><code>openrouter</code> (real LLM) or <code>local</code> (stub)</th></tr>
+<tr><th><code>OPENROUTER_API_KEY</code></th><th>From openrouter.ai when using OpenRouter</th></tr>
+<tr><th><code>OPENROUTER_MODEL</code></th><th>Any supported OpenRouter model</th></tr>
+<tr><th><code>APP_URL</code></th><th>Public app URL for Telegram webhook setup</th></tr>
+<tr><th><code>TELEGRAM_BOT_TOKEN</code></th><th>BotFather token for Telegram</th></tr>
+<tr><th><code>TELEGRAM_WEBHOOK_SECRET</code></th><th>Optional Telegram webhook secret token</th></tr>
+</table>
+
+<hr>
+
+<h2 id="key-routes">Key routes</h2>
+
+<tr><th>URL</th><th>What</th></tr>
+<tr><td><code>/signup</code></td><td>Create account -> auto-seeds Welcome Board</td></tr>
+<tr><th><code>/login</code></th><th>Sign in</th></tr>
+<tr><th><code>/</code></th><th>Main app (boards + canvas + AI chat)</th></tr>
+<tr><th><code>/tasks</code></th><th>Task center</th></tr>
+<tr><th><code>/core</code></th><th>Edit assistant core files</th></tr>
+<tr><th><code>/api/telegram/webhook</code></th><th>Telegram webhook receiver</th></tr>
+</table>
+
+<hr>
+
+<h2 id="key-files">Key files</h2>
+
+<tr><th>File</th><th>Why you care</th></tr>
+<tr><td><code>SESSION_HANDOFF.md</code></td><td>Start here: what last session did + known issues</td></tr>
+<tr><th><code>CURRENT_STATUS.md</code></th><th>Full app state inventory</th></tr>
+<tr><th><code>TODO.md</code></th><th>Backlog: pick the next P1 item</th></tr>
+<tr><th><code>src/app/api/chat/route.ts</code></th><th>LLM + tool call loop</th></tr>
+<tr><th><code>src/server/assistant/</code></th><th>Assistant tool files</th></tr>
+<tr><th><code>src/app/components/BoardCanvas.tsx</code></th><th>Canvas with persistence and undo</th></tr>
+<tr><th><code>src/app/components/WidgetLibrary.tsx</code></th><th>Widget picker + preview-before-insert</th></tr>
+<tr><th><code>src/app/components/AssistantPanel.tsx</code></th><th>Chat UI + persisted history loading</th></tr>
+<tr><th><code>src/app/api/telegram/webhook/route.ts</code></th><th>Telegram webhook adapter</th></tr>
+<tr><th><code>src/server/telegram/commands.ts</code></th><th>Telegram command handling</th></tr>
+<tr><th><code>scripts/register-telegram-webhook.ts</code></th><th>One-time Telegram webhook registration</th></tr>
+<tr><th><code>src/server/onboarding.ts</code></th><th>Welcome Board seed</th></tr>
+<tr><th><code>src/server/board-templates.ts</code></th><th>3 reusable board templates</th></tr>
+<tr><th><code>prisma/schema.prisma</code></th><th>DB schema</th></tr>
+<tr><th><code>src/lib/session.ts</code></th><th><code>requireSession()</code> used by API routes</th></tr>
+</table>
+
+<hr>
+
+<h2 id="run-checks-before-committing">Run checks before committing</h2>
+
+<pre><code class="language-bash">npm run lint &amp;&amp; npm run typecheck &amp;&amp; npm test -- --run &amp;&amp; npm run build</code></pre>
+
+<p>Useful extras:</p>
+
+<pre><code class="language-bash">npm run docs:check
+npm run telegram:webhook</code></pre>
+
+<p>Format issues: <code>npx prettier --write .</code></p>
+
+<hr>
+
+<h2 id="next-tasks-p1">Next tasks (P1)</h2>
+
+<ol>
+<li>Board links as canvas items.</li>
+<li><code>organize_board</code> assistant tool.</li>
+<li>Assistant <code>rollback_canvas_change</code> tool.</li>
+<li>Telegram <code>/remind</code> and <code>/summarize</code>.</li>
+<li>Markdown reader / rich text / reminders widgets.</li>
+</ol>
+
+<hr>
+
+<h2 id="agent-workflow-short-version">Agent workflow (short version)</h2>
+
+<ol>
+<li>Read <code>SESSION_HANDOFF.md</code> -> <code>CURRENT_STATUS.md</code> -> <code>TODO.md</code>.</li>
+<li>Pick the first incomplete P1 task unless the user asked for something specific.</li>
+<li>Make the smallest correct change.</li>
+<li>Run relevant checks.</li>
+<li>Update docs, <code>CURRENT_STATUS.md</code>, and <code>SESSION_HANDOFF.md</code>.</li>
+</ol>
+
+<div class="chapter-nav">
+<span></span>
+<a href="#ch-AGENTS" class="cn-next">Next →</a>
+</div>
+</section>
+<section class="chapter" id="ch-AGENTS" data-chapter="AGENTS.md" data-index="2">
+<h1 id="agent-operating-contract">Agent Operating Contract</h1>
+
+<p>This <code>AGENTS.md</code> file is the root operating contract for AI agents working in this repository.</p>
+
+<p>Agents must treat this file as authoritative. It defines how to understand the project, how to safely modify code, how to preserve architecture, and how to keep documentation synchronized with implementation.</p>
+
+<h2 id="0-product-north-star">0. Product North Star</h2>
+
+<p>This project is a <strong>mobile-first AI whiteboard assistant</strong>.</p>
+
+<p>The assistant is not just a chat panel. It is the main operator of a visual workspace. It can:</p>
+
+<ul>
+<li>Chat with the user from web UI and Telegram.</li>
+<li>Create boards and sub-boards.</li>
+<li>Add, edit, move, group, and summarize canvas objects.</li>
+<li>Create diagrams, notes, task lists, reminders, browser embeds, and custom HTML widgets.</li>
+<li>Use Markdown core files as its durable operating context.</li>
+<li>Keep work organized, explainable, reversible, and safe.</li>
+</ul>
+
+<p>Every implementation decision should support this final goal.</p>
+
+<h2 id="1-read-before-editing">1. Read Before Editing</h2>
+
+<p>Before making changes, agents must:</p>
+
+<ul>
+<li>Read this root <code>AGENTS.md</code>.</li>
+<li>Read <code>README.md</code>.</li>
+<li>Read <code>CURRENT_STATUS.md</code>.</li>
+<li>Read <code>SESSION_HANDOFF.md</code>.</li>
+<li>Read <code>TODO.md</code>.</li>
+<li>Read the nearest <code>AGENTS.md</code> file inside the directory being edited, if one exists.</li>
+<li>Review related docs such as <code>docs/</code>, architecture notes, product specs, API contracts, and existing code patterns.</li>
+<li>Prefer following existing project conventions over introducing new ones.</li>
+</ul>
+
+<p>If a local <code>AGENTS.md</code> conflicts with this root file, the more specific/local file wins for that directory, unless it violates a global rule such as security, data integrity, or privacy.</p>
+
+<h2 id="2-folder-level-ownership">2. Folder-Level Ownership</h2>
+
+<p>Important directories should include their own <code>AGENTS.md</code>.</p>
+
+<p>Each local <code>AGENTS.md</code> should explain:</p>
+
+<ul>
+<li>What the folder owns.</li>
+<li>Which files are important.</li>
+<li>What patterns must be preserved.</li>
+<li>What APIs, state, data models, or UI contracts exist.</li>
+<li>What should not be edited from that folder.</li>
+<li>What tests or checks are required after changes.</li>
+<li>What docs must be updated when behavior changes.</li>
+</ul>
+
+<p>The closer an <code>AGENTS.md</code> file is to the code, the more specific and technical it should be.</p>
+
+<h2 id="3-change-discipline">3. Change Discipline</h2>
+
+<p>Agents must make the smallest correct change that solves the task.</p>
+
+<p>Do not rewrite large areas of the app unless explicitly required.</p>
+
+<p>Do not introduce new frameworks, state libraries, styling systems, database layers, build tools, or architectural patterns without clear justification.</p>
+
+<p>Before adding new code, agents should check whether the project already has:</p>
+
+<ul>
+<li>A similar component.</li>
+<li>A helper function.</li>
+<li>A service/module pattern.</li>
+<li>A design token or style utility.</li>
+<li>An existing API/client abstraction.</li>
+<li>Existing tests that can be extended.</li>
+</ul>
+
+<p>Prefer extending existing systems over creating parallel ones.</p>
+
+<h2 id="4-documentation-must-stay-in-sync">4. Documentation Must Stay in Sync</h2>
+
+<p>Whenever code behavior changes, agents must update the relevant documentation in the same session.</p>
+
+<p>Update documentation when changing:</p>
+
+<ul>
+<li>User-facing behavior.</li>
+<li>Public APIs.</li>
+<li>Database schema or data models.</li>
+<li>Environment variables.</li>
+<li>Auth, permissions, or security boundaries.</li>
+<li>Agent/tool behavior.</li>
+<li>UI flows.</li>
+<li>Setup, deployment, or testing steps.</li>
+<li>Major architectural assumptions.</li>
+</ul>
+
+<p>Documentation updates should be close to the affected code. Update the nearest <code>AGENTS.md</code> if the change affects folder-level rules or ownership.</p>
+
+<h2 id="5-agent-traceability">5. Agent Traceability</h2>
+
+<p>Agents should leave the codebase easier to understand than they found it.</p>
+
+<p>When making meaningful changes:</p>
+
+<ul>
+<li>Keep commits/patches focused.</li>
+<li>Add comments only where they clarify non-obvious logic.</li>
+<li>Avoid noisy comments that restate the code.</li>
+<li>Preserve naming consistency.</li>
+<li>Remove dead code when it is clearly obsolete.</li>
+<li>Do not hide important behavior in magic constants or undocumented side effects.</li>
+</ul>
+
+<h2 id="6-testing-expectations">6. Testing Expectations</h2>
+
+<p>Agents must run or recommend the most relevant checks for the change.</p>
+
+<p>Prefer targeted checks first, then broader checks when needed.</p>
+
+<p>Common checks may include:</p>
+
+<ul>
+<li>Type checks.</li>
+<li>Unit tests.</li>
+<li>Integration tests.</li>
+<li>End-to-end tests.</li>
+<li>Linting.</li>
+<li>Formatting.</li>
+<li>Build verification.</li>
+<li>Manual QA flows.</li>
+</ul>
+
+<p>If a check cannot be run, agents must state that clearly in <code>SESSION_HANDOFF.md</code> and explain what should be run by a human.</p>
+
+<h2 id="7-safety-security-and-data-integrity">7. Safety, Security, and Data Integrity</h2>
+
+<p>Agents must be conservative around security and user data.</p>
+
+<p>Do not:</p>
+
+<ul>
+<li>Expose secrets, tokens, API keys, or private environment values.</li>
+<li>Weaken authentication or authorization.</li>
+<li>Bypass validation.</li>
+<li>Remove rate limits or safety checks without replacement.</li>
+<li>Log sensitive user data.</li>
+<li>Make destructive data changes without explicit instruction.</li>
+<li>Silently change persistence formats or migrations.</li>
+<li>Allow generated HTML widgets to execute with broad privileges.</li>
+<li>Give iframe widgets unrestricted network, storage, filesystem, or tool access by default.</li>
+</ul>
+
+<p>Any change affecting security, permissions, billing, user data, generated code, external integrations, or generated HTML widgets requires extra care and documentation.</p>
+
+<h2 id="8-ux-and-product-consistency">8. UX and Product Consistency</h2>
+
+<p>Agents must preserve the product’s intended user experience.</p>
+
+<p>Before changing UI or flows, check existing:</p>
+
+<ul>
+<li>Design system rules.</li>
+<li>Component patterns.</li>
+<li>Layout conventions.</li>
+<li>Mobile behavior.</li>
+<li>Accessibility expectations.</li>
+<li>Loading, empty, and error states.</li>
+<li>Copywriting tone.</li>
+<li>Navigation patterns.</li>
+</ul>
+
+<p>New UI should feel native to the existing app, not like a separate product.</p>
+
+<p>The app must be <strong>extremely mobile friendly</strong>. Desktop whiteboard patterns must not be blindly squeezed into mobile screens.</p>
+
+<h2 id="9-environment-and-configuration">9. Environment and Configuration</h2>
+
+<p>Agents must not assume hidden configuration.</p>
+
+<p>When adding or changing environment variables:</p>
+
+<ul>
+<li>Document the variable.</li>
+<li>Explain whether it is required or optional.</li>
+<li>Provide a safe example value when possible.</li>
+<li>Update <code>.env.example</code> or equivalent files.</li>
+<li>Avoid hardcoding secrets or environment-specific values.</li>
+</ul>
+
+<h2 id="10-agent-behavior-rules">10. Agent Behavior Rules</h2>
+
+<p>Agents working in this repository should behave like careful maintainers.</p>
+
+<p>They should:</p>
+
+<ul>
+<li>Understand before editing.</li>
+<li>Prefer simple solutions.</li>
+<li>Preserve existing architecture.</li>
+<li>Keep documentation current.</li>
+<li>Make changes easy to review.</li>
+<li>Avoid speculative rewrites.</li>
+<li>Ask for clarification only when the task cannot be safely completed with the available context.</li>
+<li>Be explicit about uncertainty, skipped checks, or assumptions.</li>
+<li>Always update <code>CURRENT_STATUS.md</code> and <code>SESSION_HANDOFF.md</code> after meaningful work.</li>
+</ul>
+
+<p>The goal is not just to make the requested change. The goal is to keep the app coherent, maintainable, and safe for future agents and human developers.</p>
+
+<h2 id="11-required-session-workflow">11. Required Session Workflow</h2>
+
+<p>Every coding session must follow this workflow:</p>
+
+<h3 id="start">Start</h3>
+
+<ol>
+<li>Read:</li>
+</ol>
+<ul>
+<li><code>AGENTS.md</code></li>
+<li><code>README.md</code></li>
+<li><code>CURRENT_STATUS.md</code></li>
+<li><code>SESSION_HANDOFF.md</code></li>
+<li><code>TODO.md</code></li>
+<li>Relevant <code>docs/</code></li>
+<li>Nearest local <code>AGENTS.md</code></li>
+</ul>
+<ol>
+<li>Identify the exact task.</li>
+<li>State assumptions and risks.</li>
+<li>Write a short implementation plan before editing.</li>
+</ol>
+
+<h3 id="during-work">During Work</h3>
+
+<ol>
+<li>Make the smallest useful change.</li>
+<li>Keep code, docs, and tests aligned.</li>
+<li>Do not start unrelated refactors.</li>
+<li>If the task reveals missing architecture docs, create or update them.</li>
+</ol>
+
+<h3 id="end">End</h3>
+
+<ol>
+<li>Run the most relevant checks.</li>
+<li>Update docs that changed behavior depends on.</li>
+<li>Update <code>TODO.md</code> task status.</li>
+<li>Update <code>CURRENT_STATUS.md</code>.</li>
+<li>Replace <code>SESSION_HANDOFF.md</code> with a clear handoff:</li>
+</ol>
+<ul>
+<li>What changed.</li>
+<li>Files touched.</li>
+<li>Checks run.</li>
+<li>Checks skipped.</li>
+<li>Known issues.</li>
+<li>Next recommended task.</li>
+</ul>
+
+<h2 id="12-board-and-canvas-architecture-rules">12. Board and Canvas Architecture Rules</h2>
+
+<p>Canvas state must be structured and persistent.</p>
+
+<p>Do not store the board as an opaque screenshot or HTML blob.</p>
+
+<p>Canvas items should have:</p>
+
+<ul>
+<li>Stable ID.</li>
+<li>Board ID.</li>
+<li>Type.</li>
+<li>Position.</li>
+<li>Size.</li>
+<li>Content payload.</li>
+<li>Style payload.</li>
+<li>Metadata.</li>
+<li>Created/updated timestamps.</li>
+<li>Created-by marker: user, assistant, system, import.</li>
+<li>Permission/safety metadata when relevant.</li>
+</ul>
+
+<p>Assistant canvas tools must operate on structured objects.</p>
+
+<h2 id="13-generated-html-widget-rules">13. Generated HTML Widget Rules</h2>
+
+<p>Generated custom HTML widgets are powerful and risky.</p>
+
+<p>Agents must implement or preserve these constraints:</p>
+
+<ul>
+<li>Widgets run in sandboxed iframes.</li>
+<li>Widgets do not receive unrestricted app access.</li>
+<li>Widget permissions are explicit.</li>
+<li>Widget state is isolated unless intentionally connected to board state.</li>
+<li>Network access is disabled by default or controlled by policy.</li>
+<li>Tool access from widgets is disabled by default or mediated by a permission gateway.</li>
+<li>Widget source should be versioned so changes can be inspected and rolled back.</li>
+<li>User-visible warnings or confirmation are required before running high-risk widgets.</li>
+</ul>
+
+<h2 id="14-telegram-integration-rules">14. Telegram Integration Rules</h2>
+
+<p>Telegram is a control surface, not a separate product.</p>
+
+<p>Telegram must support quick capture and commands such as:</p>
+
+<ul>
+<li>Create note.</li>
+<li>Create task.</li>
+<li>Create reminder.</li>
+<li>Create board.</li>
+<li>Add image/file to board.</li>
+<li>Summarize board.</li>
+<li>Send daily task summary.</li>
+</ul>
+
+<p>Telegram actions that modify persistent data must go through the same permission and audit model as web actions.</p>
+
+<h2 id="15-markdown-core-files-rules">15. Markdown Core Files Rules</h2>
+
+<p>The assistant should have editable Markdown operating files under <code>docs/agent-core/</code>.</p>
+
+<p>These files are not decorative. They define the assistant behavior model and should be kept aligned with implemented tools and features.</p>
+
+<p>When agent behavior, tool permissions, skills, or memory structure changes, update the relevant core file.</p>
+
+<div class="chapter-nav">
+<a href="#ch-ADHD" class="cn-prev">← Previous</a>
+<a href="#ch-CURRENT_STATUS" class="cn-next">Next →</a>
+</div>
+</section>
+<section class="chapter" id="ch-CURRENT_STATUS" data-chapter="CURRENT_STATUS.md" data-index="3">
+<h1 id="current-status">Current Status</h1>
+
+<p>Last updated: 2026-05-04</p>
+
+<h2 id="stage">Stage</h2>
+
+<p>P0 complete + P1 in progress. The PLAN.md P1 set is complete: undo/rollback, widget preview, and Telegram webhook wiring are implemented.</p>
+
+<h2 id="current-goal">Current goal</h2>
+
+<p>Continue the remaining P1 backlog beyond PLAN.md: board links, <code>organize_board</code>, <code>rollback_canvas_change</code>, Telegram <code>/remind</code> and <code>/summarize</code>, and additional widgets.</p>
+
+<h2 id="what-exists">What exists</h2>
+
+<h3 id="foundation">Foundation</h3>
+
+<ul>
+<li>Prisma schema: 13 models (User, Workspace, Board, CanvasItem, WidgetDefinition, WidgetInstance, CustomHtmlWidgetSource, Task, Reminder, TelegramLinkToken, TelegramAccount, AuditEvent, ChatThread, ChatMessage).</li>
+<li>All DB helpers in <code>src/db/</code>.</li>
+<li>Docker Compose Postgres on port 5444.</li>
+</ul>
+
+<h3 id="auth">Auth</h3>
+
+<ul>
+<li>NextAuth.js v4 credentials (email + password). Signup at <code>/signup</code>, login at <code>/login</code>.</li>
+<li>Signup can be disabled per environment with <code>APP_SIGNUP=disable</code>; login remains available and the signup API returns 403.</li>
+<li>JWT session with <code>userId</code> + <code>workspaceId</code>. Next.js 16 proxy guards all routes.</li>
+<li><code>getOrCreateWorkspaceForUser</code> creates workspace on first login.</li>
+<li>Onboarding board auto-seeded on signup: Welcome Board with sticky notes, task list, and Kanban.</li>
+</ul>
+
+<h3 id="boards-canvas">Boards & Canvas</h3>
+
+<ul>
+<li><code>listBoardsForWorkspace</code>, <code>searchBoardsForWorkspace</code> (case-insensitive, limit 30).</li>
+<li><code>BoardExplorer</code>: live create, server-side debounced search (300ms, spinner), board selection, template picker.</li>
+<li>3 board templates: Project Kickoff, Brainstorm Session, Weekly Review.</li>
+<li><code>BoardCanvas</code>: pan/zoom, drag-to-move, resize, select, floating action bar, mobile bottom sheet.</li>
+<li>Client undo for the last move/resize states with <code>Ctrl+Z</code> / <code>Cmd+Z</code>, optimistic PATCH rollback, and a 3-second toast.</li>
+<li>Item types: text, sticky_note, task_list, kanban, markdown, image, link, html_widget.</li>
+<li>Click-to-create via toolbar tools (V/H/T/S/K shortcuts).</li>
+<li>Edit modal, copy, delete with confirmation. Debounced PATCH on move/resize.</li>
+<li>Card shadow system and composite canvas grid texture.</li>
+</ul>
+
+<h3 id="ai-assistant">AI Assistant</h3>
+
+<ul>
+<li>OpenRouter LLM adapter (any model via <code>OPENROUTER_MODEL</code>). Falls back to local stub.</li>
+<li>Persistent chat threads: one <code>ChatThread</code> per board. Messages saved to DB after each turn. History loaded on board switch.</li>
+<li>Final assistant responses after tool calls receive tool results as explicit grounding data, so board summaries use actual canvas item output instead of guessing from chat history.</li>
+<li>Runtime chat context includes current date/time, selected board ID, and instructions to use board query tools before answering questions about visible board contents.</li>
+<li>The chat route supports multi-step tool execution, so requests like "delete that note" can list items first, then call <code>delete_canvas_item</code>, then respond only after the write tool succeeds.</li>
+<li>Registered chat tools:</li>
+<li><code>create_board</code>, <code>create_sub_board</code></li>
+<li><code>add_canvas_item</code>, <code>update_canvas_item</code>, <code>delete_canvas_item</code></li>
+<li><code>summarize_board</code>, <code>list_canvas_items</code></li>
+<li><code>create_task</code>, <code>list_tasks</code>, <code>create_reminder</code>, <code>list_reminders</code></li>
+<li>Tool execution cards in chat UI (success/error/pending states).</li>
+<li>Canvas auto-refreshes after successful tool calls.</li>
+<li>Assistant board/canvas tools verify workspace ownership before reading or mutating boards/items.</li>
+</ul>
+
+<h3 id="api-routes">API routes</h3>
+
+<p><code>/api/auth/[...nextauth]</code>, <code>/api/auth/signup</code>, <code>/api/boards</code>, <code>/api/boards/[id]</code>, <code>/api/boards/from-template</code>, <code>/api/canvas-items</code>, <code>/api/canvas-items/[id]</code>, <code>/api/chat</code>, <code>/api/chat/thread</code>, <code>/api/health</code>, <code>/api/tasks</code>, <code>/api/tasks/[id]</code>, <code>/api/telegram/webhook</code>, <code>/api/workspace</code></p>
+
+<h3 id="deployment">Deployment</h3>
+
+<ul>
+<li>Dockerfile-based deploy is ready for Dokploy test deployment.</li>
+<li>Deploy image uses Node.js 22 Debian slim with OpenSSL for Prisma.</li>
+<li>Docker build generates the Prisma client in the dependency stage and copies it into the Next.js builder stage before <code>next build</code>.</li>
+<li>Runtime image includes <code>docs/agent-core</code> so assistant chat can load Markdown core context in production.</li>
+<li>Container start runs <code>prisma migrate deploy</code> before <code>next start -H 0.0.0.0</code>.</li>
+<li>Public health check exists at <code>/api/health</code>.</li>
+<li>Dokploy/Hetzner guide: <code>docs/deployment/DOKPLOY_HETZNER.md</code>.</li>
+</ul>
+
+<h3 id="ui-ux">UI/UX</h3>
+
+<ul>
+<li>CSS design token system: <code>--bg-<em></code>, <code>--text-</em></code>, <code>--accent<em></code>, <code>--border</em></code>, <code>--shadow-<em></code>, <code>--canvas-</em></code>.</li>
+<li>Light/dark mode: persistent via localStorage, <code>ThemeProvider</code> context, <code><html class="dark"></code>.</li>
+<li>Collapsible sidebars, compact 44px header, mobile slide-up drawers, bottom nav.</li>
+<li>Widget library: Task List and Kanban, with preview modal before insertion.</li>
+<li><code>/tasks</code>: task center with create form, priority, dueDate, mark-complete.</li>
+<li><code>/core</code>: markdown editor for assistant context files.</li>
+<li>Login/signup cards with CSS var styling.</li>
+</ul>
+
+<h3 id="telegram">Telegram</h3>
+
+<ul>
+<li>Account-link token DB model and secure consume flow.</li>
+<li>Server command handlers for <code>/boards</code>, <code>/tasks</code>, <code>/newboard</code>, and <code>/addnote</code>.</li>
+<li><code>POST /api/telegram/webhook</code> receives message updates, validates <code>TELEGRAM_WEBHOOK_SECRET</code> when configured, links <code>/start <token></code>, dispatches commands, and replies through Telegram <code>sendMessage</code>.</li>
+<li><code>npm run telegram:webhook</code> registers <code>APP_URL/api/telegram/webhook</code> with Telegram.</li>
+</ul>
+
+<h3 id="documentation">Documentation</h3>
+
+<ul>
+<li><code>ADHD.md</code> is up to date as the fast project reference.</li>
+<li><code>docs/user-flow-guide.md</code> is up to date as the manual testing reference for current implemented flows.</li>
+</ul>
+
+<h2 id="what-does-not-exist-yet">What does NOT exist yet</h2>
+
+<ul>
+<li><code>organize_board</code> tool (auto-layout).</li>
+<li>Assistant <code>rollback_canvas_change</code> tool.</li>
+<li>Board links as canvas items.</li>
+<li>Telegram <code>/remind</code> and <code>/summarize</code>.</li>
+<li>Telegram photo/file capture and voice transcription.</li>
+<li>Widget version history / generated-widget rollback.</li>
+<li>Canvas minimap / grouping / frames (P2).</li>
+<li>Realtime collaboration (P2).</li>
+<li>OAuth / magic link auth (P2).</li>
+<li>Production deployment config (P2).</li>
+<li>Chat message timestamps in UI.</li>
+<li>Full E2E test suite.</li>
+</ul>
+
+<h2 id="known-risks">Known risks</h2>
+
+<ul>
+<li>Telegram webhook was built and compiled, but live bot delivery still needs a public HTTPS <code>APP_URL</code>, <code>TELEGRAM_BOT_TOKEN</code>, and optional <code>TELEGRAM_WEBHOOK_SECRET</code>.</li>
+<li><code>npm audit</code> reports moderate PostCSS and <code>@hono/node-server</code> advisories. Do not apply <code>--force</code>.</li>
+<li><code>AUTH_SECRET=dev-auth-secret-replace-in-production</code> in <code>.env</code>: replace before any real deployment.</li>
+<li>Generated HTML widgets: sandbox + confirmation gate in place; do not relax.</li>
+<li>No CSRF protection on <code>/api/auth/signup</code> beyond bcrypt cost.</li>
+</ul>
+
+<div class="chapter-nav">
+<a href="#ch-AGENTS" class="cn-prev">← Previous</a>
+<a href="#ch-MANIFEST" class="cn-next">Next →</a>
+</div>
+</section>
+<section class="chapter" id="ch-MANIFEST" data-chapter="MANIFEST.md" data-index="4">
+<h1 id="manifest">Manifest</h1>
+
+<pre><code class="language-text">visual-ai-whiteboard-agent/
+  .env.example
+  .gitignore
+  .prettierignore
+  ADHD.md
+  AGENTS.md
+  CURRENT_STATUS.md
+  MANIFEST.md
+  README.md
+  SESSION_HANDOFF.md
+  TODO.md
+  docker-compose.yml
+  eslint.config.mjs
+  next-env.d.ts
+  next.config.ts
+  package.json
+  package-lock.json
+  postcss.config.mjs
+  prisma.config.ts
+  tsconfig.json
+  vitest.config.ts
+  .agent/
+    BOOTSTRAP_PROMPT.md
+    CODING_AGENT_PROMPTS.md
+    SESSION_END_CHECKLIST.md
+    SESSION_START_CHECKLIST.md
+  docs/
+    AGENTS.md
+    user-flow-guide.md
+    agent-core/
+      AGENTS.md
+      ASSISTANT.md
+      BOARDS.md
+      CORE.md
+      MEMORY.md
+      RULES.md
+      SKILLS.md
+      TOOLS.md
+      USER_TEMPLATE.md
+    architecture/
+      AGENTS.md
+      ASSISTANT_TOOLS.md
+      CANVAS_ENGINE.md
+      DATA_MODEL.md
+      SECURITY_PERMISSIONS.md
+      SYSTEM_OVERVIEW.md
+      TECH_DECISIONS.md
+      TELEGRAM_INTEGRATION.md
+      WIDGET_RUNTIME.md
+    handoffs/
+      AGENTS.md
+      HANDOFF_TEMPLATE.md
+    implementation/
+      AGENTS.md
+      DEFINITION_OF_DONE.md
+      PHASES.md
+      PIPELINE.md
+    product/
+      AGENTS.md
+      MOBILE_UX.md
+      MVP_SCOPE.md
+      NAMING.md
+      PRD.md
+      USER_FLOWS.md
+      VISION.md
+    qa/
+      AGENTS.md
+      MANUAL_QA.md
+      TESTING_STRATEGY.md
+  prisma/
+    schema.prisma
+    migrations/
+      20260503...initial/
+      20260504002441_user_model/
+  public/
+  scripts/
+  specs/
+    AGENTS.md
+    canvas-item.schema.json
+    canvas-tools.schema.json
+    permissions.md
+    widget-manifest.schema.json
+    widget-manifest.example.json
+  src/
+    AGENTS.md
+    proxy.ts
+    db/
+      client.ts
+      boards.ts
+      canvas-items.ts
+      workspaces.ts
+      ... (other DB helpers)
+    lib/
+      auth.ts
+      password.ts
+      session.ts
+    server/
+      assistant/
+        board-tools.ts
+        canvas-tools.ts
+        llm.ts
+        tools.ts
+      core-files.ts
+      telegram/
+        account-linking.ts
+      widgets/
+        permissions.ts
+    app/
+      layout.tsx
+      page.tsx
+      providers.tsx
+      api/
+        auth/
+          [...nextauth]/route.ts
+          signup/route.ts
+        boards/
+          route.ts
+          [id]/route.ts
+        canvas-items/
+          route.ts
+          [id]/route.ts
+        chat/route.ts
+        tasks/
+          route.ts
+          [id]/route.ts
+        workspace/route.ts
+      components/
+        AssistantPanel.tsx
+        BoardCanvas.tsx
+        BoardExplorer.tsx
+        WidgetLibrary.tsx
+        WorkspaceShell.tsx
+      core/
+        page.tsx
+        ... (core file editor)
+      login/
+        page.tsx
+      signup/
+        page.tsx
+      tasks/
+        page.tsx
+        TasksClient.tsx</code></pre>
+
+<div class="chapter-nav">
+<a href="#ch-CURRENT_STATUS" class="cn-prev">← Previous</a>
+<a href="#ch-PLAN" class="cn-next">Next →</a>
+</div>
+</section>
+<section class="chapter" id="ch-PLAN" data-chapter="PLAN.md" data-index="5">
+<h1 id="remaining-work-plan">Remaining Work Plan</h1>
+
+<h2 id="p1-next-3-tasks-in-order">P1 — Next 3 tasks (in order)</h2>
+
+<h3 id="task-8-undo-rollback-for-canvas-changes-done">Task 8: Undo/rollback for canvas changes — done</h3>
+
+<p><strong>File:</strong> <code>src/app/components/BoardCanvas.tsx</code></p>
+
+<ul>
+<li>Add <code>undoStack</code> ref: <code>{ id: string; x: number; y: number; width: number; height: number }[]</code> (max 20)</li>
+<li>Add <code>undoToast</code> state: <code>boolean</code> (show 3s pill)</li>
+<li>On <code>onPointerDown</code> for item drag (move + resize): capture <strong>before</strong> state into a local variable</li>
+<li>On <code>onPointerUp</code> for item drag: push the captured before-state onto <code>undoStack</code></li>
+<li>Add <code>useEffect</code> for <code>keydown</code> → <code>Ctrl+Z</code> / <code>Cmd+Z</code>:</li>
+<li>Skip if <code>document.activeElement</code> is <code>INPUT</code> or <code>TEXTAREA</code></li>
+<li>Pop stack → optimistic <code>setItems</code> update → <code>PATCH /api/canvas-items/[id]</code></li>
+<li>Set <code>undoToast = true</code>, auto-clear after 3s</li>
+<li>Render undo toast: small pill at top-center of canvas, <code>absolute top-3 left-1/2 -translate-x-1/2 z-20</code></li>
+</ul>
+
+<hr>
+
+<h3 id="task-9-widget-preview-before-insert-done">Task 9: Widget preview before insert — done</h3>
+
+<p><strong>File:</strong> <code>src/app/components/WidgetLibrary.tsx</code></p>
+
+<ul>
+<li>On widget click: instead of immediately POSTing, set <code>previewWidget</code> state</li>
+<li>Render a small preview card (modal or inline panel) showing:</li>
+<li>Widget name + description</li>
+<li>Mini preview of what it looks like (static)</li>
+<li>"Add to board" button → POST <code>/api/canvas-items</code> → call <code>onItemAdded</code></li>
+<li>"Cancel" button → clear preview state</li>
+</ul>
+
+<hr>
+
+<h3 id="task-10-wire-telegram-webhook-done">Task 10: Wire Telegram webhook — done</h3>
+
+<p><strong>File:</strong> <code>src/app/api/telegram/webhook/route.ts</code>, <code>.env.example</code></p>
+
+<ul>
+<li>Register the webhook URL via Telegram Bot API:</li>
+</ul>
+<p><code>POST https://api.telegram.org/bot<TOKEN>/setWebhook?url=<APP_URL>/api/telegram/webhook</code></p>
+<ul>
+<li>Add <code>TELEGRAM_BOT_TOKEN</code> and <code>APP_URL</code> to <code>.env.example</code></li>
+<li>Add a one-time setup script: <code>scripts/register-telegram-webhook.ts</code></li>
+<li>Test: send <code>/boards</code> from Telegram → should list boards</li>
+</ul>
+
+<hr>
+
+<h2 id="p1-remaining-backlog-items-after-above">P1 — Remaining backlog items (after above)</h2>
+
+<tr><th>Item</th><th>Location</th></tr>
+<tr><td><code>organize_board</code> AI tool (auto-layout)</td><td><code>src/server/assistant/</code> + chat route</td></tr>
+<tr><th>Board links as canvas items</th><th>canvas item type <code>board_link</code></th></tr>
+<tr><th>Telegram <code>/remind</code> command</th><th><code>src/server/telegram/handlers.ts</code></th></tr>
+<tr><th>Telegram <code>/summarize</code> command</th><th>same</th></tr>
+<tr><th>Markdown reader widget</th><th><code>WidgetLibrary</code> + <code>BoardCanvas</code> renderer</th></tr>
+<tr><th>Rich text editor widget</th><th>same</th></tr>
+</table>
+
+<h2 id="p2-later">P2 — Later</h2>
+
+<ul>
+<li>Canvas minimap</li>
+<li>Grouping / frames</li>
+<li>Realtime collaboration</li>
+<li>OAuth / magic link auth</li>
+<li>Production deployment (Vercel + Railway)</li>
+<li>Analytics</li>
+<li>Chat message timestamps in UI</li>
+<li>Board-aware memory summaries</li>
+</ul>
+
+<div class="chapter-nav">
+<a href="#ch-MANIFEST" class="cn-prev">← Previous</a>
+<a href="#ch-SESSION_HANDOFF" class="cn-next">Next →</a>
+</div>
+</section>
+<section class="chapter" id="ch-SESSION_HANDOFF" data-chapter="SESSION_HANDOFF.md" data-index="6">
+<h1 id="latest-session-handoff">Latest Session Handoff</h1>
+
+<p>Date: 2026-05-04</p>
+
+<h2 id="summary">Summary</h2>
+
+<p>Removed the duplicate <code>notes</code> creation surface. Sticky notes and notes both stored a title plus text; the only meaningful difference was visual styling and default size. New boards, toolbar actions, widgets, API calls, and assistant tool calls now use <code>sticky_note</code> for note capture.</p>
+
+<h2 id="what-changed">What changed</h2>
+
+<ul>
+<li>Removed the Notes toolbar tool and <code>N</code> shortcut.</li>
+<li>Removed the Notes widget card from the widget library.</li>
+<li>Removed <code>notes</code> from user-facing and assistant/API creation allowlists.</li>
+<li>Added assistant tool validation so <code>add_canvas_item</code> rejects removed <code>notes</code> item creation.</li>
+<li>Updated onboarding and Project Kickoff template note items to use <code>sticky_note</code>.</li>
+<li>Kept legacy <code>notes</code> rendering in <code>BoardCanvas</code> so existing boards do not break.</li>
+<li>Updated docs and status notes.</li>
+</ul>
+
+<h2 id="files-changed-this-session">Files changed this session</h2>
+
+<ul>
+<li><code>CURRENT_STATUS.md</code></li>
+<li><code>TODO.md</code></li>
+<li><code>SESSION_HANDOFF.md</code></li>
+<li><code>docs/architecture/WIDGET_RUNTIME.md</code></li>
+<li><code>docs/implementation/PHASES.md</code></li>
+<li><code>docs/qa/MANUAL_QA.md</code></li>
+<li><code>docs/user-flow-guide.md</code></li>
+<li><code>src/app/api/canvas-items/route.ts</code></li>
+<li><code>src/app/api/chat/route.ts</code></li>
+<li><code>src/app/components/BoardCanvas.tsx</code></li>
+<li><code>src/app/components/CanvasToolbar.tsx</code></li>
+<li><code>src/app/components/WidgetLibrary.tsx</code></li>
+<li><code>src/server/assistant/canvas-tools.test.ts</code></li>
+<li><code>src/server/assistant/canvas-tools.ts</code></li>
+<li><code>src/server/board-templates.ts</code></li>
+<li><code>src/server/onboarding.ts</code></li>
+</ul>
+
+<h2 id="checks-run">Checks run</h2>
+
+<ul>
+<li><code>npm run typecheck</code>: passed</li>
+<li><code>npm run lint</code>: passed</li>
+<li><code>npm test -- --run</code>: passed, 58 tests</li>
+<li><code>npm run docs:check</code>: passed</li>
+<li><code>npm run build</code>: passed</li>
+</ul>
+
+<h2 id="checks-skipped">Checks skipped</h2>
+
+<ul>
+<li>Browser/manual QA was not run.</li>
+</ul>
+
+<h2 id="known-issues">Known issues</h2>
+
+<ul>
+<li>Existing boards may still contain old <code>notes</code> canvas items; they remain renderable as legacy items.</li>
+</ul>
+
+<h2 id="next-recommended-task">Next recommended task</h2>
+
+<p>Run a quick browser check that the toolbar no longer shows Notes and the widget library only offers Task List and Kanban.</p>
+
+<div class="chapter-nav">
+<a href="#ch-PLAN" class="cn-prev">← Previous</a>
+<a href="#ch-TODO" class="cn-next">Next →</a>
+</div>
+</section>
+<section class="chapter" id="ch-TODO" data-chapter="TODO.md" data-index="7">
+<h1 id="master-todo">Master TODO</h1>
+
+<p>Status legend:</p>
+
+<ul>
+<li><code>[ ]</code> not started</li>
+<li><code>[~]</code> in progress</li>
+<li><code>[x]</code> done</li>
+<li><code>[!]</code> blocked or needs decision</li>
+</ul>
+
+<p>Priority legend:</p>
+
+<ul>
+<li><code>P0</code> required for MVP foundation</li>
+<li><code>P1</code> required for useful MVP</li>
+<li><code>P2</code> important after MVP</li>
+<li><code>P3</code> later enhancement</li>
+</ul>
+
+<h2 id="phase-0-repository-and-product-foundation">Phase 0 — Repository and product foundation</h2>
+
+<ul>
+<li>[x] <code>P0</code> Choose initial app stack and document the decision in <code>docs/architecture/TECH_DECISIONS.md</code>.</li>
+<li>[x] <code>P0</code> Create initial app skeleton.</li>
+<li>[x] <code>P0</code> Add lint, format, typecheck, and test commands.</li>
+<li>[x] <code>P0</code> Add <code>.env.example</code> with safe placeholders.</li>
+<li>[x] <code>P0</code> Create base mobile-first layout shell.</li>
+<li>[x] <code>P0</code> Create initial docs update workflow in project scripts or checklist.</li>
+<li>[x] <code>P0</code> Confirm all important folders have <code>AGENTS.md</code>.</li>
+</ul>
+
+<h2 id="phase-1-board-engine">Phase 1 — Board engine</h2>
+
+<ul>
+<li>[x] <code>P0</code> Implement workspace model.</li>
+<li>[x] <code>P0</code> Implement board model.</li>
+<li>[x] <code>P0</code> Implement sub-board/parent-board relationship.</li>
+<li>[x] <code>P0</code> Implement canvas item model.</li>
+<li>[x] <code>P0</code> Create board explorer sidebar/drawer.</li>
+<li>[x] <code>P0</code> Create mobile board drawer behavior.</li>
+<li>[x] <code>P0</code> Implement create/read/update/delete for boards.</li>
+<li>[x] <code>P0</code> Implement create/read/update/delete for canvas items.</li>
+<li>[ ] <code>P1</code> Implement board links as canvas items.</li>
+<li>[x] <code>P1</code> Implement board search.</li>
+<li>[x] <code>P1</code> Add undo/rollback model for canvas changes.</li>
+</ul>
+
+<h2 id="phase-2-canvas-ui">Phase 2 — Canvas UI</h2>
+
+<ul>
+<li>[x] <code>P0</code> Render canvas with pan and zoom.</li>
+<li>[x] <code>P0</code> Render basic item types: text, sticky note, markdown, image, link.</li>
+<li>[x] <code>P0</code> Add item selection.</li>
+<li>[x] <code>P0</code> Add item move and resize.</li>
+<li>[x] <code>P0</code> Add mobile bottom sheet for selected item controls.</li>
+<li>[x] <code>P0</code> Add floating assistant button on board.</li>
+<li>[ ] <code>P1</code> Add grouping/sections.</li>
+<li>[ ] <code>P1</code> Add frames.</li>
+<li>[ ] <code>P1</code> Add canvas minimap or board overview.</li>
+<li>[ ] <code>P2</code> Add realtime presence/collaboration.</li>
+</ul>
+
+<h2 id="phase-3-assistant-and-tool-calling">Phase 3 — Assistant and tool calling</h2>
+
+<ul>
+<li>[x] <code>P0</code> Implement assistant chat UI.</li>
+<li>[x] <code>P0</code> Implement provider-agnostic LLM adapter.</li>
+<li>[x] <code>P0</code> Implement tool registry.</li>
+<li>[x] <code>P0</code> Implement tool call execution cards in chat.</li>
+<li>[x] <code>P0</code> Implement <code>create_board</code> tool.</li>
+<li>[x] <code>P0</code> Implement <code>create_sub_board</code> tool.</li>
+<li>[x] <code>P0</code> Implement <code>add_canvas_item</code> tool.</li>
+<li>[x] <code>P0</code> Implement <code>update_canvas_item</code> tool.</li>
+<li>[x] <code>P0</code> Implement <code>delete_canvas_item</code> tool with safe confirmation behavior.</li>
+<li>[x] <code>P1</code> Implement <code>summarize_board</code> tool.</li>
+<li>[x] <code>P1</code> Implement <code>list_canvas_items</code> tool.</li>
+<li>[ ] <code>P1</code> Implement <code>organize_board</code> tool.</li>
+<li>[ ] <code>P1</code> Implement <code>duplicate_board</code> tool.</li>
+<li>[ ] <code>P1</code> Implement <code>rollback_canvas_change</code> tool.</li>
+<li>[x] <code>P1</code> Persist chat threads and tool calls.</li>
+</ul>
+
+<h2 id="phase-4-prebuilt-widgets">Phase 4 — Prebuilt widgets</h2>
+
+<ul>
+<li>[x] <code>P0</code> Define widget manifest format.</li>
+<li>[x] <code>P0</code> Build widget library UI.</li>
+<li>[x] <code>P0</code> Add task list widget.</li>
+<li>[x] <code>P0</code> Consolidate duplicate notes widget into sticky notes.</li>
+<li>[x] <code>P1</code> Add Kanban widget.</li>
+<li>[ ] <code>P1</code> Add markdown reader widget.</li>
+<li>[ ] <code>P1</code> Add rich text editor widget.</li>
+<li>[ ] <code>P1</code> Add reminders widget.</li>
+<li>[ ] <code>P2</code> Add finance tracker widget.</li>
+<li>[ ] <code>P2</code> Add CRM widget.</li>
+<li>[ ] <code>P2</code> Add project management widget.</li>
+<li>[ ] <code>P2</code> Add habit tracker widget.</li>
+</ul>
+
+<h2 id="phase-5-sandboxed-custom-html-widgets">Phase 5 — Sandboxed custom HTML widgets</h2>
+
+<ul>
+<li>[x] <code>P0</code> Define custom HTML widget data model.</li>
+<li>[x] <code>P0</code> Implement iframe sandbox renderer.</li>
+<li>[x] <code>P0</code> Implement widget permission model.</li>
+<li>[x] <code>P0</code> Disable network/tool access by default.</li>
+<li>[x] <code>P0</code> Store generated widget source/version.</li>
+<li>[x] <code>P0</code> Add confirmation before running generated widget.</li>
+<li>[x] <code>P1</code> Add widget preview before insertion.</li>
+<li>[ ] <code>P1</code> Add widget rollback/version history.</li>
+<li>[ ] <code>P1</code> Allow assistant to generate safe simple widgets.</li>
+<li>[ ] <code>P2</code> Add mediated bridge from widget to board state.</li>
+</ul>
+
+<h2 id="phase-6-tasks-reminders-alarms-schedules">Phase 6 — Tasks, reminders, alarms, schedules</h2>
+
+<ul>
+<li>[x] <code>P0</code> Implement task model.</li>
+<li>[x] <code>P0</code> Implement reminder model.</li>
+<li>[x] <code>P0</code> Implement task center page.</li>
+<li>[ ] <code>P1</code> Add recurring schedule model.</li>
+<li>[ ] <code>P1</code> Add cron-like schedules with guardrails.</li>
+<li>[ ] <code>P1</code> Add notification preferences.</li>
+<li>[x] <code>P1</code> Add assistant tool for task creation.</li>
+<li>[x] <code>P1</code> Add assistant tool for reminder creation.</li>
+<li>[x] <code>P1</code> Add assistant tools: list_tasks, list_reminders.</li>
+<li>[ ] <code>P2</code> Add daily digest.</li>
+</ul>
+
+<h2 id="phase-7-telegram-integration">Phase 7 — Telegram integration</h2>
+
+<ul>
+<li>[x] <code>P0</code> Create Telegram bot setup docs.</li>
+<li>[x] <code>P0</code> Implement account linking flow.</li>
+<li>[x] <code>P0</code> Implement <code>/boards</code>.</li>
+<li>[x] <code>P0</code> Implement <code>/tasks</code>.</li>
+<li>[x] <code>P0</code> Implement <code>/newboard</code>.</li>
+<li>[x] <code>P0</code> Implement <code>/addnote</code>.</li>
+<li>[x] <code>P1</code> Wire live Telegram webhook route and registration script.</li>
+<li>[ ] <code>P1</code> Implement <code>/remind</code>.</li>
+<li>[ ] <code>P1</code> Implement <code>/summarize</code>.</li>
+<li>[ ] <code>P1</code> Support photo/file capture into board.</li>
+<li>[ ] <code>P1</code> Support voice note transcription if available.</li>
+<li>[ ] <code>P2</code> Support Telegram inline buttons for board actions.</li>
+</ul>
+
+<h2 id="phase-8-markdown-core-files">Phase 8 — Markdown core files</h2>
+
+<ul>
+<li>[x] <code>P0</code> Create editable core file viewer.</li>
+<li>[x] <code>P0</code> Load <code>CORE.md</code>, <code>ASSISTANT.md</code>, <code>TOOLS.md</code>, <code>SKILLS.md</code>, and <code>RULES.md</code> into assistant context.</li>
+<li>[x] <code>P0</code> Document core file update rules.</li>
+<li>[ ] <code>P1</code> Add board-aware memory summaries.</li>
+<li>[ ] <code>P1</code> Add memory review UI.</li>
+<li>[ ] <code>P2</code> Add safe memory extraction workflow.</li>
+</ul>
+
+<h2 id="phase-9-polish-qa-launch-prep">Phase 9 — Polish, QA, launch prep</h2>
+
+<ul>
+<li>[~] <code>P0</code> Run full manual QA in <code>docs/qa/MANUAL_QA.md</code>. (lint/typecheck/tests/build all pass; live end-to-end walk requires OPENROUTER_API_KEY)</li>
+<li>[~] <code>P0</code> Verify mobile UX on small screen width. (layout verified at 390px; live device test pending)</li>
+<li>[x] <code>P0</code> Verify permission boundaries. (requireSession() on all routes; soft-delete enforced)</li>
+<li>[x] <code>P0</code> Verify generated widget sandboxing. (iframe sandbox confirmed; confirmation gate in place)</li>
+<li>[~] <code>P0</code> Verify Telegram account linking and command safety. (webhook wired; live bot test still requires public HTTPS APP_URL and TELEGRAM_BOT_TOKEN)</li>
+<li>[x] <code>P1</code> Add onboarding flow.</li>
+<li>[x] <code>P1</code> Add empty states and loading states.</li>
+<li>[~] <code>P1</code> Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)</li>
+<li>[x] <code>P1</code> Add demo board templates.</li>
+<li>[~] <code>P2</code> Add production deployment config. (Dokploy Dockerfile + guide ready for test deploy; Docker build verified locally; production hardening still pending)</li>
+<li>[ ] <code>P2</code> Add analytics/events with privacy review.</li>
+</ul>
+
+<h2 id="production-wiring-completed-2026-05-04">Production wiring — completed 2026-05-04</h2>
+
+<ul>
+<li>[x] <code>P0</code> Implement NextAuth v4 credentials auth (signup + login).</li>
+<li>[x] <code>P1</code> Add <code>APP_SIGNUP=disable</code> environment gate for new account creation.</li>
+<li>[x] <code>P0</code> Wire home page to real boards from DB (async server component).</li>
+<li>[x] <code>P0</code> Wire canvas to real DB-backed items (load, move, resize, delete, edit, copy).</li>
+<li>[x] <code>P0</code> Wire AssistantPanel to real LLM via /api/chat with tool call loop.</li>
+<li>[x] <code>P0</code> Add OpenRouter LLM adapter (<code>openai</code> SDK + <code>baseURL</code>).</li>
+<li>[x] <code>P0</code> Wire tasks page to real DB (list, create, mark complete).</li>
+<li>[x] <code>P0</code> Wire widget library to real API (click → POST /api/canvas-items).</li>
+<li>[x] <code>P0</code> Add all API routes (boards, canvas-items, tasks, chat, workspace, auth).</li>
+<li>[x] <code>P0</code> Add Next.js 16 proxy for route protection.</li>
+</ul>
+
+<div class="chapter-nav">
+<a href="#ch-SESSION_HANDOFF" class="cn-prev">← Previous</a>
+<span></span>
+</div>
+</section>
+</main>
+<script>
+(function(){
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("overlay");
+  const menuBtn = document.getElementById("menuBtn");
+  const themeBtn = document.getElementById("themeBtn");
+  const navLinks = sidebar.querySelectorAll(".nav-chapter");
+  const chapters = document.querySelectorAll(".chapter");
+  const ds = document.documentElement;
+
+  // Theme
+  function setTheme(dark) {
+    ds.classList.toggle("dark", dark);
+    localStorage.setItem("book-theme", dark ? "dark" : "light");
+  }
+  setTheme(localStorage.getItem("book-theme") === "dark" || (!localStorage.getItem("book-theme") && matchMedia("(prefers-color-scheme: dark)").matches));
+  themeBtn.addEventListener("click", () => setTheme(!ds.classList.contains("dark")));
+
+  // Sidebar toggle
+  function openSidebar() { sidebar.classList.add("open"); overlay.classList.add("show"); }
+  function closeSidebar() { sidebar.classList.remove("open"); overlay.classList.remove("show"); }
+  menuBtn.addEventListener("click", openSidebar);
+  overlay.addEventListener("click", closeSidebar);
+  navLinks.forEach(a => a.addEventListener("click", () => { if (window.innerWidth <= 768) closeSidebar(); }));
+
+  // Active chapter tracking
+  function updateActive() {
+    let active = null;
+    chapters.forEach(c => {
+      const rect = c.getBoundingClientRect();
+      if (rect.top <= 120) active = c;
+    });
+    navLinks.forEach(a => a.classList.remove("active"));
+    if (active) {
+      const id = active.id;
+      const link = sidebar.querySelector(`[href="#${id}"]`);
+      if (link) { link.classList.add("active"); link.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+    }
+  }
+  window.addEventListener("scroll", updateActive, { passive: true });
+  updateActive();
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === "[" || (e.key === "ArrowLeft" && e.altKey)) {
+      const cur = document.querySelector(".chapter:target") || chapters[0];
+      const prev = cur?.previousElementSibling?.classList.contains("chapter") ? cur.previousElementSibling : null;
+      if (prev) { location.hash = prev.id; e.preventDefault(); }
+    }
+    if (e.key === "]" || (e.key === "ArrowRight" && e.altKey)) {
+      const cur = document.querySelector(".chapter:target") || chapters[0];
+      const next = cur?.nextElementSibling?.classList.contains("chapter") ? cur.nextElementSibling : null;
+      if (next) { location.hash = next.id; e.preventDefault(); }
+    }
+  });
+})();
+</script>
+<p style="text-align:center;font-size:11px;color:var(--text-2);padding:20px 0 40px;">Generated 2026-05-04 23:16:17 &middot; build-book.mjs</p>
+</body>
+</html>
