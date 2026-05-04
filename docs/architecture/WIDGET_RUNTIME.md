@@ -19,6 +19,8 @@ Examples:
 - Project manager.
 - Habit tracker.
 
+The widget library previews trusted prebuilt widgets before insertion. Users see the widget name, description, a static mini preview, and explicit Add/Cancel actions before a canvas item is created.
+
 ### Custom HTML widgets
 
 Generated or user-provided HTML/CSS/JS rendered inside a sandboxed iframe.

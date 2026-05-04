@@ -46,6 +46,7 @@ MVP must support:
 - Select.
 - Move.
 - Resize.
+- Undo the last move/resize with `Ctrl+Z` / `Cmd+Z`.
 - Add.
 - Edit.
 - Delete.
@@ -90,5 +91,5 @@ Minimum MVP audit:
 Future:
 
 - Full version history.
-- Undo/redo.
+- Redo.
 - Board snapshots.

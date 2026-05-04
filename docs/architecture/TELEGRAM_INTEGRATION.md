@@ -34,9 +34,9 @@ Local development:
 Webhook deployment:
 
 1. Deploy the app with an HTTPS public `APP_URL`.
-2. Configure a server route for Telegram updates.
-3. Set the webhook with Telegram Bot API `setWebhook`.
-4. Include the webhook secret in the webhook configuration or route path.
+2. Configure `TELEGRAM_BOT_TOKEN` and optional `TELEGRAM_WEBHOOK_SECRET`.
+3. Run `npm run telegram:webhook` to set `APP_URL/api/telegram/webhook` through Telegram Bot API `setWebhook`.
+4. Include the webhook secret through Telegram's `secret_token`; the route checks `x-telegram-bot-api-secret-token` when `TELEGRAM_WEBHOOK_SECRET` is set.
 5. Verify webhook status with Telegram Bot API `getWebhookInfo`.
 
 Important Telegram behavior:
@@ -49,6 +49,8 @@ Important Telegram behavior:
 
 Implemented foundation:
 
+- `POST /api/telegram/webhook` receives Telegram message updates, checks the configured webhook secret, dispatches text commands, and replies through Telegram `sendMessage`.
+- `/start <token>` consumes a one-time web-issued link token and links the Telegram sender to the owning app user/workspace.
 - `handleTelegramTextCommand` parses text commands and supports bot-addressed commands such as `/boards@BotName`.
 - `/boards` calls `getActiveTelegramAccount` first and returns a link-required reply for unlinked Telegram users.
 - Linked `/boards` requests list active boards from the linked account's workspace through existing board persistence helpers.
@@ -58,7 +60,7 @@ Implemented foundation:
 - Long board lists are capped in Telegram replies to keep mobile chat output readable.
 - Long task lists are capped in Telegram replies and include priority/due date context when available.
 
-The webhook route and Telegram API send-message adapter are still pending.
+`scripts/register-telegram-webhook.ts` registers the deployed webhook URL. It requires `TELEGRAM_BOT_TOKEN` and `APP_URL`, and uses `TELEGRAM_WEBHOOK_SECRET` when present.
 
 ## Account linking
 

@@ -36,7 +36,7 @@ Priority legend:
 - [x] `P0` Implement create/read/update/delete for canvas items.
 - [ ] `P1` Implement board links as canvas items.
 - [x] `P1` Implement board search.
-- [ ] `P1` Add undo/rollback model for canvas changes.
+- [x] `P1` Add undo/rollback model for canvas changes.
 
 ## Phase 2 — Canvas UI
 
@@ -92,7 +92,7 @@ Priority legend:
 - [x] `P0` Disable network/tool access by default.
 - [x] `P0` Store generated widget source/version.
 - [x] `P0` Add confirmation before running generated widget.
-- [ ] `P1` Add widget preview before insertion.
+- [x] `P1` Add widget preview before insertion.
 - [ ] `P1` Add widget rollback/version history.
 - [ ] `P1` Allow assistant to generate safe simple widgets.
 - [ ] `P2` Add mediated bridge from widget to board state.
@@ -118,6 +118,7 @@ Priority legend:
 - [x] `P0` Implement `/tasks`.
 - [x] `P0` Implement `/newboard`.
 - [x] `P0` Implement `/addnote`.
+- [x] `P1` Wire live Telegram webhook route and registration script.
 - [ ] `P1` Implement `/remind`.
 - [ ] `P1` Implement `/summarize`.
 - [ ] `P1` Support photo/file capture into board.
@@ -139,7 +140,7 @@ Priority legend:
 - [~] `P0` Verify mobile UX on small screen width. (layout verified at 390px; live device test pending)
 - [x] `P0` Verify permission boundaries. (requireSession() on all routes; soft-delete enforced)
 - [x] `P0` Verify generated widget sandboxing. (iframe sandbox confirmed; confirmation gate in place)
-- [!] `P0` Verify Telegram account linking and command safety. (Telegram deferred; server-side handlers unit-tested)
+- [~] `P0` Verify Telegram account linking and command safety. (webhook wired; live bot test still requires public HTTPS APP_URL and TELEGRAM_BOT_TOKEN)
 - [x] `P1` Add onboarding flow.
 - [x] `P1` Add empty states and loading states.
 - [~] `P1` Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)

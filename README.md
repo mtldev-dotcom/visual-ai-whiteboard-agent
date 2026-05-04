@@ -72,13 +72,13 @@ Open `http://localhost:3000`.
 
 ## Routes
 
-| Route      | Description                                           |
-|------------|-------------------------------------------------------|
-| `/signup`  | Create an account                                     |
-| `/login`   | Sign in                                               |
-| `/`        | Whiteboard workspace — boards, canvas, assistant chat |
-| `/tasks`   | Task center — create and complete tasks               |
-| `/core`    | Editable Markdown core files for the assistant        |
+| Route     | Description                                           |
+| --------- | ----------------------------------------------------- |
+| `/signup` | Create an account                                     |
+| `/login`  | Sign in                                               |
+| `/`       | Whiteboard workspace — boards, canvas, assistant chat |
+| `/tasks`  | Task center — create and complete tasks               |
+| `/core`   | Editable Markdown core files for the assistant        |
 
 ## Useful checks
 
@@ -92,7 +92,10 @@ npm run docs:check
 npm run db:validate
 npm run db:generate
 npm run db:smoke
+npm run telegram:webhook
 ```
+
+`npm run telegram:webhook` registers `APP_URL/api/telegram/webhook` with Telegram using `TELEGRAM_BOT_TOKEN` and optional `TELEGRAM_WEBHOOK_SECRET`.
 
 ## Recommended first instruction for coding agents
 

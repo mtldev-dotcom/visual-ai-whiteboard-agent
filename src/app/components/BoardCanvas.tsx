@@ -19,7 +19,11 @@ type CanvasItemContent = {
   html?: string;
   src?: string;
   tasks?: { completed: boolean; title: string }[];
-  columns?: { id: string; title: string; cards: { id: string; title: string }[] }[];
+  columns?: {
+    id: string;
+    title: string;
+    cards: { id: string; title: string }[];
+  }[];
 };
 
 type CanvasItem = {
@@ -34,6 +38,13 @@ type CanvasItem = {
 
 type EditState = { itemId: string; title: string; text: string } | null;
 type ConfirmState = { itemId: string } | null;
+type UndoSnapshot = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 function clampZoom(v: number) {
   return Math.min(maxZoom, Math.max(minZoom, v));
@@ -496,6 +507,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   const [activeTool, setActiveTool] = useState<CanvasTool>("select");
   const [editState, setEditState] = useState<EditState>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmState>(null);
+  const [undoToast, setUndoToast] = useState(false);
   const [dragStart, setDragStart] = useState<{
     pointerId: number;
     x: number;
@@ -514,9 +526,12 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     itemY: number;
     itemWidth: number;
     itemHeight: number;
+    before: UndoSnapshot;
   } | null>(null);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoStack = useRef<UndoSnapshot[]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
@@ -551,6 +566,17 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     return () => controller.abort();
   }, [boardId, refreshKey]);
 
+  useEffect(() => {
+    undoStack.current = [];
+  }, [boardId]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (undoToastTimer.current) clearTimeout(undoToastTimer.current);
+    };
+  }, []);
+
   const persistPosition = useCallback((id: string, x: number, y: number) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -574,6 +600,96 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
       }, DEBOUNCE_MS);
     },
     [],
+  );
+
+  const showUndoToast = useCallback(() => {
+    setUndoToast(true);
+    if (undoToastTimer.current) clearTimeout(undoToastTimer.current);
+    undoToastTimer.current = setTimeout(() => setUndoToast(false), 3000);
+  }, []);
+
+  const pushUndoSnapshot = useCallback((snapshot: UndoSnapshot) => {
+    undoStack.current = [...undoStack.current, snapshot].slice(-20);
+  }, []);
+
+  const undoCanvasChange = useCallback(async () => {
+    const snapshot = undoStack.current.pop();
+    if (!snapshot) return;
+
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === snapshot.id
+          ? {
+              ...item,
+              height: snapshot.height,
+              width: snapshot.width,
+              x: snapshot.x,
+              y: snapshot.y,
+            }
+          : item,
+      ),
+    );
+    setSelectedId(snapshot.id);
+    showUndoToast();
+
+    try {
+      await fetch(`/api/canvas-items/${snapshot.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          height: snapshot.height,
+          width: snapshot.width,
+          x: snapshot.x,
+          y: snapshot.y,
+        }),
+      });
+    } catch {
+      onRefreshNeeded();
+    }
+  }, [onRefreshNeeded, showUndoToast]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName;
+
+      if (
+        tagName === "INPUT" ||
+        tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        void undoCanvasChange();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undoCanvasChange]);
+
+  const finishItemDrag = useCallback(
+    (pointerId: number) => {
+      if (!itemDrag || itemDrag.pointerId !== pointerId) return;
+
+      const item = items.find((candidate) => candidate.id === itemDrag.itemId);
+      if (
+        item &&
+        (item.x !== itemDrag.before.x ||
+          item.y !== itemDrag.before.y ||
+          item.width !== itemDrag.before.width ||
+          item.height !== itemDrag.before.height)
+      ) {
+        pushUndoSnapshot(itemDrag.before);
+      }
+
+      setItemDrag(null);
+    },
+    [itemDrag, items, pushUndoSnapshot],
   );
 
   function updateDragged(clientX: number, clientY: number) {
@@ -879,6 +995,13 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                       itemY: item.y,
                       itemWidth: item.width,
                       itemHeight: item.height,
+                      before: {
+                        height: item.height,
+                        id: item.id,
+                        width: item.width,
+                        x: item.x,
+                        y: item.y,
+                      },
                     });
                   }}
                   onPointerMove={(e) => {
@@ -887,7 +1010,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                   }}
                   onPointerUp={(e) => {
                     e.currentTarget.releasePointerCapture(e.pointerId);
-                    setItemDrag(null);
+                    finishItemDrag(e.pointerId);
                   }}
                 >
                   <ItemCard
@@ -967,6 +1090,13 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                             itemY: item.y,
                             itemWidth: item.width,
                             itemHeight: item.height,
+                            before: {
+                              height: item.height,
+                              id: item.id,
+                              width: item.width,
+                              x: item.x,
+                              y: item.y,
+                            },
                           });
                         }}
                         onPointerMove={(e) => {
@@ -975,7 +1105,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                         }}
                         onPointerUp={(e) => {
                           e.currentTarget.releasePointerCapture(e.pointerId);
-                          setItemDrag(null);
+                          finishItemDrag(e.pointerId);
                         }}
                       />
                     </>
@@ -986,6 +1116,20 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
           </div>
         </div>
       </div>
+
+      {undoToast && (
+        <div
+          className="absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-full border px-3 py-1.5 text-xs font-semibold"
+          style={{
+            background: "var(--bg-elevated)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--shadow-md)",
+            color: "var(--text-1)",
+          }}
+        >
+          Canvas change undone
+        </div>
+      )}
 
       {/* Floating canvas toolbar */}
       <CanvasToolbar
