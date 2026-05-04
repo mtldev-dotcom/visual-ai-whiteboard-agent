@@ -14,6 +14,32 @@
 10. Update `CURRENT_STATUS.md`.
 11. Update `SESSION_HANDOFF.md`.
 
+## Project checks
+
+Run these commands when the app skeleton or shared workflow changes:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run format:check`
+- `npm run build`
+- `npm run docs:check`
+- `npm run db:validate` when Prisma schema changes
+- `npm run db:generate` when Prisma schema or client dependencies change
+- `npm run db:smoke` when the local database is running
+
+`npm run docs:check` verifies that required workflow docs exist and that `SESSION_HANDOFF.md` keeps the expected handoff sections.
+
+## Local database
+
+Use Docker Compose for local Postgres:
+
+- `docker compose up -d postgres`
+- Host port: `5444`
+- Development URL: `postgresql://visual_whiteboard:visual_whiteboard_dev@localhost:5444/visual_whiteboard_ai`
+
+Run `npx prisma migrate dev` after schema changes when the local database is available.
+
 ## Branch discipline
 
 If using git:

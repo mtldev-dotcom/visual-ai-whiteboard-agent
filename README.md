@@ -23,6 +23,66 @@ A mobile-first AI workspace where users chat with an assistant that can think vi
 - `.agent/` — prompts and workflow checklists for Codex, Claude Code, DeepSeek, or similar coding agents.
 - `src/AGENTS.md` — source-code ownership rules for future implementation.
 
+## Local development
+
+The initial app skeleton uses TypeScript, Next.js App Router, Tailwind CSS, ESLint, Prettier, and Vitest.
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the app locally:
+
+```bash
+npm run dev
+```
+
+Useful local routes:
+
+- `/` — whiteboard workspace shell.
+- `/tasks` — task center.
+- `/core` — editable Markdown core file viewer.
+
+Start the local Postgres database on port `5444`:
+
+```bash
+docker compose up -d postgres
+```
+
+Use this local development database URL:
+
+```bash
+DATABASE_URL=postgresql://visual_whiteboard:visual_whiteboard_dev@localhost:5444/visual_whiteboard_ai
+```
+
+Use the deterministic local assistant adapter for development:
+
+```bash
+LLM_PROVIDER=local
+```
+
+Apply Prisma migrations:
+
+```bash
+npx prisma migrate dev
+```
+
+Useful checks:
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run format:check
+npm run build
+npm run docs:check
+npm run db:validate
+npm run db:generate
+npm run db:smoke
+```
+
 ## Recommended first instruction to give a coding agent
 
 Paste this into your coding agent after unzipping:

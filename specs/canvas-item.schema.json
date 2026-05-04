@@ -69,10 +69,7 @@
       "type": "string"
     },
     "deletedAt": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     }
   },
   "additionalProperties": false

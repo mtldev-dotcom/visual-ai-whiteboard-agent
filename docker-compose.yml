@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: visual-ai-whiteboard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: visual_whiteboard_ai
+      POSTGRES_USER: visual_whiteboard
+      POSTGRES_PASSWORD: visual_whiteboard_dev
+    ports:
+      - "127.0.0.1:5444:5432"
+    volumes:
+      - visual_ai_whiteboard_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U visual_whiteboard -d visual_whiteboard_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  visual_ai_whiteboard_postgres:

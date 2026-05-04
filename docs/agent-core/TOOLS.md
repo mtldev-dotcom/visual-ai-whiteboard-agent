@@ -6,45 +6,23 @@ This file documents assistant tools. It must stay synchronized with implemented 
 
 - `create_board`
 - `create_sub_board`
-- `rename_board`
-- `duplicate_board`
-- `archive_board`
-- `search_boards`
 
 ## Canvas tools
 
 - `add_canvas_item`
 - `update_canvas_item`
 - `delete_canvas_item`
-- `move_canvas_item`
-- `resize_canvas_item`
-- `group_canvas_items`
-- `summarize_board`
-- `organize_board`
-- `rollback_canvas_change`
 
-## Widget tools
+## Telegram commands
 
-- `add_prebuilt_widget`
-- `generate_html_widget`
-- `preview_html_widget`
-- `approve_html_widget`
-- `rollback_widget_version`
+Telegram commands are not assistant tools yet, but they are implemented server commands:
 
-## Task/reminder tools
+- `/boards`
+- `/tasks`
+- `/newboard`
+- `/addnote`
 
-- `create_task`
-- `update_task`
-- `complete_task`
-- `create_reminder`
-- `cancel_reminder`
-- `list_today_tasks`
-
-## Integration tools
-
-- `telegram_send_reply`
-- `telegram_capture_note`
-- `telegram_capture_file`
+Telegram mutation commands require linked accounts and audit events.
 
 ## Rule
 

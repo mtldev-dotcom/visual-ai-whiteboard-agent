@@ -1,0 +1,50 @@
+{
+  "$schema": "./widget-manifest.schema.json",
+  "id": "task_list",
+  "name": "Task List",
+  "description": "Track lightweight tasks on a board.",
+  "version": "0.1.0",
+  "kind": "prebuilt",
+  "category": "productivity",
+  "renderStrategy": "react_component",
+  "supportedSizes": [
+    {
+      "name": "compact",
+      "width": 320,
+      "height": 240
+    },
+    {
+      "name": "wide",
+      "width": 520,
+      "height": 320
+    }
+  ],
+  "permissions": ["board.read", "board.write"],
+  "stateSchema": {
+    "type": "object",
+    "properties": {
+      "tasks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "title", "completed"],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "completed": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["tasks"],
+    "additionalProperties": false
+  },
+  "sourceVersioned": false
+}

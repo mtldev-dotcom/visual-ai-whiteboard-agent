@@ -9,51 +9,118 @@
 - Tool calls should be visible to the user as execution cards.
 - Destructive tools require confirmation or safe undo/rollback.
 
-## Initial tools
+## LLM adapter
+
+The assistant runtime starts behind a provider-agnostic adapter in `src/server/assistant/llm.ts`.
+
+Current implemented provider:
+
+- `local`: deterministic development/test adapter with no external network call.
+
+The adapter loads Markdown assistant core context from `CORE.md`, `ASSISTANT.md`, `TOOLS.md`, `SKILLS.md`, and `RULES.md` through `src/server/core-files.ts`. Hosted providers must preserve this core-context injection before sending messages to an external model.
+
+Future hosted providers must implement the same `LlmAdapter` interface and must not be called directly from UI components or canvas tools.
+
+## Tool registry
+
+The initial server-side registry is implemented in `src/server/assistant/tools.ts`.
+
+It provides:
+
+- Tool registration by unique name.
+- Tool listing for assistant/runtime discovery.
+- Per-tool input validation before execution.
+- Structured success/error results for future execution cards.
+- Permission level metadata matching the levels below.
+
+Concrete board and canvas tools are tracked separately in Phase 3 and must register through this registry rather than bypassing it.
+
+## Implemented concrete tools
 
 ### create_board
 
-Creates a new board in a workspace.
+Implemented in `src/server/assistant/board-tools.ts`.
+
+Input:
+
+- `title` string, required.
+- `description` string, optional.
+
+Behavior:
+
+- Validates input before execution.
+- Creates a board in the current workspace through the board persistence helper.
+- Returns a structured output containing the board ID and title.
+- Permission level: 1.
 
 ### create_sub_board
 
-Creates a child board under an existing board.
+Implemented in `src/server/assistant/board-tools.ts`.
+
+Input:
+
+- `parentBoardId` string, required.
+- `title` string, required.
+- `description` string, optional.
+
+Behavior:
+
+- Validates input before execution.
+- Creates a board linked to the provided parent board.
+- Returns a structured output containing the new board ID, parent board ID, and title.
+- Permission level: 1.
 
 ### add_canvas_item
 
-Adds a structured item to a board.
+Implemented in `src/server/assistant/canvas-tools.ts`.
+
+Input:
+
+- `boardId` string, required.
+- `type` string, required.
+- `x`, `y`, `width`, `height` finite numbers, required.
+- `content` object, required.
+- `style`, `metadata`, and `safetyMetadata` objects, optional.
+
+Behavior:
+
+- Validates structured item input before execution.
+- Creates a canvas item in the current workspace and target board.
+- Returns a structured output containing the item ID and type.
+- Permission level: 1.
 
 ### update_canvas_item
 
-Updates content, style, metadata, position, or size of an item.
+Implemented in `src/server/assistant/canvas-tools.ts`.
+
+Input:
+
+- `itemId` string, required.
+- Optional `x`, `y`, `width`, `height` finite numbers.
+- Optional `content`, `style`, `metadata`, and `safetyMetadata` objects.
+
+Behavior:
+
+- Validates input before execution.
+- Updates the canvas item through the persistence helper.
+- Returns a structured output containing the item ID and type.
+- Permission level: 1.
 
 ### delete_canvas_item
 
-Soft deletes an item. Hard delete should not be the default.
+Implemented in `src/server/assistant/canvas-tools.ts`.
 
-### summarize_board
+Input:
 
-Reads board items and creates a summary.
+- `itemId` string, required.
+- `confirmed` boolean, must be `true`.
 
-### organize_board
+Behavior:
 
-Groups, moves, renames, or restructures board items.
-
-### duplicate_board
-
-Copies a board and its items.
-
-### rollback_canvas_change
-
-Reverts a previous assistant/tool change where supported.
-
-### create_task
-
-Creates a task attached to workspace, board, or canvas item.
-
-### create_reminder
-
-Creates a reminder attached to workspace, board, canvas item, or task.
+- Requires explicit confirmation in tool input.
+- Soft deletes the canvas item through the persistence helper.
+- Returns a structured output containing the item ID.
+- Permission level: 2.
 
 ## Execution cards
 

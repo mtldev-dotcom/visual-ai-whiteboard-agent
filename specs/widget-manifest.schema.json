@@ -5,14 +5,19 @@
   "required": [
     "id",
     "name",
+    "description",
     "version",
     "kind",
     "category",
-    "permissions"
+    "renderStrategy",
+    "supportedSizes",
+    "permissions",
+    "stateSchema"
   ],
   "properties": {
     "id": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
     },
     "name": {
       "type": "string"
@@ -25,28 +30,58 @@
     },
     "kind": {
       "type": "string",
-      "enum": [
-        "prebuilt",
-        "custom_html"
-      ]
+      "enum": ["prebuilt", "custom_html"]
     },
     "category": {
       "type": "string"
     },
+    "renderStrategy": {
+      "type": "string",
+      "enum": ["react_component", "sandboxed_iframe"]
+    },
     "supportedSizes": {
       "type": "array",
+      "minItems": 1,
       "items": {
-        "type": "string"
+        "type": "object",
+        "required": ["name", "width", "height"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "height": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": false
       }
     },
     "permissions": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
+        "type": "string",
+        "enum": [
+          "board.read",
+          "board.write",
+          "network.request",
+          "storage.local",
+          "tools.invoke"
+        ]
+      },
+      "uniqueItems": true
     },
     "stateSchema": {
-      "type": "object"
+      "type": "object",
+      "description": "JSON Schema describing widget instance state."
+    },
+    "sourceVersioned": {
+      "type": "boolean",
+      "description": "Required for generated/custom HTML widgets."
     }
   },
   "additionalProperties": false
