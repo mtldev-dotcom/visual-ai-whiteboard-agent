@@ -4,14 +4,13 @@ Date: 2026-05-04
 
 ## Summary
 
-Fixed the Dokploy Dockerfile build path after switching away from Nixpacks. The Dockerfile already used Node.js 22, but the Next.js builder stage did not receive the Prisma generated client, causing `@/generated/prisma/client` imports to fail during `next build`.
+Fixed a production assistant runtime failure after the Dokploy deploy succeeded. Assistant chat loads Markdown core files from `docs/agent-core` at runtime, but the Docker runner image did not include that folder, causing `ENOENT: no such file or directory, open '/app/docs/agent-core/ASSISTANT.md'`.
 
 ## What changed
 
-- Updated `Dockerfile` to copy `/app/src/generated` from the dependency stage into the builder stage before `npm run build`.
-- Updated the Dokploy guide to note that the Prisma client is generated and copied into the build stage.
-- Added a Dokploy troubleshooting note for accidental Nixpacks/Node 18 deployments.
-- Updated deployment status and TODO notes.
+- Updated `Dockerfile` to copy `docs/agent-core` into the production runner image.
+- Updated the Dokploy guide to document that runtime core files are included.
+- Updated deployment status notes.
 
 ## Files changed this session
 
@@ -24,6 +23,8 @@ Fixed the Dokploy Dockerfile build path after switching away from Nixpacks. The 
 ## Checks run
 
 - `docker build -t visual-ai-whiteboard-agent:test .`: passed
+- `docker run --rm --entrypoint node visual-ai-whiteboard-agent:test -e "...ASSISTANT.md exists..."`: passed
+- `npm run docs:check`: passed
 
 ## Checks skipped
 
@@ -33,8 +34,8 @@ Fixed the Dokploy Dockerfile build path after switching away from Nixpacks. The 
 ## Known issues
 
 - `npm audit` still reports existing moderate advisories during Docker dependency install. Do not apply `npm audit fix --force` without review.
-- Dokploy must use Dockerfile deployment with Dockerfile path `Dockerfile`; Nixpacks will need explicit Node.js 22 configuration if used.
+- Dokploy must be redeployed after this fix so the new image includes `docs/agent-core`.
 
 ## Next recommended task
 
-Redeploy in Dokploy using Dockerfile mode, then verify `https://your-domain.example/api/health` and create the initial production account while `APP_SIGNUP=enable`.
+Redeploy in Dokploy, then send a test assistant message and verify `/core` opens without file-not-found errors.

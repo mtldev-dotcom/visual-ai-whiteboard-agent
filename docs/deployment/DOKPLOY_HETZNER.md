@@ -6,6 +6,7 @@ This guide deploys the app to a Hetzner VPS managed by Dokploy using the reposit
 
 - `Dockerfile` builds the Next.js app and generated Prisma client.
 - The deploy image uses Node.js 22 on Debian slim with OpenSSL installed for Prisma.
+- The runtime image includes `docs/agent-core` because assistant chat loads Markdown core files at runtime.
 - Container starts with `npm run start:deploy`.
 - `start:deploy` runs `prisma migrate deploy` before `next start`.
 - App listens on port `3000`.
@@ -118,8 +119,9 @@ Expected startup behavior:
 1. Docker build installs dependencies.
 2. Prisma client is generated and copied into the Next.js build stage.
 3. Next.js production build runs.
-4. On container start, `prisma migrate deploy` applies migrations.
-5. `next start -H 0.0.0.0` starts the app on port `3000`.
+4. Runtime image includes `.next`, Prisma files, generated Prisma client, and `docs/agent-core`.
+5. On container start, `prisma migrate deploy` applies migrations.
+6. `next start -H 0.0.0.0` starts the app on port `3000`.
 
 If startup fails, check the app logs first. Most first-deploy failures are bad `DATABASE_URL`, missing `AUTH_SECRET`, or incorrect `NEXTAUTH_URL`.
 

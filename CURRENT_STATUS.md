@@ -63,6 +63,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - Dockerfile-based deploy is ready for Dokploy test deployment.
 - Deploy image uses Node.js 22 Debian slim with OpenSSL for Prisma.
 - Docker build generates the Prisma client in the dependency stage and copies it into the Next.js builder stage before `next build`.
+- Runtime image includes `docs/agent-core` so assistant chat can load Markdown core context in production.
 - Container start runs `prisma migrate deploy` before `next start -H 0.0.0.0`.
 - Public health check exists at `/api/health`.
 - Dokploy/Hetzner guide: `docs/deployment/DOKPLOY_HETZNER.md`.
