@@ -1,86 +1,131 @@
 # Manual QA Flows
 
-## 1. User creates board from chat
+**App stage:** Production-ready MVP (auth, real DB, OpenRouter LLM, all flows wired).
 
-- [ ] User opens chat.
-- [ ] User asks: "Create a board for planning my week."
-- [ ] Assistant creates board.
-- [ ] Execution card appears.
-- [ ] User opens board.
-- [ ] Board contains useful sections/items.
-- [ ] User can edit an item.
+**Before testing:**
+```bash
+docker compose up -d postgres
+npm run dev
+```
+Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM flows.
+
+---
+
+## 1. Sign up and sign in
+
+- [ ] Navigate to `http://localhost:3000` — redirects to `/login`.
+- [ ] Click "Sign up" link, fill email + password, submit.
+- [ ] Redirected to `/` (workspace shell).
+- [ ] Sign out and sign back in with same credentials.
+- [ ] Wrong password → shows error, stays on `/login`.
+- [ ] Unauthenticated request to `/tasks` → redirects to `/login`.
+
+## 2. Create board from chat
+
+- [ ] Open assistant panel (right side or Chat tab on mobile).
+- [ ] Ask: "Create a board for planning my week."
+- [ ] Assistant calls `create_board` tool.
+- [ ] Execution card appears with tool name, status "success", and summary.
+- [ ] New board appears in the board explorer sidebar.
+- [ ] Board persists after page refresh.
+
+## 3. Create board manually
+
+- [ ] Click "New board" in the board explorer.
+- [ ] Board appears in sidebar immediately.
+- [ ] Selecting the board shows an empty canvas.
 - [ ] Board persists after refresh.
 
-## 2. User creates board manually
+## 4. Add canvas item via assistant
 
-- [ ] User opens board explorer.
-- [ ] User taps create board.
-- [ ] User names board.
-- [ ] Board opens.
-- [ ] Board appears in explorer.
-- [ ] Works on mobile drawer.
+- [ ] Select a board.
+- [ ] Ask: "Add a sticky note about onboarding."
+- [ ] Assistant calls `add_canvas_item`.
+- [ ] Execution card appears.
+- [ ] Canvas refreshes and shows the new sticky note.
+- [ ] Item persists after refresh.
 
-## 3. User creates sub-board
+## 5. Canvas item move and resize
 
-- [ ] User opens existing board.
-- [ ] User creates sub-board.
-- [ ] Parent/child relationship appears in explorer.
-- [ ] Board link item can be placed on parent board.
+- [ ] Drag a canvas item to a new position.
+- [ ] Refresh the page.
+- [ ] Item is at the new position (PATCH was persisted).
+- [ ] Resize via bottom-right handle.
+- [ ] Refresh — resized dimensions persist.
 
-## 4. Canvas mobile controls
+## 6. Canvas item edit, copy, delete
 
-- [ ] User opens board on phone width.
-- [ ] User taps item.
-- [ ] Bottom sheet opens.
-- [ ] User edits item.
-- [ ] User moves item.
-- [ ] User resizes item if supported.
-- [ ] User closes sheet.
-- [ ] No hover-only controls required.
+- [ ] Select an item — click Edit → change title/content → Save.
+- [ ] Content updates on canvas and persists after refresh.
+- [ ] Click Copy — new item appears offset from original.
+- [ ] Click Delete — confirmation dialog appears → confirm → item removed.
+- [ ] Deleted item does not reappear after refresh.
 
-## 5. Add prebuilt widget
+## 7. Widget library wired
 
-- [ ] User opens widget library.
-- [ ] User selects task list.
-- [ ] Widget appears on board.
-- [ ] User adds task.
-- [ ] Widget persists after refresh.
-- [ ] Assistant can add task to widget.
+- [ ] Open widget library (scroll below board list in sidebar, or Widgets drawer on mobile).
+- [ ] Click "Task List" — new task list item appears on the active board.
+- [ ] Click "Notes" — new notes item appears.
+- [ ] Both items persist after refresh.
 
-## 6. Generate custom HTML widget
+## 8. Tasks page
 
-- [ ] User asks assistant for simple budget tracker.
-- [ ] Assistant generates preview.
-- [ ] Permission summary is shown.
-- [ ] User confirms.
-- [ ] Widget renders in iframe.
-- [ ] Widget cannot access unrestricted app data.
-- [ ] User can remove widget.
-- [ ] Widget source/version can be inspected or rolled back.
+- [ ] Navigate to `/tasks`.
+- [ ] Click "New task" — form expands.
+- [ ] Fill title, priority, due date, optional board → click "Add task".
+- [ ] New task card appears in the list.
+- [ ] Click "Mark complete" on a task — card disappears.
+- [ ] Tasks persist after refresh.
 
-## 7. Telegram quick capture
+## 9. Canvas item mobile bottom sheet
 
-- [ ] User links Telegram account.
-- [ ] User sends `/boards`.
-- [ ] Bot lists boards.
-- [ ] User sends note to board.
-- [ ] Note appears on board.
-- [ ] Bot replies with success/link.
-- [ ] Unlinked user command is rejected.
+- [ ] Open at ≤ 390px width (DevTools device emulation).
+- [ ] Tap a canvas item — bottom sheet slides up.
+- [ ] Sheet shows item title, and Edit / Copy / Ask AI / Delete buttons.
+- [ ] Edit opens inline edit modal.
+- [ ] Delete shows confirmation.
+- [ ] Close button dismisses sheet.
 
-## 8. Task/reminder
+## 10. Widget sandbox — confirmation gate
 
-- [ ] User creates task from web.
-- [ ] User creates reminder from assistant.
-- [ ] Task appears in task center.
-- [ ] Reminder appears in relevant board/widget.
-- [ ] User can mark complete.
-- [ ] User can cancel reminder.
+- [ ] Add a sandboxed HTML item (via assistant or directly).
+- [ ] Item shows confirmation screen with "Run" button.
+- [ ] Click Run — iframe renders content.
+- [ ] Widget HTML cannot access parent window (`sandbox="allow-scripts"`, no `allow-same-origin`).
 
-## 9. Security checks
+## 11. Core files editor
 
-- [ ] No secrets in logs.
-- [ ] Generated widget has restrictive sandbox.
-- [ ] Destructive actions require confirmation or undo.
-- [ ] Telegram actions are linked to correct user.
-- [ ] Permission prompts are understandable.
+- [ ] Navigate to `/core`.
+- [ ] Files listed: CORE.md, ASSISTANT.md, TOOLS.md, SKILLS.md, RULES.md, MEMORY.md.
+- [ ] Each textarea is pre-filled with current file content.
+- [ ] Edit and Save — content persists after reload.
+- [ ] Path traversal not possible (only whitelisted filenames accepted).
+
+## 12. Mobile layout
+
+- [ ] At 390px: single column, bottom nav visible (Chat, Board, Widgets, Tasks, Core).
+- [ ] Board drawer opens and collapses via "Boards" toggle.
+- [ ] Bottom nav "Tasks" navigates to `/tasks`.
+- [ ] Bottom nav "Core" navigates to `/core`.
+- [ ] At 1024px+: three-column layout, bottom nav hidden.
+
+## 13. Security checks
+
+- [ ] No AUTH_SECRET or API keys visible in browser network inspector.
+- [ ] Accessing `/api/boards` without a session returns 401.
+- [ ] Generated widget iframe has `sandbox="allow-scripts"` with no `allow-same-origin`.
+- [ ] Delete tools require `confirmed: true` in tool input.
+- [ ] Soft-deleted items do not reappear in board listings.
+
+## 14. Sub-board creation
+
+- [ ] Ask assistant: "Create a sub-board called Q2 Planning under [board name]."
+- [ ] `create_sub_board` tool executes.
+- [ ] Sub-board appears indented under parent in board explorer.
+- [ ] Sub-board has its own empty canvas.
+
+## 15. Board search filter
+
+- [ ] Type in the "Search boards" input.
+- [ ] Board list filters to matching names in real time (client-side filter).
+- [ ] Clearing the input restores the full list.

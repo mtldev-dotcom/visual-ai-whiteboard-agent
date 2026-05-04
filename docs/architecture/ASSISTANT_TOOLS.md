@@ -13,13 +13,16 @@
 
 The assistant runtime starts behind a provider-agnostic adapter in `src/server/assistant/llm.ts`.
 
-Current implemented provider:
+Implemented providers:
 
-- `local`: deterministic development/test adapter with no external network call.
+- `local`: deterministic development/test adapter. No external network call. Returns a canned response echoing the last user message. Activated when `LLM_PROVIDER=local` or unset.
+- `openrouter`: production provider using the `openai` npm SDK pointed at `https://openrouter.ai/api/v1`. Activated when `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY` is set. Default model: `anthropic/claude-3-haiku`, overridable via `OPENROUTER_MODEL`.
 
-The adapter loads Markdown assistant core context from `CORE.md`, `ASSISTANT.md`, `TOOLS.md`, `SKILLS.md`, and `RULES.md` through `src/server/core-files.ts`. Hosted providers must preserve this core-context injection before sending messages to an external model.
+Both adapters load Markdown assistant core context from `CORE.md`, `ASSISTANT.md`, `TOOLS.md`, `SKILLS.md`, and `RULES.md` through `src/server/core-files.ts` and inject it as the system message.
 
-Future hosted providers must implement the same `LlmAdapter` interface and must not be called directly from UI components or canvas tools.
+Additional providers must implement the same `LlmAdapter` interface and must not be called directly from UI components or canvas tools.
+
+The `/api/chat` route owns the tool call loop: it calls the adapter, executes any returned tool calls through the tool registry, sends tool results back, and loops until the model returns a final text response.
 
 ## Tool registry
 

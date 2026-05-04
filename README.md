@@ -1,75 +1,86 @@
-# Visual AI Whiteboard Assistant — Agent-Ready Starter Plan
+# Visual AI Whiteboard Assistant
 
-This repository is a planning and execution scaffold for building a **mobile-first AI assistant with a living whiteboard/canvas**.
+A mobile-first AI workspace where users chat with an assistant that can think visually, create boards, build mini-apps, manage tasks, and organize work through a live canvas and structured tool calling.
 
-The assistant behaves like a normal AI assistant from web chat and Telegram, but it also has expert whiteboard skills: it can create boards, sub-boards, visual diagrams, notes, images, embedded browser views, task widgets, reminders, and custom sandboxed HTML mini-apps on the canvas.
+## One-sentence pitch
 
-## One-sentence product pitch
+Chat with an AI that builds your workspace around you — boards, sticky notes, diagrams, tasks, and custom widgets, all persisted in a live canvas.
 
-A mobile-first AI workspace where users chat with an assistant that can think visually, create boards, build mini apps, manage tasks, and organize work/life through web UI and Telegram.
-
-## What is inside this starter repo
+## What is inside this repo
 
 - `AGENTS.md` — root operating contract for all coding agents.
-- `TODO.md` — execution backlog agents can work through.
-- `CURRENT_STATUS.md` — live project state, must be updated every session.
-- `SESSION_HANDOFF.md` — latest handoff summary, must be updated every session.
+- `TODO.md` — execution backlog.
+- `CURRENT_STATUS.md` — live project state, updated every session.
+- `SESSION_HANDOFF.md` — latest session summary.
 - `docs/product/` — product vision, PRD, MVP scope, user flows, mobile UX.
 - `docs/architecture/` — system overview, data model, canvas engine, assistant tools, widget runtime, Telegram integration, security.
-- `docs/implementation/` — phases, task pipeline, definition of done, milestones.
-- `docs/agent-core/` — Markdown core files for the assistant personality, tools, skills, rules, memory, and board index.
+- `docs/implementation/` — phases, pipeline, definition of done.
+- `docs/agent-core/` — Markdown core files for assistant personality, tools, skills, rules, memory.
 - `docs/qa/` — testing strategy and manual QA flows.
-- `specs/` — structured schemas and tool contracts for the canvas assistant.
-- `.agent/` — prompts and workflow checklists for Codex, Claude Code, DeepSeek, or similar coding agents.
-- `src/AGENTS.md` — source-code ownership rules for future implementation.
+- `specs/` — schemas and tool contracts.
+- `.agent/` — prompts and checklists for coding agents.
+
+## Current app state
+
+**Production-ready MVP.** Auth, real DB-backed canvas, OpenRouter LLM, and all core flows are wired end-to-end. See `CURRENT_STATUS.md` for details.
 
 ## Local development
 
-The initial app skeleton uses TypeScript, Next.js App Router, Tailwind CSS, ESLint, Prettier, and Vitest.
+### Prerequisites
 
-Install dependencies:
+- Node.js 20+
+- Docker (for local Postgres)
 
-```bash
-npm install
-```
-
-Run the app locally:
-
-```bash
-npm run dev
-```
-
-Useful local routes:
-
-- `/` — whiteboard workspace shell.
-- `/tasks` — task center.
-- `/core` — editable Markdown core file viewer.
-
-Start the local Postgres database on port `5444`:
+### 1. Start the database
 
 ```bash
 docker compose up -d postgres
 ```
 
-Use this local development database URL:
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment
+
+Copy `.env.example` to `.env.local` and fill in:
 
 ```bash
 DATABASE_URL=postgresql://visual_whiteboard:visual_whiteboard_dev@localhost:5444/visual_whiteboard_ai
+AUTH_SECRET=<generate with: openssl rand -base64 32>
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=<your key from openrouter.ai>
+OPENROUTER_MODEL=anthropic/claude-3-haiku   # or any OpenRouter model
 ```
 
-Use the deterministic local assistant adapter for development:
+To use the deterministic local stub (no API key needed):
 
 ```bash
 LLM_PROVIDER=local
 ```
 
-Apply Prisma migrations:
+### 4. Apply migrations and start
 
 ```bash
 npx prisma migrate dev
+npm run dev
 ```
 
-Useful checks:
+Open `http://localhost:3000`.
+
+## Routes
+
+| Route      | Description                                           |
+|------------|-------------------------------------------------------|
+| `/signup`  | Create an account                                     |
+| `/login`   | Sign in                                               |
+| `/`        | Whiteboard workspace — boards, canvas, assistant chat |
+| `/tasks`   | Task center — create and complete tasks               |
+| `/core`    | Editable Markdown core files for the assistant        |
+
+## Useful checks
 
 ```bash
 npm run lint
@@ -83,37 +94,18 @@ npm run db:generate
 npm run db:smoke
 ```
 
-## Recommended first instruction to give a coding agent
-
-Paste this into your coding agent after unzipping:
+## Recommended first instruction for coding agents
 
 ```text
 Read AGENTS.md, README.md, CURRENT_STATUS.md, SESSION_HANDOFF.md, TODO.md, and docs/implementation/PHASES.md.
 
-Then start with the first incomplete P0 task in TODO.md. Before editing, write a short implementation plan. Make the smallest correct change. After the change, update any relevant docs, update CURRENT_STATUS.md, update SESSION_HANDOFF.md, and list all checks run or skipped.
-
-Do not invent a different architecture unless you document the reason and update the relevant architecture docs.
+Pick the first incomplete P1 task in TODO.md. Before editing, write a short implementation plan covering: what changes, which files, assumptions, risks, and which checks you will run. Make the smallest correct change. After the change, update any relevant docs, update CURRENT_STATUS.md, update SESSION_HANDOFF.md, and list all checks run or skipped.
 ```
-
-## Recommended initial stack
-
-This repo is mostly stack-neutral, but the default recommendation is:
-
-- Web app: TypeScript + React framework with server routes.
-- Canvas: React-based infinite canvas or grid/canvas hybrid.
-- Styling: utility-first CSS or a small design-token system.
-- Database: Postgres.
-- Realtime/sync: start simple, add collaborative presence later.
-- Agent: provider-agnostic LLM adapter with tool calls.
-- Telegram: bot integration with webhook or polling.
-- Widget runtime: sandboxed iframe for generated/custom HTML widgets.
-
-Coding agents must check official package/framework docs before introducing versions, APIs, or major dependencies.
 
 ## Non-negotiable build principles
 
 1. Mobile-first.
-2. Assistant can edit the board through structured tools.
+2. Assistant edits the board only through structured tools.
 3. Canvas objects are structured data, not raw pixels.
 4. Generated HTML widgets run in sandboxed iframes with explicit permissions.
 5. Docs stay synchronized with implementation every session.

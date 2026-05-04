@@ -1,14 +1,15 @@
 # User Flow Guide — Manual Testing Reference
 
-**App stage:** Phase 0–8 P0 foundation complete. The UI runs with demo/local state.
-No auth, no persistence-backed canvas screen, no hosted LLM, no Telegram webhook yet.
+**App stage:** Production-ready MVP. Auth, real DB-backed canvas, OpenRouter LLM, and all core flows wired end-to-end.
 
-**Start the app before testing:**
+**Before testing:**
 
 ```bash
 docker compose up -d postgres
 npm run dev
 ```
+
+Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` to enable real LLM responses. Set `LLM_PROVIDER=local` to use the deterministic stub (no API key needed).
 
 Open `http://localhost:3000`.
 
@@ -21,334 +22,310 @@ Each flow lists:
 - **Where:** the URL or screen to start on.
 - **Steps:** what to do, in order.
 - **What works now:** confirmed working in current app stage.
-- **What is stubbed/demo:** UI is present but not wired to persistence or a real LLM.
 - **Known limitations:** gaps that are expected at this stage.
 
 ---
 
-## Flow 1 — Whiteboard workspace shell (`/`)
+## Flow 1 — Sign up
+
+**Where:** `http://localhost:3000/signup`
+
+1. Fill in email, name (optional), and password.
+2. Click "Create account".
+3. You are automatically signed in and redirected to `/`.
+4. A workspace is created for your account on first sign-in.
+
+**What works:** form validation, POST to `/api/auth/signup`, auto sign-in via NextAuth, workspace creation.
+
+**Known limitations:** no email verification, no OAuth providers, no "forgot password" flow.
+
+---
+
+## Flow 2 — Sign in and session protection
 
 **Where:** `http://localhost:3000`
+
+1. Open `http://localhost:3000` while signed out.
+2. Confirm you are redirected to `/login`.
+3. Enter your credentials and click "Sign in".
+4. Confirm you land on `/` (workspace shell).
+5. Try `/tasks` while signed out — confirm redirect to `/login?callbackUrl=/tasks`.
+
+**What works:** JWT session, cookie-based route protection via `src/proxy.ts`, `requireSession()` on all API routes.
+
+---
+
+## Flow 3 — Whiteboard workspace shell
+
+**Where:** `http://localhost:3000` (signed in)
 
 ### Desktop layout
 
-1. Open `http://localhost:3000` on a screen wider than 1024 px.
-2. Confirm the three-column layout loads: left sidebar (Boards + Widgets), center canvas, right assistant panel.
-3. Confirm the header shows "Visual AI Whiteboard" with a **Core** link and a **New** button.
-4. Confirm the bottom navigation is hidden at desktop width.
-
-**What works:** layout, header, three-column grid, static board list.
-
-**What is stubbed:** the **New** button does nothing. The board list is hardcoded demo data.
-
----
+1. Open on a screen wider than 1024px.
+2. Confirm three-column layout: left sidebar (Board Explorer + Widgets), center canvas, right assistant panel.
+3. Confirm header shows "Visual AI Whiteboard" with a Core link and board title.
+4. Bottom navigation is hidden at desktop width.
 
 ### Mobile layout
 
-1. Open `http://localhost:3000` on a screen narrower than 1024 px (or use DevTools device emulation at 390 px wide).
-2. Confirm the three-column layout collapses into a single-column stack.
-3. Confirm the **Boards** disclosure element appears above the canvas. Tap it.
-4. Confirm the board list and widget library appear inside the drawer.
-5. Tap **Boards** again to collapse the drawer.
-6. Confirm the bottom navigation bar shows five tabs: Chat, Board, Widgets, Tasks, Core.
-7. Tap **Tasks** — it navigates to `/tasks`.
-8. Tap **Core** — it navigates to `/core`.
-9. Back-navigate to `/`.
+1. Open at ≤ 1024px width (or use DevTools device emulation at 390px).
+2. Single-column layout; "Boards" toggle opens a drawer.
+3. Bottom navigation shows five tabs: Chat, Board, Widgets, Tasks, Core.
+4. Tap **Tasks** — navigates to `/tasks`. Tap **Core** — navigates to `/core`.
 
-**What works:** responsive layout, drawer toggle, bottom nav links.
-
-**What is stubbed:** Chat, Board, and Widgets bottom-nav tabs are buttons with no routing yet.
+**What works:** layout, header, three-column grid, responsive breakpoints, bottom nav routing.
 
 ---
 
-## Flow 2 — Board explorer sidebar / drawer
+## Flow 4 — Board explorer (real data)
 
-**Where:** `http://localhost:3000`
+**Where:** `http://localhost:3000`, left sidebar
 
-### Desktop sidebar
+1. Sidebar shows boards you have created (not demo data).
+2. On first use the list is empty — an "No boards yet" message is shown.
+3. Click **New board** — enter a title and confirm — board appears in the list.
+4. Select a board — canvas loads items for that board.
+5. Type in the search input — list filters to matching board names in real time.
+6. Clear the search — full list restores.
 
-1. Open desktop layout.
-2. Observe the board list in the left sidebar: Launch plan, Messaging (indented), Demo board (indented), Ideas, Tasks.
-3. Verify sub-boards are visually indented under their parent.
-4. Click any board button.
-
-**What works:** visual hierarchy, indent depth rendering.
-
-**What is stubbed:** clicking a board does not navigate or load a different canvas. Board data is hardcoded.
-
-### Board search input
-
-1. Click the **Search boards** input in the sidebar (desktop) or drawer (mobile).
-2. Type any text.
-
-**What is stubbed:** search input is rendered but filtering is not wired up.
+**What works:** real boards from DB via `listBoardsForWorkspace`, create button calls `POST /api/boards`, client-side search filter, board selection state.
 
 ---
 
-## Flow 3 — Canvas pan and zoom
+## Flow 5 — Canvas pan and zoom
 
 **Where:** `http://localhost:3000`, center canvas area
 
-### Pan
+1. Click and hold on the canvas background — drag to pan. All items move together.
+2. Click **+** in the zoom control (top-right of canvas) — items scale up. Maximum 180%.
+3. Click **−** — items scale down. Minimum 50%.
+4. Percentage readout updates.
 
-1. Click and hold on the canvas background (not on any item).
-2. Drag in any direction.
-3. Release.
-4. Confirm all items move together as the canvas pans.
-
-**What works:** pointer-capture-based panning, cursor changes to grabbing during drag.
-
-### Zoom
-
-1. Locate the zoom control in the top-right corner of the canvas (shows a percentage).
-2. Click **+** to zoom in. Confirm items scale up. Maximum is 180%.
-3. Click **−** to zoom out. Confirm items scale down. Minimum is 50%.
-4. Confirm the percentage readout updates.
-
-**What works:** zoom in/out with clamped range, percentage display.
+**What works:** pointer-capture panning, zoom buttons with clamped range.
 
 ---
 
-## Flow 4 — Canvas item types
+## Flow 6 — Canvas item types
 
-**Where:** `http://localhost:3000`, center canvas
+**Where:** `http://localhost:3000`, canvas with items added
 
-The demo canvas renders eight item types. Locate and inspect each one:
+Canvas items are persisted structured objects. The following types can be rendered:
 
-| Item                                     | Visual style              | Location on canvas |
-| ---------------------------------------- | ------------------------- | ------------------ |
-| Sticky note ("Positioning")              | Yellow background         | Top-left           |
-| Text block ("Launch tasks")              | White, plain text         | Top-center         |
-| Markdown block ("Demo outline")          | Green tint, pre-formatted | Mid-left           |
-| Link card ("Product brief")              | Blue tint, link URL       | Mid-center         |
-| Image ("Reference image")                | White with SVG globe      | Top-right          |
-| Task list widget ("Launch checklist")    | White, checkbox list      | Mid-right          |
-| Notes widget ("Notes")                   | Warm cream background     | Bottom-left        |
-| Sandboxed HTML widget ("Sandboxed HTML") | White iframe              | Bottom-right       |
+| Type              | Visual style                   |
+|-------------------|--------------------------------|
+| `sticky_note`     | Yellow background              |
+| `text`            | White, plain text              |
+| `markdown`        | Green tint, pre-formatted      |
+| `link`            | Blue tint, URL display         |
+| `image`           | White with image or SVG        |
+| `task_list`       | White, checkbox list           |
+| `notes`           | Warm cream background          |
+| `custom_html`     | Sandboxed iframe (see Flow 13) |
 
-1. Scroll or zoom to see all eight items.
-2. Confirm each item renders with correct colors and content.
-
-**What works:** all eight item types render from structured demo data.
+Add items via the assistant chat or the widget library to see each type.
 
 ---
 
-## Flow 5 — Item selection (desktop and mobile)
+## Flow 7 — Item selection
 
-**Where:** `http://localhost:3000`, center canvas
-
-### Select an item
+**Where:** `http://localhost:3000`, canvas with items
 
 1. Click (or tap on mobile) any canvas item.
-2. Confirm a green ring (`ring-4 ring-[#2f5d50]`) appears around the item.
-3. Confirm a green **Selected** badge appears above the item.
-4. Click the canvas background.
-5. Confirm the selection ring disappears.
+2. A green ring appears around the item; a **Selected** badge shows above it.
+3. Click the canvas background — selection ring disappears.
+4. Keyboard: Tab to an item, press Enter or Space to select it.
 
-**What works:** click/tap to select, deselect by clicking background.
-
-### Keyboard navigation
-
-1. Tab to a canvas item (press Tab repeatedly).
-2. Press **Enter** or **Space**.
-3. Confirm the item becomes selected.
-
-**What works:** keyboard selection via Enter and Space.
+**What works:** click/tap selection, keyboard selection, deselect on background click.
 
 ---
 
-## Flow 6 — Item move and resize
+## Flow 8 — Item move and resize (persisted)
 
-**Where:** `http://localhost:3000`, center canvas
+**Where:** `http://localhost:3000`, canvas with items
 
 ### Move
 
-1. Click a canvas item to select it.
-2. Click and hold on the item body.
-3. Drag to a new position.
-4. Release.
-5. Confirm the item moved. The position updates in real time during drag.
-
-**What works:** pointer-capture drag-to-move with zoom-corrected delta.
+1. Select a canvas item.
+2. Drag it to a new position.
+3. Release — the position updates immediately.
+4. Refresh the page — item is at the new position (debounced PATCH persisted to DB).
 
 ### Resize
 
-1. Click a canvas item to select it.
-2. Locate the green resize handle at the bottom-right corner of the item.
-3. Click and hold the resize handle.
-4. Drag down-right to enlarge, or up-left to shrink.
-5. Release. Confirm the item resized. Minimum width is 160 px, minimum height is 96 px.
+1. Select a canvas item.
+2. Drag the green handle at the bottom-right corner.
+3. Minimum size: 160×96px.
+4. Refresh — resized dimensions persist.
 
-**What works:** resize from bottom-right handle, minimum size clamp.
-
-**Known limitation:** moves and resizes are local React state only — they reset on page refresh.
+**What works:** drag-to-move with pointer capture, zoom-corrected delta, resize handle, 600ms debounced PATCH to `/api/canvas-items/[id]`, DB persistence.
 
 ---
 
-## Flow 7 — Mobile bottom sheet for selected items
+## Flow 9 — Item edit, copy, and delete
 
-**Where:** `http://localhost:3000` at mobile width (< 1024 px)
+**Where:** `http://localhost:3000`, canvas with items
 
-1. Open the page at mobile width.
-2. Tap any canvas item.
-3. Confirm the bottom sheet slides up with:
-   - "Selected" label.
-   - Item title or type name.
-   - Four action buttons: Edit, Copy, Ask AI, Delete.
-   - A **Close** button.
-4. Tap **Close** or tap the canvas background.
-5. Confirm the bottom sheet disappears.
+### Edit
 
-**What works:** bottom sheet visibility, selected item label, Close button.
+1. Select an item and click **Edit** (desktop: right panel; mobile: bottom sheet).
+2. An inline modal opens with editable title/text fields.
+3. Click Save — content updates on the canvas.
+4. Refresh — edited content persists.
 
-**What is stubbed:** Edit, Copy, Ask AI, and Delete buttons are rendered but have no action handlers.
+### Copy
 
----
+1. Select an item and click **Copy**.
+2. A duplicate appears offset from the original.
+3. The copy is a new DB record with its own ID.
 
-## Flow 8 — Desktop floating assistant button
+### Delete
 
-**Where:** `http://localhost:3000` at desktop width (≥ 1024 px)
+1. Select an item and click **Delete**.
+2. A confirmation dialog appears.
+3. Confirm — item is removed from the canvas.
+4. Refresh — item does not reappear (soft-deleted in DB).
 
-1. Open desktop layout.
-2. Locate the green **Ask AI** button in the bottom-right corner of the canvas.
-3. Click it.
-
-**What is stubbed:** the button is rendered but has no click handler. The assistant panel is always visible on desktop as the right column.
+**What works:** inline edit modal PATCH, copy via POST, delete with dialog and DELETE request.
 
 ---
 
-## Flow 9 — Assistant chat panel
+## Flow 10 — Mobile bottom sheet controls
 
-**Where:** `http://localhost:3000`, right column (desktop) or Chat tab (mobile)
+**Where:** `http://localhost:3000` at ≤ 1024px width
 
-### Send a message
+1. Tap any canvas item.
+2. Bottom sheet slides up showing: "Selected" label, item title, and four action buttons: Edit, Copy, Ask AI, Delete.
+3. Tap **Close** or tap the canvas background — sheet dismisses.
+4. Each action button works as described in Flow 9.
 
-1. Locate the assistant panel on the right.
-2. See the pre-loaded welcome message: "I can help shape this board."
-3. See the demo tool execution card for `create_board` with status **success**.
-4. Click the **Ask AI…** text input.
-5. Type any message (e.g., "Add a sticky note about onboarding").
-6. Press **Enter** or click **Send**.
-7. Confirm your message appears in the chat with a blue-tint bubble on the right side.
-
-**What works:** message input, send on Enter/button, local message rendering, user/assistant/tool bubble styles.
-
-**What is stubbed:** the app does not call an LLM. Typed messages are added to local state only. No assistant response is generated. The `LLM_PROVIDER=local` adapter returns deterministic responses but is not wired to the chat UI yet.
+**What works:** bottom sheet visibility, all four action buttons wired.
 
 ---
 
-## Flow 10 — Sandboxed HTML widget confirmation gate
+## Flow 11 — Assistant chat (real LLM)
 
-**Where:** `http://localhost:3000`, canvas — find the "Sandboxed HTML" item at bottom-right
+**Where:** `http://localhost:3000`, right panel (desktop) or Chat tab (mobile)
 
-1. Locate the **Sandboxed HTML** canvas item.
-2. If the page just loaded, the item shows a confirmation screen: title "Sandboxed HTML", descriptive text "Generated HTML is sandboxed and isolated.", and a green **Run** button.
-3. Click **Run**.
-4. Confirm the item now renders the sandboxed iframe content: a white panel with "Sandboxed Widget" heading.
+*(Requires `LLM_PROVIDER=openrouter` and a valid `OPENROUTER_API_KEY`.)*
 
-**What works:** confirmation gate, Run button activates iframe `srcDoc`, `sandbox="allow-scripts"` with no same-origin grant, `referrerPolicy="no-referrer"`.
+1. Select a board.
+2. Type: "Create a sticky note about onboarding" and press Enter.
+3. A "thinking…" indicator appears while the LLM processes.
+4. The assistant responds with a message.
+5. A tool execution card appears for `add_canvas_item` with status "success" and a summary.
+6. The canvas automatically refreshes and shows the new sticky note.
 
-**What is stubbed:** widget HTML is hardcoded demo content. Real assistant-generated widgets are not wired yet.
+**What works:** POST to `/api/chat` with message history and `boardId`, tool call loop, execution cards, canvas refresh via `onCanvasChanged()`.
 
----
-
-## Flow 11 — Widget library
-
-**Where:** `http://localhost:3000`, left sidebar (desktop) or inside the Boards drawer (mobile), scroll down past the board list
-
-1. Scroll to the **Widgets** section below the board list.
-2. Confirm two widget cards: **Task List** (Productivity category) and **Notes** (Notes category).
-3. Click either widget card.
-
-**What is stubbed:** clicking a widget card does nothing. Adding widgets to the canvas is not yet wired.
+**Known limitations:** chat history is not persisted to the DB (cleared on page refresh). Persisting chat threads is a P1 task.
 
 ---
 
-## Flow 12 — Tasks page (`/tasks`)
+## Flow 12 — Board tools via assistant
+
+**Where:** `http://localhost:3000`, assistant panel
+
+The assistant has access to these tools:
+
+| Tool                | What it does                                |
+|---------------------|---------------------------------------------|
+| `create_board`      | Creates a new board in the workspace        |
+| `create_sub_board`  | Creates a board nested under a parent       |
+| `add_canvas_item`   | Adds an item to the active board            |
+| `update_canvas_item`| Updates position/size/content of an item   |
+| `delete_canvas_item`| Soft-deletes an item (requires confirmed:true) |
+
+**Try:** "Create a sub-board called Q2 Planning" — the sub-board appears indented under the current board in the explorer.
+
+**What works:** all five tools execute against real DB, return structured results, and show execution cards in chat.
+
+---
+
+## Flow 13 — Sandboxed HTML widget confirmation gate
+
+**Where:** `http://localhost:3000`, canvas with a `custom_html` item
+
+1. A `custom_html` item shows a confirmation screen: title, description "Generated HTML is sandboxed and isolated.", and a green **Run** button.
+2. Click **Run** — the item renders the iframe content.
+3. The iframe has `sandbox="allow-scripts"` with no `allow-same-origin` — it cannot access the parent window, cookies, or localStorage.
+
+**What works:** confirmation gate, Run button activates iframe `srcDoc`, secure sandbox attributes, no-referrer policy.
+
+---
+
+## Flow 14 — Widget library
+
+**Where:** `http://localhost:3000`, left sidebar (desktop) or Boards drawer → Widgets section (mobile)
+
+1. Scroll below the board list to the **Widgets** section.
+2. Two widget cards: **Task List** (Productivity) and **Notes** (Notes).
+3. Click either card — a new canvas item of that type appears on the active board.
+4. Refresh — widget item persists.
+
+**What works:** clicking a widget card POSTs to `/api/canvas-items` with default content and size, canvas refreshes via `onItemAdded` callback.
+
+**Known limitations:** Kanban, markdown reader, and rich text editor widgets are P1 items not yet built.
+
+---
+
+## Flow 15 — Tasks page (real data)
 
 **Where:** `http://localhost:3000/tasks`
 
-1. Navigate to `/tasks` (click **Tasks** in mobile bottom nav, or go directly).
-2. Confirm the page header shows "Tasks" under "Workspace".
-3. Confirm three demo task cards:
-   - "Prepare demo board" — high priority, board: Launch plan, due: Today.
-   - "Review Telegram capture flow" — normal priority, board: Launch plan, due: Tomorrow.
-   - "Collect widget ideas" — low priority, board: Ideas, due: Unscheduled.
-4. Confirm each card shows title, board name, priority badge, and due date.
+1. Navigate to `/tasks` (mobile bottom nav "Tasks" tab or direct URL).
+2. Header shows "Tasks" under "Workspace".
+3. Click **New task** — form expands.
+4. Fill title (required), priority, due date, and optional board association.
+5. Click **Add task** — card appears in the list.
+6. Click **Mark complete** on a task — card disappears (task marked complete in DB).
+7. Refresh — completed tasks remain hidden (open tasks only are listed).
 
-**What works:** page renders, mobile-first layout, task card structure.
-
-**What is stubbed:** tasks are hardcoded demo data. No create/edit/complete actions are wired. No database reads occur here.
+**What works:** real tasks from DB via `listOpenTasksForWorkspace`, create via `POST /api/tasks`, mark-complete via `PATCH /api/tasks/[id]`.
 
 ---
 
-## Flow 13 — Core files editor (`/core`)
+## Flow 16 — Core files editor
 
 **Where:** `http://localhost:3000/core`
 
-1. Navigate to `/core` (click **Core** in the desktop header or mobile bottom nav).
-2. Confirm the page header shows "Core Files" under "Assistant core".
-3. Confirm a **Board** link in the header returns to `/`.
-4. Confirm the left sidebar lists the whitelisted file names: CORE.md, ASSISTANT.md, TOOLS.md, SKILLS.md, RULES.md, MEMORY.md.
-5. Click any file name anchor link — the page scrolls to that file's editor section.
-6. Confirm each file section shows a textarea pre-filled with the current file content from `docs/agent-core/`.
-7. Edit any file: add a test line at the bottom of a textarea.
-8. Click **Save**.
-9. Confirm the page reloads (server action triggers `revalidatePath`).
-10. Confirm the saved content persists after reload.
-11. Remove the test line and save again to restore the file.
+1. Navigate to `/core` (desktop header "Core" link or mobile bottom nav).
+2. Left sidebar lists whitelisted files: CORE.md, ASSISTANT.md, TOOLS.md, SKILLS.md, RULES.md, MEMORY.md.
+3. Click a filename — page scrolls to that file's editor section.
+4. Each textarea is pre-filled with current content from `docs/agent-core/`.
+5. Edit any file and click **Save** — content saves to disk.
+6. Reload — saved content persists.
+7. Attempting to save a file not on the whitelist → 403 error.
 
-**What works:** server-rendered file list, live file read from disk, server action save, path traversal protection (only whitelisted filenames), file size guard, `revalidatePath` on save.
+**What works:** server-rendered file list, live file read, server action save, path traversal protection, `revalidatePath` on save.
 
-**Known limitation:** no diff preview, no version history, no undo. Saving overwrites directly.
+**Known limitations:** no diff preview, no version history. Saving overwrites directly.
 
 ---
 
-## Flow 14 — Navigation between routes
+## Flow 17 — Navigation between routes
 
-**Where:** any page
+| From     | To       | Method                                              |
+|----------|----------|-----------------------------------------------------|
+| `/`      | `/tasks` | Mobile bottom nav "Tasks" tab, or direct URL        |
+| `/`      | `/core`  | Desktop header "Core" link, mobile "Core" tab       |
+| `/core`  | `/`      | "Board" link in `/core` header                      |
+| `/tasks` | `/`      | "Board" link in header, or direct URL               |
+| Any page | `/login` | Click "Sign out" in board explorer                  |
 
-| From     | To       | Method                                                                  |
-| -------- | -------- | ----------------------------------------------------------------------- |
-| `/`      | `/tasks` | Mobile bottom nav "Tasks" tab, or direct URL                            |
-| `/`      | `/core`  | Desktop header "Core" link, mobile bottom nav "Core" tab, or direct URL |
-| `/core`  | `/`      | "Board" link in `/core` header                                          |
-| `/tasks` | `/`      | Browser back button or direct URL                                       |
-
-**What works:** all three routes render without error. Navigation links are wired.
-
----
-
-## Flow 15 — Responsive layout breakpoints
-
-**Where:** `http://localhost:3000`
-
-Test at these widths using browser DevTools:
-
-| Width              | Expected layout                                           |
-| ------------------ | --------------------------------------------------------- |
-| 390 px (iPhone)    | Single column, Boards drawer, mobile bottom nav           |
-| 768 px (tablet)    | Single column, Boards drawer, mobile bottom nav           |
-| 1024 px+ (desktop) | Three-column: sidebar + canvas + assistant, no bottom nav |
-
-1. At 390 px: bottom nav visible, sidebar hidden, drawer toggle visible.
-2. At 1024 px: sidebar visible, assistant panel visible, bottom nav hidden, floating Ask AI button visible.
-
-**What works:** Tailwind `lg:` breakpoints applied throughout.
+**What works:** all routes render without error, all nav links wired, sign-out clears the session.
 
 ---
 
-## Flows not yet testable (expected gaps at this stage)
+## Flows not yet testable
 
-These flows are planned but not yet implemented. Do not attempt to test them manually — they will not work:
+These are planned P1 features not yet implemented:
 
-- **Persistence-backed canvas:** canvas item moves/edits do not save to the database. The canvas loads from hardcoded demo data.
-- **Real LLM responses:** the assistant chat does not call any LLM. The local adapter is tested in unit tests only.
-- **Tool execution from chat:** `create_board`, `add_canvas_item`, etc. have server-side implementations and unit tests, but the chat UI is not wired to call them.
-- **Auth / user identity:** no login flow exists. All pages are public.
-- **Telegram bot:** the server-side command handlers (`/boards`, `/tasks`, `/newboard`, `/addnote`) are tested in unit tests. The webhook route and BotFather registration are not configured for live testing.
-- **Widget add to canvas from library:** clicking a widget card does nothing.
-- **Task create/edit/complete from UI:** tasks page is read-only demo data.
-- **Board create from UI "New" button:** button is not wired.
-- **Board search:** input is rendered but not functional.
-- **Item Edit/Copy/Ask AI/Delete from bottom sheet:** buttons are rendered but have no handlers.
+- **Persist chat threads:** messages clear on page refresh.
+- **Board search persistence:** search is client-side filter only — no full-text DB search.
+- **Undo/rollback for canvas changes:** no undo history yet.
+- **`summarize_board` / `organize_board` tools:** not yet implemented.
+- **Task/reminder assistant tools:** `create_task` and `create_reminder` tools not yet registered.
+- **Kanban, markdown reader, rich text editor widgets:** not yet built.
+- **Telegram integration:** server-side handlers are unit-tested; webhook and BotFather registration not configured.
+- **OAuth or magic link auth:** credentials only for now.
+- **Production deployment config:** no Vercel/Railway config yet.

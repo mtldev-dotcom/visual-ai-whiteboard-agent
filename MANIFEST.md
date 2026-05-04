@@ -1,14 +1,27 @@
 # Manifest
 
 ```text
-visual-ai-whiteboard-agent-starter/
+visual-ai-whiteboard-agent/
   .env.example
   .gitignore
+  .prettierignore
+  ADHD.md
   AGENTS.md
   CURRENT_STATUS.md
+  MANIFEST.md
   README.md
   SESSION_HANDOFF.md
   TODO.md
+  docker-compose.yml
+  eslint.config.mjs
+  next-env.d.ts
+  next.config.ts
+  package.json
+  package-lock.json
+  postcss.config.mjs
+  prisma.config.ts
+  tsconfig.json
+  vitest.config.ts
   .agent/
     BOOTSTRAP_PROMPT.md
     CODING_AGENT_PROMPTS.md
@@ -16,6 +29,7 @@ visual-ai-whiteboard-agent-starter/
     SESSION_START_CHECKLIST.md
   docs/
     AGENTS.md
+    user-flow-guide.md
     agent-core/
       AGENTS.md
       ASSISTANT.md
@@ -56,12 +70,77 @@ visual-ai-whiteboard-agent-starter/
       AGENTS.md
       MANUAL_QA.md
       TESTING_STRATEGY.md
+  prisma/
+    schema.prisma
+    migrations/
+      20260503...initial/
+      20260504002441_user_model/
+  public/
+  scripts/
   specs/
     AGENTS.md
     canvas-item.schema.json
     canvas-tools.schema.json
     permissions.md
     widget-manifest.schema.json
+    widget-manifest.example.json
   src/
     AGENTS.md
+    proxy.ts
+    db/
+      client.ts
+      boards.ts
+      canvas-items.ts
+      workspaces.ts
+      ... (other DB helpers)
+    lib/
+      auth.ts
+      password.ts
+      session.ts
+    server/
+      assistant/
+        board-tools.ts
+        canvas-tools.ts
+        llm.ts
+        tools.ts
+      core-files.ts
+      telegram/
+        account-linking.ts
+      widgets/
+        permissions.ts
+    app/
+      layout.tsx
+      page.tsx
+      providers.tsx
+      api/
+        auth/
+          [...nextauth]/route.ts
+          signup/route.ts
+        boards/
+          route.ts
+          [id]/route.ts
+        canvas-items/
+          route.ts
+          [id]/route.ts
+        chat/route.ts
+        tasks/
+          route.ts
+          [id]/route.ts
+        workspace/route.ts
+      components/
+        AssistantPanel.tsx
+        BoardCanvas.tsx
+        BoardExplorer.tsx
+        WidgetLibrary.tsx
+        WorkspaceShell.tsx
+      core/
+        page.tsx
+        ... (core file editor)
+      login/
+        page.tsx
+      signup/
+        page.tsx
+      tasks/
+        page.tsx
+        TasksClient.tsx
 ```

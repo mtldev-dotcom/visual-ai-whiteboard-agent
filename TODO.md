@@ -133,13 +133,25 @@ Priority legend:
 
 ## Phase 9 — Polish, QA, launch prep
 
-- [ ] `P0` Run full manual QA in `docs/qa/MANUAL_QA.md`.
-- [ ] `P0` Verify mobile UX on small screen width.
-- [ ] `P0` Verify permission boundaries.
-- [ ] `P0` Verify generated widget sandboxing.
-- [ ] `P0` Verify Telegram account linking and command safety.
+- [~] `P0` Run full manual QA in `docs/qa/MANUAL_QA.md`. (lint/typecheck/tests/build all pass; live end-to-end walk requires OPENROUTER_API_KEY)
+- [~] `P0` Verify mobile UX on small screen width. (layout verified at 390px; live device test pending)
+- [x] `P0` Verify permission boundaries. (requireSession() on all routes; soft-delete enforced)
+- [x] `P0` Verify generated widget sandboxing. (iframe sandbox confirmed; confirmation gate in place)
+- [!] `P0` Verify Telegram account linking and command safety. (Telegram deferred; server-side handlers unit-tested)
 - [ ] `P1` Add onboarding flow.
-- [ ] `P1` Add empty states and loading states.
-- [ ] `P1` Add error states and recovery actions.
+- [x] `P1` Add empty states and loading states.
+- [~] `P1` Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)
 - [ ] `P1` Add demo board templates.
 - [ ] `P2` Add analytics/events with privacy review.
+
+## Production wiring — completed 2026-05-04
+
+- [x] `P0` Implement NextAuth v4 credentials auth (signup + login).
+- [x] `P0` Wire home page to real boards from DB (async server component).
+- [x] `P0` Wire canvas to real DB-backed items (load, move, resize, delete, edit, copy).
+- [x] `P0` Wire AssistantPanel to real LLM via /api/chat with tool call loop.
+- [x] `P0` Add OpenRouter LLM adapter (`openai` SDK + `baseURL`).
+- [x] `P0` Wire tasks page to real DB (list, create, mark complete).
+- [x] `P0` Wire widget library to real API (click → POST /api/canvas-items).
+- [x] `P0` Add all API routes (boards, canvas-items, tasks, chat, workspace, auth).
+- [x] `P0` Add Next.js 16 proxy for route protection.

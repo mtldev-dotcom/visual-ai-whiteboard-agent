@@ -183,3 +183,28 @@ Exit criteria:
 - MVP flows pass.
 - Known risks documented.
 - Launch blockers resolved or accepted.
+
+---
+
+## Production wiring — completed 2026-05-04
+
+This cross-cutting phase wired every layer of the app together.
+
+Deliverables:
+
+- NextAuth v4 credentials auth (signup, login, JWT session with userId + workspaceId).
+- Next.js 16 proxy for route protection (replaces deprecated middleware).
+- OpenRouter LLM adapter behind the existing `LlmAdapter` interface.
+- All API routes: `/api/boards`, `/api/boards/[id]`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/tasks`, `/api/tasks/[id]`, `/api/chat`, `/api/workspace`, `/api/auth/*`.
+- Home page as async server component loading real boards from DB.
+- `BoardCanvas` wired to real canvas items with debounced persistence on move/resize.
+- `AssistantPanel` wired to `/api/chat` with tool call loop and execution cards.
+- `TasksClient` with create form and mark-complete.
+- Widget library clicking POSTs to `/api/canvas-items`.
+- Empty/loading/error states throughout.
+
+Exit criteria met:
+
+- `npm run lint && npm run typecheck && npm test -- --run && npm run format:check && npm run build` all pass.
+- 16 routes compiled successfully.
+- 51 unit tests pass across 8 test files.

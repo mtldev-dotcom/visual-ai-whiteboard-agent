@@ -3,29 +3,47 @@
 ## Core entities
 
 ```text
-User
-Workspace
-Board
-CanvasItem
-WidgetDefinition
-WidgetInstance
-Task
-Reminder
-TelegramLinkToken
-TelegramAccount
-ChatThread
-ChatMessage
-ToolCall
-CoreFile
-Integration
-AuditEvent
+User              ← implemented
+Workspace         ← implemented
+Board             ← implemented
+CanvasItem        ← implemented
+WidgetDefinition  ← implemented
+WidgetInstance    ← implemented
+CustomHtmlWidgetSource ← implemented
+Task              ← implemented
+Reminder          ← implemented
+TelegramLinkToken ← implemented
+TelegramAccount   ← implemented
+ChatThread        ← schema only (no API persistence yet)
+ChatMessage       ← schema only (no API persistence yet)
+ToolCall          ← schema only (no API persistence yet)
+CoreFile          ← not in schema (files stored on disk in docs/agent-core/)
+Integration       ← not yet
+AuditEvent        ← implemented
+```
+
+## User
+
+Users authenticate with email + password. The `passwordHash` field stores a bcrypt (cost 12) hash. Email is stored lowercase-trimmed.
+
+Implemented in `prisma/schema.prisma` (migration `20260504002441_user_model`).
+
+```json
+{
+  "id": "cuid",
+  "email": "user@example.com",
+  "passwordHash": "bcrypt hash",
+  "name": "Alice",
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
 ```
 
 ## Workspace
 
-A workspace groups boards, assistant configuration, integrations, and user settings.
+A workspace groups boards, assistant configuration, integrations, and user settings. Created automatically on first login via `getOrCreateWorkspaceForUser`.
 
-Implemented in `prisma/schema.prisma` as the first persistent model.
+Implemented in `prisma/schema.prisma`.
 
 ```json
 {
