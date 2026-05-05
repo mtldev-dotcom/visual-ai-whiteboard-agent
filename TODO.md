@@ -34,7 +34,7 @@ Priority legend:
 - [x] `P0` Create mobile board drawer behavior.
 - [x] `P0` Implement create/read/update/delete for boards.
 - [x] `P0` Implement create/read/update/delete for canvas items.
-- [ ] `P1` Implement board links as canvas items.
+- [x] `P1` Implement board links as canvas items.
 - [x] `P1` Implement board search.
 - [x] `P1` Add undo/rollback model for canvas changes.
 
@@ -76,9 +76,9 @@ Priority legend:
 - [x] `P0` Add task list widget.
 - [x] `P0` Consolidate duplicate notes widget into sticky notes.
 - [x] `P1` Add Kanban widget.
-- [ ] `P1` Add markdown reader widget.
-- [ ] `P1` Add rich text editor widget.
-- [ ] `P1` Add reminders widget.
+- [x] `P1` Add markdown reader widget.
+- [x] `P1` Add rich text editor widget.
+- [x] `P1` Add reminders widget.
 - [ ] `P2` Add finance tracker widget.
 - [ ] `P2` Add CRM widget.
 - [ ] `P2` Add project management widget.
@@ -93,8 +93,8 @@ Priority legend:
 - [x] `P0` Store generated widget source/version.
 - [x] `P0` Add confirmation before running generated widget.
 - [x] `P1` Add widget preview before insertion.
-- [ ] `P1` Add widget rollback/version history.
-- [ ] `P1` Allow assistant to generate safe simple widgets.
+- [x] `P1` Add widget rollback/version history.
+- [x] `P1` Allow assistant to generate safe simple widgets.
 - [ ] `P2` Add mediated bridge from widget to board state.
 
 ## Phase 6 — Tasks, reminders, alarms, schedules
@@ -144,6 +144,7 @@ Priority legend:
 - [x] `P1` Add onboarding flow.
 - [x] `P1` Add empty states and loading states.
 - [~] `P1` Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)
+- [x] `P1` Add readable assistant response formatting in chat.
 - [x] `P1` Add demo board templates.
 - [~] `P2` Add production deployment config. (Dokploy Dockerfile + guide ready for test deploy; Docker build verified locally; production hardening still pending)
 - [ ] `P2` Add analytics/events with privacy review.

@@ -69,9 +69,26 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Open widget library from sidebar, mobile board drawer, or the toolbar Widget button.
 - [ ] Click Task List, confirm preview, then add it to the active board.
 - [ ] Click Kanban, confirm preview, then add it to the active board.
-- [ ] Both items persist after refresh.
+- [ ] Click Markdown Reader, Rich Text, and Reminders, confirm preview, then add each to the active board.
+- [ ] All widget items persist after refresh.
 
-## 8. Tasks page
+## 8. Generated HTML widget versioning
+
+- [ ] Ask assistant to generate a simple HTML widget for the active board.
+- [ ] Confirm a tool execution card appears for `generate_html_widget`.
+- [ ] Confirm the generated `html_widget` shows the run-confirmation gate before rendering.
+- [ ] If multiple source versions exist, ask assistant to rollback the widget to an earlier version.
+- [ ] Confirm `rollback_html_widget` succeeds and the canvas item updates to the restored source.
+
+## 9. Board links
+
+- [ ] Create two boards.
+- [ ] Add a `board_link` canvas item whose `content.targetBoardId` points to the second board.
+- [ ] Confirm the item renders as a board navigation card.
+- [ ] Click **Open board** and confirm the active board switches to the target board.
+- [ ] Refresh and confirm the board-link item still navigates correctly.
+
+## 10. Tasks page
 
 - [ ] Navigate to `/tasks`.
 - [ ] Create a task with title, priority, due date, and optional board.
@@ -79,7 +96,7 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Mark complete and confirm the card disappears.
 - [ ] Tasks persist after refresh.
 
-## 9. Canvas item mobile bottom sheet
+## 11. Canvas item mobile bottom sheet
 
 - [ ] Open at 390px width in DevTools device emulation.
 - [ ] Tap a canvas item and confirm the bottom sheet slides up.
@@ -88,14 +105,14 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Delete shows confirmation.
 - [ ] Close button dismisses the sheet.
 
-## 10. Widget sandbox confirmation gate
+## 12. Widget sandbox confirmation gate
 
 - [ ] Add a sandboxed HTML item via assistant or direct data.
 - [ ] Item shows confirmation screen with Run button.
 - [ ] Click Run and confirm iframe renders content.
 - [ ] Confirm iframe has `sandbox="allow-scripts"` with no `allow-same-origin`.
 
-## 11. Core files editor
+## 13. Core files editor
 
 - [ ] Navigate to `/core`.
 - [ ] Files listed: CORE.md, ASSISTANT.md, TOOLS.md, SKILLS.md, RULES.md, MEMORY.md.
@@ -103,7 +120,7 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Reload and confirm content persists.
 - [ ] Path traversal is rejected.
 
-## 12. Mobile layout
+## 14. Mobile layout
 
 - [ ] At 390px: single column, bottom nav visible.
 - [ ] Board drawer opens and collapses via Boards toggle.
@@ -111,28 +128,29 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Bottom nav Core navigates to `/core`.
 - [ ] At 1024px+: three-column layout, bottom nav hidden.
 
-## 13. Security checks
+## 15. Security checks
 
 - [ ] No `AUTH_SECRET` or API keys visible in browser network inspector.
 - [ ] Accessing `/api/boards` without a session returns 401.
 - [ ] Generated widget iframe has `sandbox="allow-scripts"` with no `allow-same-origin`.
 - [ ] Delete tools require `confirmed: true` in tool input.
+- [ ] `board_link` item creation rejects a `content.targetBoardId` outside the current workspace.
 - [ ] Soft-deleted items do not reappear in board listings.
 
-## 14. Sub-board creation
+## 16. Sub-board creation
 
 - [ ] Ask assistant to create a sub-board under an existing board.
 - [ ] `create_sub_board` tool executes.
 - [ ] Sub-board appears indented under parent in board explorer.
 - [ ] Sub-board has its own empty canvas.
 
-## 15. Board search filter
+## 17. Board search filter
 
 - [ ] Type in Search boards.
 - [ ] Board list filters to matching names.
 - [ ] Clearing the input restores the full list.
 
-## 16. Telegram user-owned bot
+## 18. Telegram user-owned bot
 
 - [ ] Ensure deployed app has public HTTPS `APP_URL` and `APP_ENCRYPTION_KEY`.
 - [ ] Create a bot in BotFather and paste the token in `/settings`.

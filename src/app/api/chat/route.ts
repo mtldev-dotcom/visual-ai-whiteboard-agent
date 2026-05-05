@@ -5,6 +5,7 @@ import { registerBoardTools } from "@/server/assistant/board-tools";
 import { registerBoardQueryTools } from "@/server/assistant/board-query-tools";
 import { registerCanvasTools } from "@/server/assistant/canvas-tools";
 import { registerTaskTools } from "@/server/assistant/task-tools";
+import { registerWidgetTools } from "@/server/assistant/widget-tools";
 import { createLlmAdapter, type LlmMessage } from "@/server/assistant/llm";
 import { createToolRegistry } from "@/server/assistant/tools";
 import { loadAssistantCoreContext } from "@/server/core-files";
@@ -23,6 +24,7 @@ const BOARD_ID_TOOLS = new Set([
   "add_canvas_item",
   "summarize_board",
   "list_canvas_items",
+  "generate_html_widget",
 ]);
 const MAX_TOOL_ROUNDS = 4;
 
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
   registerBoardQueryTools(registry);
   registerCanvasTools(registry);
   registerTaskTools(registry);
+  registerWidgetTools(registry);
 
   const toolContext = {
     workspaceId: session.workspaceId,
@@ -183,6 +186,7 @@ function buildRuntimeContext(boardId: string | undefined) {
     "For relative reminder phrases like 'tomorrow', 'tmr', or 'next Friday', convert them to an ISO 8601 remindAt before calling create_reminder.",
     "When the user asks what is on the board, what you can see, to summarize the board, or to find/update/delete an existing item, call summarize_board or list_canvas_items before answering.",
     "When the user asks to delete or update an existing item and you need the item ID, first call list_canvas_items, then call delete_canvas_item or update_canvas_item in a follow-up tool call. Do not claim the change happened until the write tool succeeds.",
+    "For safe simple generated widgets, call generate_html_widget. Generated widgets must remain sandboxed and require user confirmation before running.",
     "Board and item tool results are authoritative. Never invent item titles, item counts, board names, or content.",
     "If no board is selected, ask the user to select or create a board before making board changes.",
     boardId
@@ -207,7 +211,7 @@ function buildFinalResponseContext() {
     "Use tool result data as authoritative.",
     "For board summaries, mention the actual item count, item types, titles, and visible content from the tool result.",
     "Do not mention items or content that are not present in the tool result.",
-    "If the user asked to delete, update, or create something, only say it was done if the corresponding delete_canvas_item, update_canvas_item, add_canvas_item, create_task, create_reminder, create_board, or create_sub_board tool succeeded.",
+    "If the user asked to delete, update, create, generate, or rollback something, only say it was done if the corresponding delete_canvas_item, update_canvas_item, add_canvas_item, create_task, create_reminder, create_board, create_sub_board, generate_html_widget, rollback_html_widget tool succeeded.",
     "If only list_canvas_items or summarize_board ran, say what you found and what still needs to happen; do not claim a mutation happened.",
     "If a tool failed, explain the failure and what the user can do next.",
   ].join("\n");
@@ -275,10 +279,17 @@ function getToolInputSchema(toolName: string): Record<string, unknown> {
               "sticky_note",
               "task_list",
               "kanban",
+              "rich_text",
+              "reminders",
               "markdown",
               "image",
               "link",
+              "board_link",
               "html_widget",
+              "drawing",
+              "arrow",
+              "shape",
+              "frame",
             ],
           },
           x: { type: "number" },
@@ -352,6 +363,29 @@ function getToolInputSchema(toolName: string): Record<string, unknown> {
       return {
         ...objectBase,
         properties: {},
+      };
+    case "generate_html_widget":
+      return {
+        ...objectBase,
+        required: ["boardId", "title", "body"],
+        properties: {
+          boardId: { type: "string" },
+          title: { type: "string" },
+          body: { type: "string" },
+          x: { type: "number" },
+          y: { type: "number" },
+          width: { type: "number" },
+          height: { type: "number" },
+        },
+      };
+    case "rollback_html_widget":
+      return {
+        ...objectBase,
+        required: ["itemId", "sourceVersion"],
+        properties: {
+          itemId: { type: "string" },
+          sourceVersion: { type: "string" },
+        },
       };
     default:
       return { type: "object", additionalProperties: true };

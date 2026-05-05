@@ -48,9 +48,12 @@ const ASSISTANT_CANVAS_ITEM_TYPES = [
   "sticky_note",
   "task_list",
   "kanban",
+  "rich_text",
+  "reminders",
   "markdown",
   "image",
   "link",
+  "board_link",
   "html_widget",
   "drawing",
   "arrow",
@@ -108,6 +111,16 @@ export function validateAddCanvasItemInput(
 
   if (!isObject(input.content)) {
     return { error: "content must be an object.", ok: false };
+  }
+
+  if (
+    input.type.trim() === "board_link" &&
+    typeof input.content.targetBoardId !== "string"
+  ) {
+    return {
+      error: "board_link content.targetBoardId is required.",
+      ok: false,
+    };
   }
 
   for (const key of ["style", "metadata", "safetyMetadata"]) {
@@ -189,9 +202,32 @@ export const addCanvasItemTool: ToolDefinition<AddCanvasItemInput> = {
       };
     }
 
+    let content = input.content;
+    if (input.type.trim() === "board_link") {
+      const targetBoardId = content.targetBoardId as string;
+      const targetBoard = await getBoardById(targetBoardId);
+
+      if (!targetBoard || targetBoard.workspaceId !== context.workspaceId) {
+        return {
+          error: "Target board not found.",
+          ok: false,
+          summary: "Target board not found.",
+        };
+      }
+
+      content = {
+        ...content,
+        targetBoardId: targetBoard.id,
+        title:
+          typeof content.title === "string" && content.title.trim()
+            ? content.title
+            : targetBoard.title,
+      };
+    }
+
     const item = await createCanvasItem({
       boardId: input.boardId,
-      content: input.content as Prisma.InputJsonObject,
+      content: content as Prisma.InputJsonObject,
       createdBy: actorToCreatedBy(context.actor.type),
       height: input.height,
       metadata: input.metadata as Prisma.InputJsonObject | undefined,

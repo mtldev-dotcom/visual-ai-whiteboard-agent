@@ -31,6 +31,8 @@ Prove that an AI assistant can create and edit useful visual boards from chat.
 - Iframe embed.
 - HTML widget.
 - Task list.
+- Rich text.
+- Reminders.
 - Board link.
 - Freehand drawing.
 - Arrow.
@@ -48,6 +50,8 @@ Prove that an AI assistant can create and edit useful visual boards from chat.
 - `organize_board`
 - `create_task`
 - `create_reminder`
+- `generate_html_widget`
+- `rollback_html_widget`
 
 ## Initial Telegram commands
 

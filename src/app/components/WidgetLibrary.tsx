@@ -1,6 +1,13 @@
 "use client";
 
-import { CheckSquare, Columns3, Plus } from "lucide-react";
+import {
+  Bell,
+  BookOpenText,
+  CheckSquare,
+  Columns3,
+  FilePenLine,
+  Plus,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const widgets = [
@@ -30,6 +37,52 @@ const widgets = [
     },
     defaultWidth: 480,
     defaultHeight: 300,
+  },
+  {
+    category: "Knowledge",
+    description: "Read-only markdown reference card",
+    name: "Markdown Reader",
+    icon: BookOpenText,
+    type: "markdown",
+    defaultContent: {
+      title: "Markdown Reader",
+      text: "## Reference\n\n- Add notes\n- Paste specs\n- Keep decisions visible",
+      mode: "reader",
+    },
+    defaultWidth: 340,
+    defaultHeight: 260,
+  },
+  {
+    category: "Knowledge",
+    description: "Formatted notes with headings and callouts",
+    name: "Rich Text",
+    icon: FilePenLine,
+    type: "rich_text",
+    defaultContent: {
+      title: "Rich Text",
+      blocks: [
+        { type: "heading", text: "Notes" },
+        { type: "paragraph", text: "Capture formatted context here." },
+        { type: "callout", text: "Use this for decisions, links, or drafts." },
+      ],
+    },
+    defaultWidth: 360,
+    defaultHeight: 260,
+  },
+  {
+    category: "Productivity",
+    description: "Upcoming reminders attached to the board",
+    name: "Reminders",
+    icon: Bell,
+    type: "reminders",
+    defaultContent: {
+      title: "Reminders",
+      reminders: [
+        { status: "scheduled", title: "Review this board", when: "Tomorrow" },
+      ],
+    },
+    defaultWidth: 320,
+    defaultHeight: 220,
   },
 ];
 
@@ -314,6 +367,89 @@ function WidgetPreview({ widget }: { widget: (typeof widgets)[number] }) {
                 Sample card
               </div>
             )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (widget.type === "markdown") {
+    return (
+      <div
+        className="rounded-xl border p-3"
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "var(--border)",
+        }}
+      >
+        <p
+          className="mb-2 text-xs font-semibold"
+          style={{ color: "var(--text-1)" }}
+        >
+          Markdown Reader
+        </p>
+        <div className="space-y-1.5 font-mono text-[11px]">
+          <p style={{ color: "var(--accent)" }}>## Reference</p>
+          <p style={{ color: "var(--text-2)" }}>- Add notes</p>
+          <p style={{ color: "var(--text-2)" }}>- Keep decisions visible</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (widget.type === "rich_text") {
+    return (
+      <div
+        className="rounded-xl border p-3"
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "var(--border)",
+        }}
+      >
+        <p className="text-sm font-semibold" style={{ color: "var(--text-1)" }}>
+          Notes
+        </p>
+        <p className="mt-2 text-xs" style={{ color: "var(--text-2)" }}>
+          Capture formatted context here.
+        </p>
+        <p
+          className="mt-3 rounded-lg border px-2 py-1.5 text-xs"
+          style={{
+            background: "var(--accent-light)",
+            borderColor: "var(--border)",
+            color: "var(--accent)",
+          }}
+        >
+          Decision-ready callout
+        </p>
+      </div>
+    );
+  }
+
+  if (widget.type === "reminders") {
+    return (
+      <div
+        className="rounded-xl border p-3"
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "var(--border)",
+        }}
+      >
+        <p
+          className="mb-2 text-xs font-semibold"
+          style={{ color: "var(--text-1)" }}
+        >
+          Reminders
+        </p>
+        {["Review this board", "Send update"].map((reminder) => (
+          <div className="mb-1.5 flex items-center gap-2" key={reminder}>
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: "var(--accent)" }}
+            />
+            <span className="text-xs" style={{ color: "var(--text-2)" }}>
+              {reminder}
+            </span>
           </div>
         ))}
       </div>

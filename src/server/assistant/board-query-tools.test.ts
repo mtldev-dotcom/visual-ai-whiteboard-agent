@@ -54,4 +54,14 @@ describe("summarizeCanvasItemContent", () => {
     expect(summary.preview).toContain("Backlog (1 card: Research phase)");
     expect(summary.preview).toContain("Done (0 cards)");
   });
+
+  it("includes board-link targets in the preview", () => {
+    const summary = summarizeCanvasItemContent({
+      targetBoardId: "board-2",
+      title: "Research board",
+    });
+
+    expect(summary.targetBoardId).toBe("board-2");
+    expect(summary.preview).toContain("Target board: board-2");
+  });
 });

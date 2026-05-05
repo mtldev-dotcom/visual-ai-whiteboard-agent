@@ -95,7 +95,8 @@ Input:
 Behavior:
 
 - Validates structured item input before execution.
-- Accepts `text`, `sticky_note`, `task_list`, `kanban`, `markdown`, `image`, `link`, `html_widget`, `drawing`, `arrow`, `shape`, and `frame`.
+- Accepts `text`, `sticky_note`, `task_list`, `kanban`, `rich_text`, `reminders`, `markdown`, `image`, `link`, `board_link`, `html_widget`, `drawing`, `arrow`, `shape`, and `frame`.
+- `board_link` content must include `targetBoardId`; execution verifies that the linked board belongs to the current workspace before writing.
 - Verifies the target board belongs to the current workspace.
 - Creates a canvas item in the current workspace and target board.
 - Returns a structured output containing the item ID and type.
@@ -168,6 +169,8 @@ Behavior:
 
 ## Execution cards
 
+Final assistant text is rendered by the chat UI as structured Markdown-style content for readability. The renderer supports paragraphs, headings, bullet lists, numbered lists, bold spans, and inline code while keeping content React-escaped.
+
 Each assistant tool call should appear in chat as a card with:
 
 - Tool name.
@@ -218,3 +221,38 @@ Examples:
 - Widget calling tools.
 
 Requires sandboxing and explicit permission.
+
+### generate_html_widget
+
+Implemented in `src/server/assistant/widget-tools.ts`.
+
+Input:
+
+- `boardId` string, required.
+- `title` string, required.
+- `body` string, required.
+- Optional `x`, `y`, `width`, `height` finite numbers.
+
+Behavior:
+
+- Escapes user-provided text into a safe static HTML document.
+- Creates a `WidgetDefinition` with versioned custom HTML source.
+- Stores initial source as `v1`.
+- Adds an `html_widget` canvas item with `widgetDefinitionId`, `sourceVersion`, and sandbox confirmation metadata.
+- Permission level: 4.
+
+### rollback_html_widget
+
+Implemented in `src/server/assistant/widget-tools.ts`.
+
+Input:
+
+- `itemId` string, required.
+- `sourceVersion` string, required.
+
+Behavior:
+
+- Verifies the canvas item is an `html_widget` in the current workspace.
+- Finds the requested prior `CustomHtmlWidgetSource` version.
+- Copies that source into a new version and updates the canvas item HTML/source metadata.
+- Permission level: 4.

@@ -14,6 +14,8 @@ const VALID_TYPES = [
   "iframe_embed",
   "html_widget",
   "task_list",
+  "rich_text",
+  "reminders",
   "board_link",
   "section",
   "kanban",
@@ -23,6 +25,10 @@ const VALID_TYPES = [
   "frame",
   "notes",
 ];
+
+function isObject(input: unknown): input is Record<string, unknown> {
+  return typeof input === "object" && input !== null && !Array.isArray(input);
+}
 
 export async function POST(request: Request) {
   const { session, error } = await requireSession();
@@ -57,9 +63,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Board not found." }, { status: 404 });
   }
 
+  let content = body.content ?? {};
+  if (body.type === "board_link") {
+    if (!isObject(content) || typeof content.targetBoardId !== "string") {
+      return NextResponse.json(
+        { error: "board_link content.targetBoardId is required." },
+        { status: 400 },
+      );
+    }
+
+    const targetBoard = await getBoardById(content.targetBoardId);
+    if (!targetBoard || targetBoard.workspaceId !== session.workspaceId) {
+      return NextResponse.json(
+        { error: "Target board not found." },
+        { status: 404 },
+      );
+    }
+
+    content = {
+      ...content,
+      targetBoardId: targetBoard.id,
+      title:
+        typeof content.title === "string" && content.title.trim()
+          ? content.title
+          : targetBoard.title,
+    };
+  }
+
   const item = await createCanvasItem({
     boardId: body.boardId,
-    content: (body.content ?? {}) as Prisma.InputJsonValue,
+    content: content as Prisma.InputJsonValue,
     createdBy: "user",
     height: body.height ?? 160,
     type: body.type,

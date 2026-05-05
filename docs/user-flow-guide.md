@@ -123,16 +123,19 @@ Canvas items are persisted structured objects. The following types render in the
 | `text`        | Surface card with title/text                  |
 | `markdown`    | Markdown-labeled preformatted card            |
 | `link`        | Link card with URL                            |
+| `board_link`  | Navigation card that opens another board      |
 | `image`       | Image preview card                            |
 | `task_list`   | Checkbox list card                            |
 | `kanban`      | Three-column workflow board                   |
+| `rich_text`   | Formatted notes with headings and callouts    |
+| `reminders`   | Reminder list card                            |
 | `drawing`     | Freehand pen stroke                           |
 | `arrow`       | Connector arrow                               |
 | `shape`       | Rectangle, ellipse, or diamond                |
 | `frame`       | Dashed whiteboard frame                       |
 | `html_widget` | Sandboxed iframe widget with run confirmation |
 
-Add items via the canvas toolbar, assistant chat, or widget library.
+Add items via the canvas toolbar, assistant chat, or widget library. For board links, create a `board_link` item with `content.targetBoardId`, then click **Open board** on the card. The active board should switch without opening a new browser route.
 
 ---
 
@@ -246,10 +249,12 @@ Add items via the canvas toolbar, assistant chat, or widget library.
 3. Confirm the thinking card appears.
 4. Confirm a tool execution card appears for `add_canvas_item`.
 5. Confirm the canvas refreshes and shows the new item.
-6. Refresh the page or switch boards and return.
-7. Confirm chat history for that board loads from DB.
+6. Ask a question that returns a list, such as "What can you help me create here?"
+7. Confirm the assistant reply uses readable paragraphs, bullets or numbered lists, bold labels, and inline code styling instead of showing raw Markdown markers.
+8. Refresh the page or switch boards and return.
+9. Confirm chat history for that board loads from DB.
 
-**What works now:** `GET /api/chat/thread`, `POST /api/chat`, persisted board-scoped chat threads, tool execution cards, canvas refresh after successful tool calls.
+**What works now:** `GET /api/chat/thread`, `POST /api/chat`, persisted board-scoped chat threads, formatted assistant replies, tool execution cards, canvas refresh after successful tool calls.
 
 ---
 
@@ -382,11 +387,8 @@ The assistant has access to these implemented tools:
 
 ## Flows not yet testable
 
-- Board links as canvas items.
 - `organize_board`, `duplicate_board`, and assistant `rollback_canvas_change`.
 - Telegram `/remind`, `/summarize`, file/photo capture, and voice transcription.
-- Markdown reader, rich text editor, and reminders widgets.
-- Widget version history / generated-widget rollback.
 - OAuth or magic link auth.
 - Production deployment config.
 - Full E2E suite.

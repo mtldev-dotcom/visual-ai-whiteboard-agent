@@ -63,18 +63,38 @@
     },
     {
       "name": "generate_html_widget",
-      "description": "Generate a custom HTML widget draft for preview.",
+      "description": "Generate a safe custom HTML widget, store versioned source, and add it to a board.",
       "permissionLevel": 4,
       "requiresConfirmation": true,
       "input": {
         "boardId": "string",
-        "prompt": "string",
-        "requestedPermissions": "string[]"
+        "title": "string",
+        "body": "string",
+        "x": "number|null",
+        "y": "number|null",
+        "width": "number|null",
+        "height": "number|null"
       },
       "output": {
-        "widgetDraftId": "string",
-        "permissionSummary": "string",
-        "previewAvailable": "boolean"
+        "itemId": "string",
+        "widgetDefinitionId": "string",
+        "sourceVersion": "string"
+      }
+    },
+    {
+      "name": "rollback_html_widget",
+      "description": "Rollback a generated HTML widget item to a previous source version.",
+      "permissionLevel": 4,
+      "requiresConfirmation": true,
+      "input": {
+        "itemId": "string",
+        "sourceVersion": "string"
+      },
+      "output": {
+        "itemId": "string",
+        "restoredFromVersion": "string",
+        "sourceVersion": "string",
+        "widgetDefinitionId": "string"
       }
     }
   ]

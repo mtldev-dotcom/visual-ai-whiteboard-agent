@@ -36,6 +36,7 @@ export function summarizeCanvasItemContent(content: Record<string, unknown>) {
   const title = asString(content.title);
   const text = asString(content.text);
   const href = asString(content.href);
+  const targetBoardId = asString(content.targetBoardId);
   const alt = asString(content.alt);
   const tasks = Array.isArray(content.tasks)
     ? content.tasks.filter(isObject).map((task) => ({
@@ -58,6 +59,7 @@ export function summarizeCanvasItemContent(content: Record<string, unknown>) {
     title ? `Title: ${title}` : null,
     text ? `Text: ${text}` : null,
     href ? `URL: ${href}` : null,
+    targetBoardId ? `Target board: ${targetBoardId}` : null,
     alt ? `Alt: ${alt}` : null,
     tasks?.length
       ? `Tasks: ${tasks
@@ -84,6 +86,7 @@ export function summarizeCanvasItemContent(content: Record<string, unknown>) {
     tasks,
     text,
     title,
+    targetBoardId,
   };
 }
 

@@ -36,10 +36,14 @@ Every canvas item must have:
 - `board_link`
 - `section`
 - `kanban`
+- `rich_text`
+- `reminders`
 - `drawing`
 - `arrow`
 - `shape`
 - `frame`
+
+`board_link` items store `content.targetBoardId` plus optional `title` and `text`. They render as board navigation cards and must only target boards in the same workspace.
 
 ## User interactions
 

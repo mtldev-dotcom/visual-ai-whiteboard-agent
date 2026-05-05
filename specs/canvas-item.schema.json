@@ -36,6 +36,8 @@
         "iframe_embed",
         "html_widget",
         "task_list",
+        "rich_text",
+        "reminders",
         "board_link",
         "section",
         "kanban",
@@ -58,7 +60,8 @@
       "type": "number"
     },
     "content": {
-      "type": "object"
+      "type": "object",
+      "description": "Type-specific structured payload. board_link items require content.targetBoardId and may include title/text."
     },
     "style": {
       "type": "object"

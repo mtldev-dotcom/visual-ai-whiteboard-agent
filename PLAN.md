@@ -44,14 +44,17 @@
 
 ## P1 — Remaining backlog items (after above)
 
-| Item                                   | Location                                 |
-| -------------------------------------- | ---------------------------------------- |
-| `organize_board` AI tool (auto-layout) | `src/server/assistant/` + chat route     |
-| Board links as canvas items            | canvas item type `board_link`            |
-| Telegram `/remind` command             | `src/server/telegram/handlers.ts`        |
-| Telegram `/summarize` command          | same                                     |
-| Markdown reader widget                 | `WidgetLibrary` + `BoardCanvas` renderer |
-| Rich text editor widget                | same                                     |
+| Item                                   | Location                             |
+| -------------------------------------- | ------------------------------------ |
+| `organize_board` AI tool (auto-layout) | `src/server/assistant/` + chat route |
+| Telegram `/remind` command             | `src/server/telegram/handlers.ts`    |
+| Telegram `/summarize` command          | same                                 |
+
+Completed after PLAN.md P1 set:
+
+- Board links as canvas items: `board_link` renders on the canvas, stores `content.targetBoardId`, and validates same-workspace targets.
+- Phase 4 P1 widgets: Markdown Reader, Rich Text, and Reminders are available from the widget library and render on the canvas.
+- Phase 5 P1 widgets: assistant-generated safe HTML widgets store versioned source and can be rolled back with `rollback_html_widget`.
 
 ## P2 — Later
 

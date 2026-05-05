@@ -44,12 +44,35 @@ describe("validateAddCanvasItemInput", () => {
     });
   });
 
+  it("accepts board links with a target board", () => {
+    expect(
+      validateAddCanvasItemInput({
+        ...validInput,
+        content: { targetBoardId: "board-2", title: "Related board" },
+        type: "board_link",
+      }),
+    ).toEqual({ ok: true });
+  });
+
+  it("rejects board links without a target board", () => {
+    expect(
+      validateAddCanvasItemInput({
+        ...validInput,
+        content: { title: "Related board" },
+        type: "board_link",
+      }),
+    ).toEqual({
+      error: "board_link content.targetBoardId is required.",
+      ok: false,
+    });
+  });
+
   it("rejects removed notes item type", () => {
     expect(
       validateAddCanvasItemInput({ ...validInput, type: "notes" }),
     ).toEqual({
       error:
-        "type must be one of: text, sticky_note, task_list, kanban, markdown, image, link, html_widget, drawing, arrow, shape, frame.",
+        "type must be one of: text, sticky_note, task_list, kanban, rich_text, reminders, markdown, image, link, board_link, html_widget, drawing, arrow, shape, frame.",
       ok: false,
     });
   });

@@ -16,16 +16,18 @@ A **mobile-first AI whiteboard app**. Users chat with an AI assistant that creat
 - Canvas persists (move, resize, edit, delete, copy, click-to-create).
 - Canvas has client undo for the last move/resize states with `Ctrl+Z` / `Cmd+Z`.
 - Toolbar tools now create native whiteboard items: pen strokes, arrows, shape variants, frames, text, sticky notes, and task lists.
+- Board links render as `board_link` canvas items and navigate to same-workspace boards.
 - Text/sticky/shape/frame items edit inline instead of opening the old centered edit modal.
 - Chat history persists to DB (survives page refresh, loads on board switch).
 - Real LLM via OpenRouter, with local stub fallback.
 - Board templates: Project Kickoff, Brainstorm Session, Weekly Review.
 - Server-side board search with 300ms debounce.
-- Widgets: Task List, Notes, Kanban, with preview before insertion.
+- Widgets: Task List, Kanban, Markdown Reader, Rich Text, and Reminders, with preview before insertion.
+- Assistant-generated safe HTML widgets are stored with versioned source and can be rolled back.
 - Telegram bots are connected from `/settings` with user-owned BotFather tokens and bot-specific webhooks.
 - Cards have shadow/depth. Canvas has dot+grid texture.
 
-**Still missing (P1):** board links as canvas items, `organize_board`, assistant `rollback_canvas_change`, Telegram `/remind` and `/summarize`, widget version history, and more widgets.
+**Still missing (P1):** `organize_board`, assistant `rollback_canvas_change`, and Telegram `/remind` and `/summarize`.
 
 ---
 
@@ -106,11 +108,9 @@ Format issues: `npx prettier --write .`
 
 ## Next tasks (P1)
 
-1. Board links as canvas items.
-2. `organize_board` assistant tool.
-3. Assistant `rollback_canvas_change` tool.
-4. Telegram `/remind` and `/summarize`.
-5. Markdown reader / rich text / reminders widgets.
+1. `organize_board` assistant tool.
+2. Assistant `rollback_canvas_change` tool.
+3. Telegram `/remind` and `/summarize`.
 
 ---
 

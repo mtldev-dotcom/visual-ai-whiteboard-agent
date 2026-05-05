@@ -255,6 +255,7 @@ export function WorkspaceShell({ initialBoards, userEmail }: Props) {
           <BoardCanvas
             boardId={activeBoardId}
             refreshKey={canvasRefreshKey}
+            onBoardSelect={setActiveBoardId}
             onRefreshNeeded={refreshCanvas}
           />
 

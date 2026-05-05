@@ -8,7 +8,7 @@ P0 complete + P1 in progress. The PLAN.md P1 set is complete: undo/rollback, wid
 
 ## Current goal
 
-Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`, `rollback_canvas_change`, Telegram `/remind` and `/summarize`, and additional widgets.
+Continue the remaining P1 backlog beyond PLAN.md: `organize_board`, `rollback_canvas_change`, and Telegram `/remind` and `/summarize`.
 
 ## What exists
 
@@ -33,7 +33,8 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - 3 board templates: Project Kickoff, Brainstorm Session, Weekly Review.
 - `BoardCanvas`: pan/zoom, drag-to-move, resize, select, floating action bar, mobile bottom sheet.
 - Client undo for the last move/resize states with `Ctrl+Z` / `Cmd+Z`, optimistic PATCH rollback, and a 3-second toast.
-- Item types: text, sticky_note, task_list, kanban, markdown, image, link, html_widget, drawing, arrow, shape, frame.
+- Item types: text, sticky_note, task_list, kanban, rich_text, reminders, markdown, image, link, board_link, html_widget, drawing, arrow, shape, frame.
+- Board links render as structured `board_link` canvas items with `content.targetBoardId`; item creation validates that linked boards belong to the same workspace.
 - Whiteboard toolbar tools: select, hand/pan, pen, shape variants, frame, arrow, text, sticky note, task list, widget focus, color palette, tidy, and zoom shortcuts.
 - Text/sticky/shape/frame/notes use inline editing; centered edit modal is no longer used for simple items.
 - Copy, delete with confirmation, drag-create gestures, and debounced PATCH on move/resize.
@@ -51,7 +52,9 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
   - `add_canvas_item`, `update_canvas_item`, `delete_canvas_item`
   - `summarize_board`, `list_canvas_items`
   - `create_task`, `list_tasks`, `create_reminder`, `list_reminders`
+  - `generate_html_widget`, `rollback_html_widget`
 - Tool execution cards in chat UI (success/error/pending states).
+- Assistant replies render Markdown-style structure in chat bubbles: paragraphs, headings, bullet lists, numbered lists, bold text, and inline code.
 - Canvas auto-refreshes after successful tool calls.
 - Assistant board/canvas tools verify workspace ownership before reading or mutating boards/items.
 
@@ -74,7 +77,8 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - CSS design token system: `--bg-*`, `--text-*`, `--accent*`, `--border*`, `--shadow-*`, `--canvas-*`.
 - Light/dark mode: persistent via localStorage, `ThemeProvider` context, `<html class="dark">`.
 - Collapsible sidebars, compact 44px header, mobile slide-up drawers, bottom nav.
-- Widget library: Task List and Kanban, with preview modal before insertion.
+- Widget library: Task List, Kanban, Markdown Reader, Rich Text, and Reminders, with preview modal before insertion.
+- Assistant can generate safe static HTML widgets; generated source is stored in versioned `CustomHtmlWidgetSource` records and can be rolled back with `rollback_html_widget`.
 - `/tasks`: task center with create form, priority, dueDate, mark-complete.
 - `/core`: markdown editor for assistant context files.
 - Login/signup cards with CSS var styling.
@@ -97,10 +101,8 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 
 - `organize_board` tool (auto-layout).
 - Assistant `rollback_canvas_change` tool.
-- Board links as canvas items.
 - Telegram `/remind` and `/summarize`.
 - Telegram photo/file capture and voice transcription.
-- Widget version history / generated-widget rollback.
 - Canvas minimap / grouping (P2).
 - Realtime collaboration (P2).
 - OAuth / magic link auth (P2).

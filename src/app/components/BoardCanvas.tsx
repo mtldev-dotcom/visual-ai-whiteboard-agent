@@ -1,7 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { Check, Copy, Edit3, RefreshCcw, Trash2, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  Copy,
+  Edit3,
+  RefreshCcw,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -22,7 +30,11 @@ type CanvasItemContent = {
   text?: string;
   alt?: string;
   href?: string;
+  targetBoardId?: string;
+  boardId?: string;
   html?: string;
+  widgetDefinitionId?: string;
+  sourceVersion?: string;
   src?: string;
   bgColor?: string;
   stroke?: string;
@@ -34,6 +46,8 @@ type CanvasItemContent = {
   sourceWidth?: number;
   sourceHeight?: number;
   tasks?: { completed: boolean; title: string }[];
+  reminders?: { status?: string; title: string; when?: string }[];
+  blocks?: { type?: string; text?: string }[];
   columns?: {
     id: string;
     title: string;
@@ -234,6 +248,7 @@ function InlineFields({
 function ItemCard({
   item,
   onEdit,
+  onOpenBoardLink,
   inlineEdit,
   onInlineChange,
   onInlineCommit,
@@ -241,6 +256,7 @@ function ItemCard({
 }: {
   item: CanvasItem;
   onEdit: () => void;
+  onOpenBoardLink: (boardId: string) => void;
   inlineEdit: InlineEditState;
   onInlineChange: (patch: InlineEditPatch) => void;
   onInlineCommit: () => void;
@@ -445,6 +461,76 @@ function ItemCard({
     );
   }
 
+  if (item.type === "rich_text") {
+    const blocks = item.content.blocks ?? [];
+    return (
+      <div
+        className={`${base} flex flex-col`}
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "#c4b5fd",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        <div
+          className="border-b px-3 py-2"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <span
+            className="truncate text-xs font-semibold"
+            style={{ color: "var(--text-1)" }}
+          >
+            {item.content.title ?? "Rich Text"}
+          </span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden px-3 py-2">
+          {blocks.length === 0 && (
+            <p className="text-xs italic" style={{ color: "var(--text-3)" }}>
+              No content yet
+            </p>
+          )}
+          {blocks.map((block, index) => {
+            if (block.type === "heading") {
+              return (
+                <h4
+                  className="mb-1 text-sm font-semibold"
+                  key={index}
+                  style={{ color: "var(--text-1)" }}
+                >
+                  {block.text}
+                </h4>
+              );
+            }
+            if (block.type === "callout") {
+              return (
+                <p
+                  className="mb-2 rounded-lg border px-2 py-1.5 text-xs leading-relaxed"
+                  key={index}
+                  style={{
+                    background: "var(--accent-light)",
+                    borderColor: "var(--border)",
+                    color: "var(--accent)",
+                  }}
+                >
+                  {block.text}
+                </p>
+              );
+            }
+            return (
+              <p
+                className="mb-2 text-xs leading-relaxed"
+                key={index}
+                style={{ color: "var(--text-2)" }}
+              >
+                {block.text}
+              </p>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (item.type === "drawing") {
     const points = item.content.points ?? [];
     return (
@@ -564,6 +650,50 @@ function ItemCard({
     );
   }
 
+  if (item.type === "board_link") {
+    const targetBoardId = item.content.targetBoardId ?? item.content.boardId;
+    return (
+      <div
+        className={`${base} flex flex-col`}
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "#86efac",
+          borderTopWidth: "3px",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        <div className="flex min-h-0 flex-1 flex-col px-3 pt-2">
+          <p
+            className="truncate text-xs font-semibold"
+            style={{ color: "var(--text-1)" }}
+          >
+            {item.content.title ?? "Board link"}
+          </p>
+          <p
+            className="mt-1 line-clamp-3 text-xs leading-relaxed"
+            style={{ color: "var(--text-2)" }}
+          >
+            {item.content.text ?? "Open a related board."}
+          </p>
+        </div>
+        <button
+          className="mt-auto flex items-center justify-between gap-2 px-3 pb-3 pt-2 text-left text-xs font-semibold disabled:opacity-50"
+          disabled={!targetBoardId}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (targetBoardId) onOpenBoardLink(targetBoardId);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          style={{ color: "#16a34a" }}
+          type="button"
+        >
+          <span className="truncate">Open board</span>
+          <ArrowUpRight size={14} />
+        </button>
+      </div>
+    );
+  }
+
   if (item.type === "task_list") {
     const tasks = item.content.tasks ?? [];
     const done = tasks.filter((t) => t.completed).length;
@@ -632,6 +762,71 @@ function ItemCard({
                 }}
               >
                 {task.title}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  if (item.type === "reminders") {
+    const reminders = item.content.reminders ?? [];
+    return (
+      <div
+        className={`${base} flex flex-col`}
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "#fca5a5",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        <div
+          className="flex items-center justify-between border-b px-3 py-2"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <span
+            className="text-xs font-semibold"
+            style={{ color: "var(--text-1)" }}
+          >
+            {item.content.title ?? "Reminders"}
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
+            {reminders.length}
+          </span>
+        </div>
+        <ul className="flex-1 overflow-hidden px-3 py-2 space-y-2">
+          {reminders.length === 0 && (
+            <li className="text-xs italic" style={{ color: "var(--text-3)" }}>
+              No reminders yet
+            </li>
+          )}
+          {reminders.map((reminder, index) => (
+            <li className="flex items-start gap-2" key={index}>
+              <span
+                className="mt-1 h-2 w-2 shrink-0 rounded-full"
+                style={{
+                  background:
+                    reminder.status === "done"
+                      ? "var(--text-3)"
+                      : "var(--danger)",
+                }}
+              />
+              <span className="min-w-0">
+                <span
+                  className="block truncate text-xs font-medium"
+                  style={{ color: "var(--text-1)" }}
+                >
+                  {reminder.title}
+                </span>
+                {reminder.when && (
+                  <span
+                    className="block truncate text-[10px]"
+                    style={{ color: "var(--text-3)" }}
+                  >
+                    {reminder.when}
+                  </span>
+                )}
               </span>
             </li>
           ))}
@@ -808,6 +1003,7 @@ type Props = {
   boardId: string | null;
   refreshKey: number;
   onRefreshNeeded: () => void;
+  onBoardSelect: (boardId: string) => void;
 };
 
 const NEW_ITEM_DEFAULTS: Record<
@@ -850,7 +1046,12 @@ const NEW_ITEM_DEFAULTS: Record<
   frame: { width: 420, height: 320, content: { title: "Frame", text: "" } },
 };
 
-export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
+export function BoardCanvas({
+  boardId,
+  refreshKey,
+  onRefreshNeeded,
+  onBoardSelect,
+}: Props) {
   const [items, setItems] = useState<CanvasItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -1734,6 +1935,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                     inlineEdit={inlineEdit}
                     item={item}
                     onEdit={() => openEditFor(item)}
+                    onOpenBoardLink={onBoardSelect}
                     onInlineCancel={cancelInlineEdit}
                     onInlineChange={updateInlineEdit}
                     onInlineCommit={() => {

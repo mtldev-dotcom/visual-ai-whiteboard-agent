@@ -20,6 +20,14 @@ Examples:
 
 The widget library previews trusted prebuilt widgets before insertion. Users see the widget name, description, a static mini preview, and explicit Add/Cancel actions before a canvas item is created.
 
+Implemented prebuilt widget library entries:
+
+- Task List (`task_list`).
+- Kanban (`kanban`).
+- Markdown Reader (`markdown` with reader content).
+- Rich Text (`rich_text`).
+- Reminders (`reminders`).
+
 ### Custom HTML widgets
 
 Generated or user-provided HTML/CSS/JS rendered inside a sandboxed iframe.
@@ -107,6 +115,8 @@ Do not mix executable widget source with user data.
 ## Versioning
 
 Generated widget source should be versioned so users can inspect and rollback changes.
+
+Implemented generated-widget versioning uses `CustomHtmlWidgetSource` records. `generate_html_widget` stores initial source as `v1`; `rollback_html_widget` copies a requested previous version into a new source version and updates the canvas item to that new version.
 
 ## Persistence model
 
