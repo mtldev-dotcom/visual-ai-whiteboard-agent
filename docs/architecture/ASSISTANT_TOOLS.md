@@ -310,3 +310,29 @@ Behavior:
 - Clears `deletedAt` to restore the item on the board.
 - The assistant should supply the `itemId` from the result of a prior `delete_canvas_item` call in the same conversation.
 - Permission level: 2.
+
+### update_memory
+
+Implemented in `src/server/assistant/board-management-tools.ts`.
+
+Input:
+
+- `boardId` string, required.
+- `note` string, optional. A short note to append alongside the generated summary.
+
+Behavior:
+
+- Reads all non-deleted canvas items from the board.
+- Builds a timestamped summary (board title, item count, type breakdown, optional note).
+- Appends the summary as a new `## Board memory —` section in `docs/agent-core/MEMORY.md`.
+- Does not overwrite existing memory entries.
+- Permission level: 1.
+
+### create_reminder (recurrence support)
+
+The `create_reminder` tool now accepts:
+
+- `recurrence` string, optional. One of `daily`, `weekly`, `monthly`, `yearly`.
+- `recurrenceEnd` string, optional. ISO 8601 date after which recurrence stops.
+
+The `/api/reminders/check` endpoint fires due reminders, marks them sent, and creates the next occurrence for recurring reminders (unless `recurrenceEnd` is reached). The client polls this endpoint on mount and every 5 minutes, showing in-app toast notifications for each triggered reminder.

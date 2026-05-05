@@ -48,10 +48,10 @@ test.describe("tasks page", () => {
       timeout: 8_000,
     });
 
-    // Complete it
-    const taskCard = page.getByRole("heading", { name: title }).locator("..");
-    await taskCard
-      .locator("..")
+    // Complete it — find the <article> card that contains the task title
+    await page
+      .locator("article")
+      .filter({ hasText: title })
       .getByRole("button", { name: "Mark complete" })
       .click();
 

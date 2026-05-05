@@ -23,7 +23,13 @@
       "Bash(npx eslint *)",
       "Bash(npx next *)",
       "Bash(xargs grep *)",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\\\\src\\\\app\\\\api\\\\reminders\\\\check\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"done\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\\\\src\\\\app\\\\api\\\\reminders\\\\check\")",
+      "PowerShell(\"done\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\\\\src\\\\app\\\\api\\\\notification-preferences\")"
     ],
     "additionalDirectories": [
       "d:\\DEV-D\\visual-ai-whiteboard-agent\\src\\app\\api\\auth",

@@ -46,9 +46,9 @@ Priority legend:
 - [x] `P0` Add item move and resize.
 - [x] `P0` Add mobile bottom sheet for selected item controls.
 - [x] `P0` Add floating assistant button on board.
-- [ ] `P1` Add grouping/sections.
+- [x] `P1` Add grouping/sections. (section canvas item type with solid header bar; keyboard shortcut N)
 - [x] `P1` Add frames.
-- [ ] `P1` Add canvas minimap or board overview.
+- [x] `P1` Add canvas minimap or board overview. (desktop minimap overlay in bottom-right corner)
 - [ ] `P2` Add realtime presence/collaboration.
 
 ## Phase 3 — Assistant and tool calling
@@ -102,9 +102,9 @@ Priority legend:
 - [x] `P0` Implement task model.
 - [x] `P0` Implement reminder model.
 - [x] `P0` Implement task center page.
-- [ ] `P1` Add recurring schedule model.
-- [ ] `P1` Add cron-like schedules with guardrails.
-- [ ] `P1` Add notification preferences.
+- [x] `P1` Add recurring schedule model. (recurrence + recurrenceEnd fields on Reminder)
+- [x] `P1` Add cron-like schedules with guardrails. (/api/reminders/check; next-occurrence creation; recurrenceEnd stop guard)
+- [x] `P1` Add notification preferences. (NotificationPreference model; in-app/telegram toggles in /settings)
 - [x] `P1` Add assistant tool for task creation.
 - [x] `P1` Add assistant tool for reminder creation.
 - [x] `P1` Add assistant tools: list_tasks, list_reminders.
@@ -130,8 +130,8 @@ Priority legend:
 - [x] `P0` Create editable core file viewer.
 - [x] `P0` Load `CORE.md`, `ASSISTANT.md`, `TOOLS.md`, `SKILLS.md`, and `RULES.md` into assistant context.
 - [x] `P0` Document core file update rules.
-- [ ] `P1` Add board-aware memory summaries.
-- [ ] `P1` Add memory review UI.
+- [x] `P1` Add board-aware memory summaries. (update_memory tool appends board summary to MEMORY.md)
+- [x] `P1` Add memory review UI. (parsed entry list + clear-all button in /core MEMORY.md section)
 - [ ] `P2` Add safe memory extraction workflow.
 
 ## Phase 9 — Polish, QA, launch prep

@@ -46,9 +46,9 @@ test.describe("sign out", () => {
 test.describe("core files editor", () => {
   test("renders core file tabs", async ({ page }) => {
     await page.goto("/core");
-    // The core editor should show at least one of the known core files
+    // The core editor should show the CORE.md nav link
     await expect(
-      page.getByText(/CORE\.md|ASSISTANT\.md|TOOLS\.md/),
+      page.getByRole("link", { name: "CORE.md" }),
     ).toBeVisible({ timeout: 10_000 });
   });
 });

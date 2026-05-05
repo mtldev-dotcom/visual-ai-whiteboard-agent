@@ -59,6 +59,7 @@ const ASSISTANT_CANVAS_ITEM_TYPES = [
   "arrow",
   "shape",
   "frame",
+  "section",
 ];
 
 function isObject(input: unknown): input is Record<string, unknown> {

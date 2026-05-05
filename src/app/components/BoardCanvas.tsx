@@ -10,7 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CanvasToolbar,
@@ -24,6 +24,25 @@ const minZoom = 0.3;
 const maxZoom = 2.5;
 const DEBOUNCE_MS = 600;
 const GRID_SIZE = 24;
+const CANVAS_SIZE = 3000;
+const MINIMAP_W = 180;
+const MINIMAP_H = 110;
+
+function minimapColor(type: string): string {
+  switch (type) {
+    case "sticky_note": return "#fde047";
+    case "shape": return "#93c5fd";
+    case "frame":
+    case "section": return "#a3e635";
+    case "kanban": return "#86efac";
+    case "task_list": return "#fdba74";
+    case "drawing": return "#6b7280";
+    case "arrow": return "#94a3b8";
+    case "html_widget": return "#c4b5fd";
+    case "rich_text": return "#f9a8d4";
+    default: return "#d1d5db";
+  }
+}
 
 type CanvasItemContent = {
   title?: string;
@@ -89,7 +108,7 @@ type DraftState =
       points: CanvasPoint[];
     }
   | {
-      type: "shape" | "frame" | "arrow" | "text" | "sticky_note";
+      type: "shape" | "frame" | "section" | "arrow" | "text" | "sticky_note";
       pointerId: number;
       start: CanvasPoint;
       current: CanvasPoint;
@@ -138,7 +157,7 @@ function pointsToPath(points: CanvasPoint[]) {
 }
 
 function isInlineEditableType(type: string) {
-  return ["text", "sticky_note", "shape", "frame", "notes"].includes(type);
+  return ["text", "sticky_note", "shape", "frame", "section", "notes"].includes(type);
 }
 
 function InlineFields({
@@ -354,6 +373,29 @@ function ItemCard({
           style={{ color: item.content.bgColor ?? "var(--text-3)" }}
         >
           {item.content.title || "Frame"}
+        </div>
+      </div>
+    );
+  }
+
+  if (item.type === "section") {
+    const headerBg = item.content.bgColor ?? "#e0e7ff";
+    const borderColor = item.content.bgColor ?? "#a5b4fc";
+    const textColor = item.content.bgColor === "#1e293b" ? "#e2e8f0" : "#312e81";
+    return (
+      <div
+        className="absolute inset-0 overflow-hidden rounded-xl border-2"
+        style={{ background: `${headerBg}22`, borderColor }}
+      >
+        <InlineFields {...inlineProps} compact />
+        <div
+          className="flex items-center gap-2 px-3 py-2 text-xs font-semibold select-none"
+          style={{ background: headerBg, color: textColor, minHeight: 32 }}
+        >
+          <svg viewBox="0 0 12 12" className="h-3 w-3 flex-shrink-0" fill="none">
+            <rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+          </svg>
+          {item.content.title || "Section"}
         </div>
       </div>
     );
@@ -1044,6 +1086,7 @@ const NEW_ITEM_DEFAULTS: Record<
     },
   },
   frame: { width: 420, height: 320, content: { title: "Frame", text: "" } },
+  section: { width: 480, height: 360, content: { title: "Section", text: "" } },
 };
 
 export function BoardCanvas({
@@ -1525,6 +1568,23 @@ export function BoardCanvas({
       return;
     }
 
+    if (currentDraft.type === "section") {
+      await createCanvasItem({
+        content: {
+          bgColor: activeColor ?? undefined,
+          title: "Section",
+          text: "",
+        },
+        autoEdit: true,
+        height: Math.max(160, bounds.height),
+        type: "section",
+        width: Math.max(240, bounds.width),
+        x: bounds.x,
+        y: bounds.y,
+      });
+      return;
+    }
+
     await createCanvasItem({
       content: {
         bgColor: activeColor ?? undefined,
@@ -1652,6 +1712,19 @@ export function BoardCanvas({
   const gridBgSize = GRID_SIZE * zoom;
   const gridBgPosX = pan.x % gridBgSize;
   const gridBgPosY = pan.y % gridBgSize;
+
+  const minimapItems = useMemo(
+    () =>
+      items.map((item) => ({
+        id: item.id,
+        left: (item.x / CANVAS_SIZE) * MINIMAP_W,
+        top: (item.y / CANVAS_SIZE) * MINIMAP_H,
+        width: Math.max(3, (item.width / CANVAS_SIZE) * MINIMAP_W),
+        height: Math.max(2, (item.height / CANVAS_SIZE) * MINIMAP_H),
+        color: minimapColor(item.type),
+      })),
+    [items],
+  );
 
   return (
     <div
@@ -1783,6 +1856,7 @@ export function BoardCanvas({
             } else if (
               activeTool === "shape" ||
               activeTool === "frame" ||
+              activeTool === "section" ||
               activeTool === "arrow" ||
               activeTool === "text" ||
               activeTool === "sticky_note"
@@ -2077,6 +2151,54 @@ export function BoardCanvas({
         </div>
       )}
 
+      {/* Canvas minimap (desktop only) */}
+      {!loading && items.length > 0 && (
+        <div
+          aria-label="Canvas minimap"
+          className="absolute bottom-20 right-4 z-20 hidden overflow-hidden rounded-lg border lg:block"
+          style={{
+            width: MINIMAP_W,
+            height: MINIMAP_H,
+            background: "var(--bg-elevated)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--shadow-md)",
+            opacity: 0.88,
+          }}
+        >
+          {minimapItems.map((m) => (
+            <div
+              key={m.id}
+              className="absolute rounded-[1px]"
+              style={{
+                left: m.left,
+                top: m.top,
+                width: m.width,
+                height: m.height,
+                background: m.color,
+                opacity: 0.65,
+              }}
+            />
+          ))}
+          {/* Viewport indicator */}
+          <div
+            className="absolute rounded-[1px] border border-blue-400"
+            style={{
+              left: Math.max(0, (-pan.x / zoom / CANVAS_SIZE) * MINIMAP_W),
+              top: Math.max(0, (-pan.y / zoom / CANVAS_SIZE) * MINIMAP_H),
+              width: Math.min(
+                MINIMAP_W,
+                ((canvasRef.current?.offsetWidth ?? 800) / zoom / CANVAS_SIZE) * MINIMAP_W,
+              ),
+              height: Math.min(
+                MINIMAP_H,
+                ((canvasRef.current?.offsetHeight ?? 600) / zoom / CANVAS_SIZE) * MINIMAP_H,
+              ),
+              background: "rgba(59,130,246,0.07)",
+            }}
+          />
+        </div>
+      )}
+
       {/* Floating canvas toolbar */}
       <CanvasToolbar
         activeShapeKind={activeShapeKind}
@@ -2306,6 +2428,18 @@ function DraftPreview({
           borderColor: activeColor ?? "var(--border-strong)",
         }}
       />
+    );
+  }
+
+  if (draft.type === "section") {
+    const headerBg = activeColor ?? "#e0e7ff";
+    return (
+      <div
+        className="pointer-events-none absolute overflow-hidden rounded-xl border-2 opacity-80"
+        style={{ ...style, background: `${headerBg}22`, borderColor: headerBg }}
+      >
+        <div className="h-8 w-full" style={{ background: headerBg }} />
+      </div>
     );
   }
 

@@ -1,4 +1,5 @@
 import { getBoardById } from "@/db/boards";
+import { readCoreFile, writeCoreFile } from "@/server/core-files";
 import {
   getDeletedCanvasItemById,
   listCanvasItemsForBoard,
@@ -266,10 +267,70 @@ export const rollbackCanvasChangeTool: ToolDefinition<RollbackCanvasChangeInput>
     },
   };
 
+// ─── update_memory ────────────────────────────────────────────────────────────
+
+type UpdateMemoryInput = {
+  boardId: string;
+  note?: string;
+};
+
+function validateUpdateMemoryInput(input: unknown): ToolValidationResult {
+  if (!isObject(input)) return { ok: false, error: "Input must be an object." };
+  if (typeof input.boardId !== "string" || !input.boardId.trim()) {
+    return { ok: false, error: "boardId is required." };
+  }
+  return { ok: true };
+}
+
+const updateMemoryTool: ToolDefinition<UpdateMemoryInput> = {
+  name: "update_memory",
+  description:
+    "Summarize the current board and append the summary to MEMORY.md for long-term retention. Optionally include a custom note alongside the summary.",
+  permissionLevel: 1,
+  validate: validateUpdateMemoryInput,
+  execute: async (input, context) => {
+    const board = await getBoardById(input.boardId);
+    if (!board || board.workspaceId !== context.workspaceId) {
+      return { ok: false, summary: "Board not found.", error: "Board not found." };
+    }
+
+    const items = await listCanvasItemsForBoard(input.boardId);
+    const typeCounts: Record<string, number> = {};
+    for (const item of items) {
+      typeCounts[item.type] = (typeCounts[item.type] ?? 0) + 1;
+    }
+    const typeBreakdown = Object.entries(typeCounts)
+      .map(([t, n]) => `${n} ${t}`)
+      .join(", ");
+
+    const dateLabel = new Date().toISOString().split("T")[0];
+    const lines: string[] = [
+      `\n## Board memory — ${board.title} (${dateLabel})`,
+      ``,
+      `**Board:** ${board.title}${board.description ? ` — ${board.description}` : ""}`,
+      `**Items:** ${items.length}${items.length > 0 ? ` (${typeBreakdown})` : ""}`,
+    ];
+
+    if (input.note?.trim()) {
+      lines.push(`**Note:** ${input.note.trim()}`);
+    }
+
+    const existing = await readCoreFile("MEMORY.md");
+    await writeCoreFile("MEMORY.md", existing.content.trimEnd() + "\n" + lines.join("\n") + "\n");
+
+    return {
+      ok: true,
+      summary: `Appended memory summary for "${board.title}" to MEMORY.md.`,
+      output: { boardId: board.id, title: board.title, itemCount: items.length },
+    };
+  },
+};
+
 // ─── Register ─────────────────────────────────────────────────────────────────
 
 export function registerBoardManagementTools(registry: ToolRegistry) {
   registry.register(organizeBoardTool);
   registry.register(duplicateBoardTool);
   registry.register(rollbackCanvasChangeTool);
+  registry.register(updateMemoryTool);
 }

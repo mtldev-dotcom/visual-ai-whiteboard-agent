@@ -13,6 +13,7 @@ import {
   MousePointer2,
   PenTool,
   Plus,
+  RectangleHorizontal,
   Square,
   StickyNote,
   Type,
@@ -25,6 +26,7 @@ export type CanvasTool =
   | "pen"
   | "shape"
   | "frame"
+  | "section"
   | "arrow"
   | "text"
   | "sticky_note"
@@ -66,6 +68,7 @@ const DRAW_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] =
     { id: "pen", Icon: PenTool, label: "Pen  P" },
     { id: "shape", Icon: Square, label: "Shape  R" },
     { id: "frame", Icon: Frame, label: "Frame  F" },
+    { id: "section", Icon: RectangleHorizontal, label: "Section  N" },
     { id: "arrow", Icon: ArrowRight, label: "Arrow  A" },
   ];
 
@@ -135,6 +138,9 @@ export function CanvasToolbar({
           break;
         case "f":
           onToolChange("frame");
+          break;
+        case "n":
+          onToolChange("section");
           break;
         case "a":
           onToolChange("arrow");

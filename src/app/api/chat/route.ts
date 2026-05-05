@@ -28,6 +28,7 @@ const BOARD_ID_TOOLS = new Set([
   "generate_html_widget",
   "organize_board",
   "duplicate_board",
+  "update_memory",
 ]);
 const MAX_TOOL_ROUNDS = 4;
 
@@ -194,6 +195,7 @@ function buildRuntimeContext(boardId: string | undefined) {
     "To rearrange or tidy items on a board, call organize_board with an optional strategy (grid, rows, or columns).",
     "To copy a board and all its items, call duplicate_board. A new board is created; the original is not modified.",
     "To undo a recent item deletion, call rollback_canvas_change with the itemId from the previous delete_canvas_item result.",
+    "To save a board summary into long-term memory, call update_memory with the boardId and an optional note. This appends a timestamped entry to MEMORY.md.",
     "Board and item tool results are authoritative. Never invent item titles, item counts, board names, or content.",
     "If no board is selected, ask the user to select or create a board before making board changes.",
     boardId
@@ -218,7 +220,7 @@ function buildFinalResponseContext() {
     "Use tool result data as authoritative.",
     "For board summaries, mention the actual item count, item types, titles, and visible content from the tool result.",
     "Do not mention items or content that are not present in the tool result.",
-    "If the user asked to delete, update, create, generate, or rollback something, only say it was done if the corresponding delete_canvas_item, update_canvas_item, add_canvas_item, create_task, create_reminder, create_board, create_sub_board, generate_html_widget, rollback_html_widget, organize_board, duplicate_board, rollback_canvas_change tool succeeded.",
+    "If the user asked to delete, update, create, generate, rollback, or remember something, only say it was done if the corresponding delete_canvas_item, update_canvas_item, add_canvas_item, create_task, create_reminder, create_board, create_sub_board, generate_html_widget, rollback_html_widget, organize_board, duplicate_board, rollback_canvas_change, update_memory tool succeeded.",
     "If only list_canvas_items or summarize_board ran, say what you found and what still needs to happen; do not claim a mutation happened.",
     "If a tool failed, explain the failure and what the user can do next.",
   ].join("\n");
@@ -419,6 +421,15 @@ function getToolInputSchema(toolName: string): Record<string, unknown> {
         properties: {
           itemId: { type: "string" },
           confirmed: { type: "boolean", enum: [true] },
+        },
+      };
+    case "update_memory":
+      return {
+        ...objectBase,
+        required: ["boardId"],
+        properties: {
+          boardId: { type: "string" },
+          note: { type: "string" },
         },
       };
     default:

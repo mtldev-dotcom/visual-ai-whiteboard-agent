@@ -22,8 +22,8 @@ test.describe("board explorer", () => {
     await page.getByPlaceholder("Board name…").fill(title);
     await page.getByRole("button", { name: "Create" }).click();
 
-    // Board title should appear in the header
-    await expect(page.getByText(title)).toBeVisible({ timeout: 8_000 });
+    // Board title should appear in the sidebar
+    await expect(page.getByRole("button", { name: title })).toBeVisible({ timeout: 8_000 });
   });
 
   test("search filters board list", async ({ page }) => {
@@ -32,12 +32,12 @@ test.describe("board explorer", () => {
     await page.getByTitle("New board").click();
     await page.getByPlaceholder("Board name…").fill(title);
     await page.getByRole("button", { name: "Create" }).click();
-    await expect(page.getByText(title)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole("button", { name: title })).toBeVisible({ timeout: 8_000 });
 
     // Now search for it
     await page.getByPlaceholder("Search boards…").fill(title.slice(0, 12));
     await page.waitForTimeout(500); // debounce
-    await expect(page.getByText(title)).toBeVisible();
+    await expect(page.getByRole("button", { name: title })).toBeVisible();
   });
 
   test("clear search restores full list", async ({ page }) => {

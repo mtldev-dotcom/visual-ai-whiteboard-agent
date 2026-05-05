@@ -4,8 +4,10 @@ import Link from "next/link";
 import {
   CORE_FILE_NAMES,
   listCoreFiles,
+  readCoreFile,
   writeCoreFile,
 } from "@/server/core-files";
+import { MemoryReview } from "./MemoryReview";
 
 async function saveCoreFile(formData: FormData) {
   "use server";
@@ -14,6 +16,19 @@ async function saveCoreFile(formData: FormData) {
   const content = String(formData.get("content") ?? "");
 
   await writeCoreFile(fileName, content);
+  revalidatePath("/core");
+}
+
+async function clearMemoryEntries() {
+  "use server";
+
+  const file = await readCoreFile("MEMORY.md");
+  const ENTRY_RE = /^## Board memory — /m;
+  const firstMatch = file.content.search(ENTRY_RE);
+  const header = firstMatch === -1
+    ? file.content
+    : file.content.slice(0, firstMatch).trimEnd();
+  await writeCoreFile("MEMORY.md", header + "\n");
   revalidatePath("/core");
 }
 
@@ -63,6 +78,16 @@ export default async function CoreFilesPage() {
               <div className="border-b border-[#e7e0d0] px-4 py-3">
                 <h2 className="text-base font-semibold">{file.name}</h2>
               </div>
+
+              {file.name === "MEMORY.md" && (
+                <div className="border-b border-[#e7e0d0] px-4 py-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#9ca3af]">
+                    Saved board summaries
+                  </p>
+                  <MemoryReview content={file.content} onClear={clearMemoryEntries} />
+                </div>
+              )}
+
               <form action={saveCoreFile} className="grid gap-3 p-4">
                 <input name="fileName" type="hidden" value={file.name} />
                 <textarea

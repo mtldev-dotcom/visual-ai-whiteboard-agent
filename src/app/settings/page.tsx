@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getPrismaClient } from "@/db/client";
 import { authOptions } from "@/lib/auth";
 
+import { NotificationSettings } from "./NotificationSettings";
 import { TelegramSettings } from "./TelegramSettings";
 
 export default async function SettingsPage() {
@@ -15,7 +16,7 @@ export default async function SettingsPage() {
   }
 
   const prisma = getPrismaClient();
-  const [account, bot] = await Promise.all([
+  const [account, bot, notifPref] = await Promise.all([
     prisma.telegramAccount.findFirst({
       where: { ownerUserId: session.user.id, unlinkedAt: null },
       select: {
@@ -38,6 +39,10 @@ export default async function SettingsPage() {
         revokedAt: true,
         updatedAt: true,
       },
+    }),
+    prisma.notificationPreference.findUnique({
+      where: { ownerUserId: session.user.id },
+      select: { inApp: true, telegram: true },
     }),
   ]);
 
@@ -111,6 +116,19 @@ export default async function SettingsPage() {
                   }
                 : null
             }
+          />
+        </section>
+
+        <section
+          className="mt-6 rounded-xl border p-6"
+          style={{
+            background: "var(--bg-surface)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <NotificationSettings
+            initialPrefs={notifPref ?? { inApp: true, telegram: true }}
           />
         </section>
       </div>

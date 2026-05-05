@@ -19,6 +19,8 @@ type CreateReminderInput = {
   title: string;
   remindAt: string; // ISO 8601 string
   boardId?: string;
+  recurrence?: "daily" | "weekly" | "monthly" | "yearly";
+  recurrenceEnd?: string; // ISO 8601
 };
 
 type ListTasksInput = Record<string, never>;
@@ -45,6 +47,8 @@ function validateCreateTaskInput(input: unknown): ToolValidationResult {
   return { ok: true };
 }
 
+const VALID_RECURRENCES = ["daily", "weekly", "monthly", "yearly"];
+
 function validateCreateReminderInput(input: unknown): ToolValidationResult {
   if (!isObject(input)) return { ok: false, error: "Input must be an object." };
   if (typeof input.title !== "string" || !input.title.trim()) {
@@ -55,6 +59,18 @@ function validateCreateReminderInput(input: unknown): ToolValidationResult {
       ok: false,
       error: "remindAt must be a valid ISO 8601 date string.",
     };
+  }
+  if (
+    input.recurrence !== undefined &&
+    !VALID_RECURRENCES.includes(input.recurrence as string)
+  ) {
+    return { ok: false, error: "recurrence must be daily, weekly, monthly, or yearly." };
+  }
+  if (
+    input.recurrenceEnd !== undefined &&
+    isNaN(Date.parse(input.recurrenceEnd as string))
+  ) {
+    return { ok: false, error: "recurrenceEnd must be a valid ISO 8601 date string." };
   }
   return { ok: true };
 }
@@ -112,22 +128,30 @@ export const listTasksTool: ToolDefinition<ListTasksInput> = {
 export const createReminderTool: ToolDefinition<CreateReminderInput> = {
   name: "create_reminder",
   description:
-    "Create a reminder for a specific date and time (ISO 8601). Optionally attach to a board.",
+    "Create a reminder for a specific date and time (ISO 8601). Optionally attach to a board. Supports recurrence: daily, weekly, monthly, yearly. Optionally set recurrenceEnd to stop recurring.",
   permissionLevel: 1,
   validate: validateCreateReminderInput,
   execute: async (input, context) => {
     const reminder = await createReminder({
       boardId: input.boardId,
       createdBy: "assistant",
+      recurrence: input.recurrence ?? null,
+      recurrenceEnd: input.recurrenceEnd ? new Date(input.recurrenceEnd) : null,
       remindAt: new Date(input.remindAt),
       title: input.title.trim(),
       workspaceId: context.workspaceId,
     });
 
+    const recurrenceLabel = reminder.recurrence ? ` (repeats ${reminder.recurrence})` : "";
     return {
       ok: true,
-      summary: `Created reminder: "${reminder.title}" at ${reminder.remindAt.toLocaleString()}`,
-      output: { reminderId: reminder.id, title: reminder.title, remindAt: reminder.remindAt.toISOString() },
+      summary: `Created reminder: "${reminder.title}" at ${reminder.remindAt.toLocaleString()}${recurrenceLabel}`,
+      output: {
+        reminderId: reminder.id,
+        title: reminder.title,
+        remindAt: reminder.remindAt.toISOString(),
+        recurrence: reminder.recurrence ?? null,
+      },
     };
   },
 };

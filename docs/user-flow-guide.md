@@ -133,6 +133,7 @@ Canvas items are persisted structured objects. The following types render in the
 | `arrow`       | Connector arrow                               |
 | `shape`       | Rectangle, ellipse, or diamond                |
 | `frame`       | Dashed whiteboard frame                       |
+| `section`     | Named section with solid header bar (key: N)  |
 | `html_widget` | Sandboxed iframe widget with run confirmation |
 
 Add items via the canvas toolbar, assistant chat, or widget library. For board links, create a `board_link` item with `content.targetBoardId`, then click **Open board** on the card. The active board should switch without opening a new browser route.
@@ -278,10 +279,11 @@ The assistant has access to these implemented tools:
 | `rollback_canvas_change`| Restores a soft-deleted item from a prior delete call     |
 | `create_task`           | Creates a task                                            |
 | `list_tasks`            | Lists open tasks                                          |
-| `create_reminder`       | Creates a reminder                                        |
+| `create_reminder`       | Creates a reminder (supports daily/weekly/monthly/yearly recurrence) |
 | `list_reminders`        | Lists scheduled reminders                                 |
+| `update_memory`         | Appends a board summary to MEMORY.md for long-term retention |
 
-**Try:** "Summarize this board", "Organize this board into a grid", "Duplicate this board", or "Undo that deletion."
+**Try:** "Summarize this board", "Organize this board into a grid", "Duplicate this board", "Undo that deletion", "Remind me every Monday at 9am", or "Remember this board."
 
 **What works now:** tools execute against DB-backed workspace data and render execution cards.
 
