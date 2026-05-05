@@ -150,7 +150,24 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Board list filters to matching names.
 - [ ] Clearing the input restores the full list.
 
-## 18. Telegram user-owned bot
+## 18. Board management tools
+
+- [ ] Ask assistant: "Organize this board into a grid."
+- [ ] Confirm `organize_board` execution card appears and items reposition without refresh.
+- [ ] Ask assistant: "Duplicate this board."
+- [ ] Confirm `duplicate_board` execution card appears and a new board shows in the explorer.
+- [ ] Delete a canvas item via the assistant (`delete_canvas_item`).
+- [ ] Immediately ask the assistant: "Undo that."
+- [ ] Confirm `rollback_canvas_change` execution card appears and the item reappears on the canvas.
+
+## 19. Playwright e2e suite
+
+- [ ] Run `npm run test:e2e` with the dev server running.
+- [ ] Confirm auth setup creates the test user and saves session state.
+- [ ] Confirm all auth, boards, tasks, and navigation specs pass.
+- [ ] Run `npm run test:e2e:report` and review the HTML report for any failures.
+
+## 20. Telegram user-owned bot
 
 - [ ] Ensure deployed app has public HTTPS `APP_URL` and `APP_ENCRYPTION_KEY`.
 - [ ] Create a bot in BotFather and paste the token in `/settings`.
@@ -158,3 +175,7 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Send `/boards` and `/tasks`; bot replies with workspace data.
 - [ ] Send `/newboard Test` and `/addnote Test: hello`; web app shows created data.
 - [ ] Remove the bot and confirm later Telegram commands no longer execute.
+
+---
+
+**Flows covered by automated e2e (Playwright):** 1 (redirect + login), 3 (create board), 10 (tasks), 17 (board search), navigation to `/core` and `/tasks`, sign out.

@@ -107,3 +107,22 @@ export function softDeleteCanvasItem(itemId: string): Promise<CanvasItem> {
     data: { deletedAt: new Date() },
   });
 }
+
+export function getDeletedCanvasItemById(
+  itemId: string,
+): Promise<CanvasItem | null> {
+  const prisma = getPrismaClient();
+
+  return prisma.canvasItem.findFirst({
+    where: { id: itemId },
+  });
+}
+
+export function restoreCanvasItem(itemId: string): Promise<CanvasItem> {
+  const prisma = getPrismaClient();
+
+  return prisma.canvasItem.update({
+    where: { id: itemId },
+    data: { deletedAt: null },
+  });
+}

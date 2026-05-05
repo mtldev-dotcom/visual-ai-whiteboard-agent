@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { appendMessages } from "@/db/chat";
+import { registerBoardManagementTools } from "@/server/assistant/board-management-tools";
 import { registerBoardTools } from "@/server/assistant/board-tools";
 import { registerBoardQueryTools } from "@/server/assistant/board-query-tools";
 import { registerCanvasTools } from "@/server/assistant/canvas-tools";
@@ -25,6 +26,8 @@ const BOARD_ID_TOOLS = new Set([
   "summarize_board",
   "list_canvas_items",
   "generate_html_widget",
+  "organize_board",
+  "duplicate_board",
 ]);
 const MAX_TOOL_ROUNDS = 4;
 
@@ -51,6 +54,7 @@ export async function POST(request: Request) {
   registerCanvasTools(registry);
   registerTaskTools(registry);
   registerWidgetTools(registry);
+  registerBoardManagementTools(registry);
 
   const toolContext = {
     workspaceId: session.workspaceId,
@@ -187,6 +191,9 @@ function buildRuntimeContext(boardId: string | undefined) {
     "When the user asks what is on the board, what you can see, to summarize the board, or to find/update/delete an existing item, call summarize_board or list_canvas_items before answering.",
     "When the user asks to delete or update an existing item and you need the item ID, first call list_canvas_items, then call delete_canvas_item or update_canvas_item in a follow-up tool call. Do not claim the change happened until the write tool succeeds.",
     "For safe simple generated widgets, call generate_html_widget. Generated widgets must remain sandboxed and require user confirmation before running.",
+    "To rearrange or tidy items on a board, call organize_board with an optional strategy (grid, rows, or columns).",
+    "To copy a board and all its items, call duplicate_board. A new board is created; the original is not modified.",
+    "To undo a recent item deletion, call rollback_canvas_change with the itemId from the previous delete_canvas_item result.",
     "Board and item tool results are authoritative. Never invent item titles, item counts, board names, or content.",
     "If no board is selected, ask the user to select or create a board before making board changes.",
     boardId
@@ -211,7 +218,7 @@ function buildFinalResponseContext() {
     "Use tool result data as authoritative.",
     "For board summaries, mention the actual item count, item types, titles, and visible content from the tool result.",
     "Do not mention items or content that are not present in the tool result.",
-    "If the user asked to delete, update, create, generate, or rollback something, only say it was done if the corresponding delete_canvas_item, update_canvas_item, add_canvas_item, create_task, create_reminder, create_board, create_sub_board, generate_html_widget, rollback_html_widget tool succeeded.",
+    "If the user asked to delete, update, create, generate, or rollback something, only say it was done if the corresponding delete_canvas_item, update_canvas_item, add_canvas_item, create_task, create_reminder, create_board, create_sub_board, generate_html_widget, rollback_html_widget, organize_board, duplicate_board, rollback_canvas_change tool succeeded.",
     "If only list_canvas_items or summarize_board ran, say what you found and what still needs to happen; do not claim a mutation happened.",
     "If a tool failed, explain the failure and what the user can do next.",
   ].join("\n");
@@ -385,6 +392,33 @@ function getToolInputSchema(toolName: string): Record<string, unknown> {
         properties: {
           itemId: { type: "string" },
           sourceVersion: { type: "string" },
+        },
+      };
+    case "organize_board":
+      return {
+        ...objectBase,
+        required: ["boardId"],
+        properties: {
+          boardId: { type: "string" },
+          strategy: { type: "string", enum: ["grid", "rows", "columns"] },
+        },
+      };
+    case "duplicate_board":
+      return {
+        ...objectBase,
+        required: ["boardId"],
+        properties: {
+          boardId: { type: "string" },
+          title: { type: "string" },
+        },
+      };
+    case "rollback_canvas_change":
+      return {
+        ...objectBase,
+        required: ["itemId", "confirmed"],
+        properties: {
+          itemId: { type: "string" },
+          confirmed: { type: "boolean", enum: [true] },
         },
       };
     default:

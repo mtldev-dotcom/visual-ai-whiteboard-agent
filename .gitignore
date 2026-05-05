@@ -13,3 +13,7 @@ tsconfig.tsbuildinfo
 src/generated/prisma/
 
 /src/generated/prisma
+
+playwright/.auth/
+playwright-report/
+test-results/

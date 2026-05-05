@@ -20,7 +20,10 @@
       "PowerShell(Stop-Process -Name \"node\" -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\"; npx next dev -H 0.0.0.0 -p 3000')",
       "Bash(npx skills *)",
       "Bash(npm ls *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(npx next *)",
+      "Bash(xargs grep *)",
+      "Bash(npx playwright *)"
     ],
     "additionalDirectories": [
       "d:\\DEV-D\\visual-ai-whiteboard-agent\\src\\app\\api\\auth",

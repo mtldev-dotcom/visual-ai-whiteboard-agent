@@ -264,25 +264,26 @@ Add items via the canvas toolbar, assistant chat, or widget library. For board l
 
 The assistant has access to these implemented tools:
 
-| Tool                 | What it does                             |
-| -------------------- | ---------------------------------------- |
-| `create_board`       | Creates a board in the workspace         |
-| `create_sub_board`   | Creates a child board                    |
-| `add_canvas_item`    | Adds an item to the active board         |
-| `update_canvas_item` | Updates position, size, or content       |
-| `delete_canvas_item` | Soft-deletes an item with confirmation   |
-| `summarize_board`    | Reads board/items for a summary response |
-| `list_canvas_items`  | Lists item IDs/types/positions/content   |
-| `create_task`        | Creates a task                           |
-| `list_tasks`         | Lists open tasks                         |
-| `create_reminder`    | Creates a reminder                       |
-| `list_reminders`     | Lists scheduled reminders                |
+| Tool                    | What it does                                              |
+| ----------------------- | --------------------------------------------------------- |
+| `create_board`          | Creates a board in the workspace                          |
+| `create_sub_board`      | Creates a child board                                     |
+| `add_canvas_item`       | Adds an item to the active board                          |
+| `update_canvas_item`    | Updates position, size, or content                        |
+| `delete_canvas_item`    | Soft-deletes an item with confirmation                    |
+| `summarize_board`       | Reads board/items for a summary response                  |
+| `list_canvas_items`     | Lists item IDs/types/positions/content                    |
+| `organize_board`        | Rearranges all items into a grid, row, or column layout   |
+| `duplicate_board`       | Copies a board and all its items into a new board         |
+| `rollback_canvas_change`| Restores a soft-deleted item from a prior delete call     |
+| `create_task`           | Creates a task                                            |
+| `list_tasks`            | Lists open tasks                                          |
+| `create_reminder`       | Creates a reminder                                        |
+| `list_reminders`        | Lists scheduled reminders                                 |
 
-**Try:** "Summarize this board" or "Create a high priority task called Review launch plan."
+**Try:** "Summarize this board", "Organize this board into a grid", "Duplicate this board", or "Undo that deletion."
 
 **What works now:** tools execute against DB-backed workspace data and render execution cards.
-
-**Known limitations:** `organize_board`, `duplicate_board`, and assistant `rollback_canvas_change` are not implemented.
 
 ---
 

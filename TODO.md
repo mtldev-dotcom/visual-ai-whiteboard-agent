@@ -64,9 +64,9 @@ Priority legend:
 - [x] `P0` Implement `delete_canvas_item` tool with safe confirmation behavior.
 - [x] `P1` Implement `summarize_board` tool.
 - [x] `P1` Implement `list_canvas_items` tool.
-- [ ] `P1` Implement `organize_board` tool.
-- [ ] `P1` Implement `duplicate_board` tool.
-- [ ] `P1` Implement `rollback_canvas_change` tool.
+- [x] `P1` Implement `organize_board` tool.
+- [x] `P1` Implement `duplicate_board` tool.
+- [x] `P1` Implement `rollback_canvas_change` tool.
 - [x] `P1` Persist chat threads and tool calls.
 
 ## Phase 4 — Prebuilt widgets

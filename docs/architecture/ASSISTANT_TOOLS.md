@@ -256,3 +256,57 @@ Behavior:
 - Finds the requested prior `CustomHtmlWidgetSource` version.
 - Copies that source into a new version and updates the canvas item HTML/source metadata.
 - Permission level: 4.
+
+### organize_board
+
+Implemented in `src/server/assistant/board-management-tools.ts`.
+
+Input:
+
+- `boardId` string, required.
+- `strategy` string, optional. One of `grid` (default), `rows`, `columns`.
+
+Behavior:
+
+- Verifies the board belongs to the current workspace.
+- Fetches all non-deleted canvas items and sorts them by type then ID.
+- Repositions items into a uniform grid, single row, or single column starting at (80, 80) with a 40px gap.
+- Cell size is determined by the widest and tallest item across the board.
+- Returns the number of items moved and the strategy applied.
+- Permission level: 1.
+
+### duplicate_board
+
+Implemented in `src/server/assistant/board-management-tools.ts`.
+
+Input:
+
+- `boardId` string, required.
+- `title` string, optional. Defaults to `Copy of <original title>`.
+
+Behavior:
+
+- Verifies the source board belongs to the current workspace.
+- Creates a new top-level board with the given or derived title.
+- Copies all non-deleted canvas items into the new board in a single database transaction.
+- The original board is not modified.
+- Returns the new board ID, title, and item count.
+- Permission level: 1.
+
+### rollback_canvas_change
+
+Implemented in `src/server/assistant/board-management-tools.ts`.
+
+Input:
+
+- `itemId` string, required. Must be the ID of a soft-deleted canvas item.
+- `confirmed` boolean, must be `true`.
+
+Behavior:
+
+- Requires explicit confirmation in tool input.
+- Looks up the canvas item including soft-deleted rows.
+- Verifies the item belongs to the current workspace and is currently soft-deleted.
+- Clears `deletedAt` to restore the item on the board.
+- The assistant should supply the `itemId` from the result of a prior `delete_canvas_item` call in the same conversation.
+- Permission level: 2.
