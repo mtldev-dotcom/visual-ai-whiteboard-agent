@@ -84,14 +84,25 @@ Open `http://localhost:3000`.
 
 ## Routes
 
-| Route         | Description                                           |
-| ------------- | ----------------------------------------------------- |
-| `/signup`     | Create an account                                     |
-| `/login`      | Sign in                                               |
-| `/`           | Whiteboard workspace — boards, canvas, assistant chat |
-| `/tasks`      | Task center — create and complete tasks               |
-| `/core`       | Editable Markdown core files for the assistant        |
-| `/api/health` | Public health check for deployment platforms          |
+| Route         | Description                                                      |
+| ------------- | ---------------------------------------------------------------- |
+| `/signup`     | Create an account                                                |
+| `/login`      | Sign in                                                          |
+| `/`           | Whiteboard workspace — boards, canvas, assistant chat            |
+| `/tasks`      | Task center — create and complete tasks                          |
+| `/core`       | Editable Markdown core files for the assistant                   |
+| `/admin`      | Admin dashboard — users, API keys, core files, assistant debug   |
+| `/api/health` | Public health check for deployment platforms                     |
+
+### Admin setup
+
+Create the first admin user with the seed script:
+
+```bash
+npx tsx scripts/create-admin.ts <email> <password>
+```
+
+Then log in at `/login` and navigate to `/admin`.
 
 ## Useful checks
 

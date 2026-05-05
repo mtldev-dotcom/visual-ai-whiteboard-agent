@@ -10,9 +10,9 @@ A **mobile-first AI whiteboard app**. Users chat with an AI assistant that creat
 
 ---
 
-## Current state - P1 in progress
+## Current state - P1 complete, admin done
 
-- Auth works (signup -> auto-onboarding board -> login).
+- Auth works (signup -> auto-onboarding board -> login). Roles: `USER` | `ADMIN`.
 - Canvas persists (move, resize, edit, delete, copy, click-to-create).
 - Canvas has client undo for the last move/resize states with `Ctrl+Z` / `Cmd+Z`.
 - Toolbar tools now create native whiteboard items: pen strokes, arrows, shape variants, frames, text, sticky notes, and task lists.
@@ -26,8 +26,9 @@ A **mobile-first AI whiteboard app**. Users chat with an AI assistant that creat
 - Assistant-generated safe HTML widgets are stored with versioned source and can be rolled back.
 - Telegram bots are connected from `/settings` with user-owned BotFather tokens and bot-specific webhooks.
 - Cards have shadow/depth. Canvas has dot+grid texture.
+- **Admin dashboard** at `/admin`: user management, API keys, core file editor, assistant debugger, audit log.
 
-**Still missing (P1):** `organize_board`, assistant `rollback_canvas_change`, and Telegram `/remind` and `/summarize`.
+**Still missing (P2):** Telegram `/remind` + `/summarize`, canvas minimap, realtime collaboration, OAuth.
 
 ---
 
@@ -57,14 +58,15 @@ npm run dev                     # 3. -> http://localhost:3000
 
 ## Key routes
 
-| URL                                    | What                                       |
-| -------------------------------------- | ------------------------------------------ |
-| `/signup`                              | Create account -> auto-seeds Welcome Board |
-| `/login`                               | Sign in                                    |
-| `/`                                    | Main app (boards + canvas + AI chat)       |
-| `/tasks`                               | Task center                                |
-| `/core`                                | Edit assistant core files                  |
-| `/api/telegram/webhook/[connectionId]` | Bot-specific Telegram webhook receiver     |
+| URL                                    | What                                          |
+| -------------------------------------- | --------------------------------------------- |
+| `/signup`                              | Create account -> auto-seeds Welcome Board    |
+| `/login`                               | Sign in                                       |
+| `/`                                    | Main app (boards + canvas + AI chat)          |
+| `/tasks`                               | Task center                                   |
+| `/core`                                | Edit assistant core files                     |
+| `/admin`                               | Admin dashboard (ADMIN role required)         |
+| `/api/telegram/webhook/[connectionId]` | Bot-specific Telegram webhook receiver        |
 
 ---
 
@@ -84,8 +86,11 @@ npm run dev                     # 3. -> http://localhost:3000
 | `src/server/telegram/commands.ts`                      | Telegram command handling                        |
 | `src/server/onboarding.ts`                             | Welcome Board seed                               |
 | `src/server/board-templates.ts`                        | 3 reusable board templates                       |
-| `prisma/schema.prisma`                                 | DB schema                                        |
+| `prisma/schema.prisma`                                 | DB schema (17 models, UserRole enum, ApiKey)     |
 | `src/lib/session.ts`                                   | `requireSession()` used by API routes            |
+| `src/lib/admin.ts`                                     | `requireAdmin()` used by all /api/admin routes   |
+| `src/app/admin/`                                       | Admin dashboard UI pages                         |
+| `scripts/create-admin.ts`                              | Seed admin user via CLI                          |
 
 ---
 
@@ -106,11 +111,12 @@ Format issues: `npx prettier --write .`
 
 ---
 
-## Next tasks (P1)
+## Next tasks (P2)
 
-1. `organize_board` assistant tool.
-2. Assistant `rollback_canvas_change` tool.
-3. Telegram `/remind` and `/summarize`.
+1. Telegram `/remind` and `/summarize` commands.
+2. Canvas minimap.
+3. Realtime collaboration.
+4. OAuth / magic link auth.
 
 ---
 

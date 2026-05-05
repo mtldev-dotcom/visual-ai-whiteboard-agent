@@ -7,6 +7,7 @@ export type AppSession = {
   userId: string;
   workspaceId: string;
   email: string;
+  role: string;
 };
 
 export async function requireSession(): Promise<
@@ -27,6 +28,7 @@ export async function requireSession(): Promise<
       email: raw.user.email,
       userId: raw.user.id,
       workspaceId: raw.user.workspaceId,
+      role: raw.user.role ?? "USER",
     },
   };
 }

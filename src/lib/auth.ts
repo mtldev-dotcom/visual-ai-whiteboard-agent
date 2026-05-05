@@ -12,6 +12,7 @@ declare module "next-auth" {
       email: string;
       name?: string | null;
       workspaceId: string;
+      role: string;
     };
   }
 }
@@ -20,6 +21,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     userId: string;
     workspaceId: string;
+    role: string;
   }
 }
 
@@ -62,11 +64,13 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           workspaceId: workspace.id,
+          role: user.role,
         } as {
           id: string;
           email: string;
           name: string | null;
           workspaceId: string;
+          role: string;
         };
       },
     }),
@@ -74,10 +78,10 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     jwt({ token, user }) {
       if (user) {
+        const u = user as unknown as { workspaceId: string; role: string };
         token.userId = user.id;
-        token.workspaceId = (
-          user as unknown as { workspaceId: string }
-        ).workspaceId;
+        token.workspaceId = u.workspaceId;
+        token.role = u.role;
       }
       return token;
     },
@@ -87,6 +91,7 @@ export const authOptions: NextAuthOptions = {
         email: token.email ?? "",
         name: token.name,
         workspaceId: token.workspaceId,
+        role: token.role,
       };
       return session;
     },

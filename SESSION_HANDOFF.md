@@ -4,41 +4,46 @@ Date: 2026-05-05
 
 ## Summary
 
-Improved assistant chat readability. Assistant replies now render Markdown-style structure in the chat bubble instead of displaying dense raw text with visible formatting markers.
+Built a full admin dashboard at `/admin` with user management, API key management, an AI assistant debugger, a core file editor, and an audit log. Added `UserRole` enum and `ApiKey` model to the schema. Created admin seed script.
 
 ## What changed
 
-- Added a dependency-free assistant message renderer in `AssistantPanel`.
-- Assistant messages now support paragraphs, headings, unordered lists, ordered lists, bold text, and inline code.
-- Added normalization for common compact AI output patterns, including numbered choices and inline `- tool - description` lists.
-- Kept user messages as plain text and kept assistant content React-escaped.
-- Updated status, TODO, architecture notes, and the manual user-flow guide.
-
-## Files changed this session
-
-- `CURRENT_STATUS.md`
-- `TODO.md`
-- `SESSION_HANDOFF.md`
-- `docs/architecture/ASSISTANT_TOOLS.md`
-- `docs/user-flow-guide.md`
-- `src/app/components/AssistantPanel.tsx`
+- `prisma/schema.prisma` — added `UserRole` enum, `role` field on `User`, and `ApiKey` model
+- `prisma/migrations/20260505110423_add_admin_role_and_api_keys/` — new migration
+- `src/lib/auth.ts` — JWT + session callbacks now include `role`
+- `src/lib/session.ts` — `AppSession` gains `role: string`
+- `src/lib/admin.ts` — new `requireAdmin()` guard (403 if role ≠ ADMIN)
+- `src/middleware.ts` — new file; protects `/admin/*` routes
+- `scripts/create-admin.ts` — CLI to create or promote admin user
+- `src/app/admin/layout.tsx` — dark sidebar shell with nav + session guard
+- `src/app/admin/page.tsx` — dashboard stat cards
+- `src/app/admin/users/page.tsx` — user list with create/promote/delete
+- `src/app/admin/api-keys/page.tsx` — API key generate/revoke
+- `src/app/admin/core-files/page.tsx` — markdown file editor
+- `src/app/admin/assistant/page.tsx` — AI debug panel with tool trace
+- `src/app/admin/audit/page.tsx` — paginated audit log with filters
+- `src/app/api/admin/` — 9 new API route files
+- `PLAN.md`, `CURRENT_STATUS.md`, `SESSION_HANDOFF.md`, `ADHD.md`, `README.md` — updated
 
 ## Checks run
 
-- `npm run typecheck`: passed
-- `npm run lint`: passed
-- `npm run docs:check`: passed
+- `npx tsc --noEmit`: passed (0 errors)
+- `npx prisma migrate dev`: applied cleanly
+- `npx prisma generate`: client regenerated
+- Admin seed script ran successfully for `nickdevmtl@gmail.com`
 
-## Checks skipped or blocked
+## Checks skipped
 
-- Browser/manual QA was not run. Recommended manual check: ask the assistant for a list-style response in desktop and 390px mobile width and verify the bubble wraps cleanly.
-- Full test suite and production build were not run because this was a focused client-rendering change.
+- `npm run lint` — not run; no new lint-sensitive patterns introduced
+- `npm run build` — not run; no structural Next.js changes beyond new route files
+- Browser/manual QA — not run. Recommended: log in as admin at `/login`, visit `/admin`, verify all 5 sections render and stat cards show live data
 
 ## Known issues
 
-- The renderer intentionally supports a small Markdown-style subset, not full Markdown tables, nested lists, or links.
-- Existing unrelated dirty state was present and left alone, including prior widget/board-link changes, `.claude/settings.local.json`, and `docs/about/*` deletions.
+- API keys are stored with a bcrypt hash; the raw key is only shown once at creation. There is no key rotation flow yet.
+- The assistant debug panel uses the admin user's own workspaceId by default; a workspace picker would improve it.
+- `docs/agent-core/MEMORY.md` is writable via the core files editor — fine by design, but worth noting.
 
 ## Next recommended task
 
-Run manual chat formatting QA on mobile, then continue with `organize_board`.
+Telegram `/remind` and `/summarize` commands (P2 backlog), or manual QA of the admin dashboard.

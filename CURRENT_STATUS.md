@@ -4,17 +4,17 @@ Last updated: 2026-05-05
 
 ## Stage
 
-P0 complete + P1 in progress. The PLAN.md P1 set is complete: undo/rollback, widget preview, and Telegram webhook wiring are implemented.
+P1 complete. Admin dashboard fully implemented this session. All PLAN.md P1 items done including `organize_board`, `duplicate_board`, `rollback_canvas_change`, and the new admin system.
 
 ## Current goal
 
-Continue the remaining P1 backlog beyond PLAN.md: `organize_board`, `rollback_canvas_change`, and Telegram `/remind` and `/summarize`.
+P2 backlog: Telegram `/remind` and `/summarize`, canvas minimap, realtime collaboration, OAuth, production deployment.
 
 ## What exists
 
 ### Foundation
 
-- Prisma schema: 16 models (User, Workspace, Board, CanvasItem, WidgetDefinition, WidgetInstance, CustomHtmlWidgetSource, Task, Reminder, TelegramLinkToken, TelegramBotConnection, TelegramStartIdentity, TelegramAccount, AuditEvent, ChatThread, ChatMessage).
+- Prisma schema: 17 models (User, Workspace, Board, CanvasItem, WidgetDefinition, WidgetInstance, CustomHtmlWidgetSource, Task, Reminder, TelegramLinkToken, TelegramBotConnection, TelegramStartIdentity, TelegramAccount, AuditEvent, ChatThread, ChatMessage, **ApiKey**). `User` now has `UserRole` enum (`USER` | `ADMIN`).
 - All DB helpers in `src/db/`.
 - Docker Compose Postgres on port 5444.
 
@@ -22,9 +22,12 @@ Continue the remaining P1 backlog beyond PLAN.md: `organize_board`, `rollback_ca
 
 - NextAuth.js v4 credentials (email + password). Signup at `/signup`, login at `/login`.
 - Signup can be disabled per environment with `APP_SIGNUP=disable`; login remains available and the signup API returns 403.
-- JWT session with `userId` + `workspaceId`. Next.js 16 proxy guards all routes.
+- JWT session with `userId`, `workspaceId`, and `role`. Next.js 16 middleware guards all routes.
 - `getOrCreateWorkspaceForUser` creates workspace on first login.
 - Onboarding board auto-seeded on signup: Welcome Board with sticky notes, task list, and Kanban.
+- `src/lib/admin.ts` — `requireAdmin()` guard (403 if role ≠ ADMIN).
+- `src/middleware.ts` — redirects unauthenticated `/admin/*` to login, non-admins to `/core`.
+- Admin user created via: `npx tsx scripts/create-admin.ts <email> <password>`.
 
 ### Boards & Canvas
 
@@ -58,9 +61,20 @@ Continue the remaining P1 backlog beyond PLAN.md: `organize_board`, `rollback_ca
 - Canvas auto-refreshes after successful tool calls.
 - Assistant board/canvas tools verify workspace ownership before reading or mutating boards/items.
 
+### Admin Dashboard (`/admin`)
+
+Full admin dashboard at `/admin` with dark sidebar nav. All routes gated by `requireAdmin()`.
+
+- `/admin` — stat cards (users, API keys, boards, workspaces, audit events)
+- `/admin/users` — create, promote/demote, delete users
+- `/admin/api-keys` — generate (shows raw key once), revoke API keys
+- `/admin/core-files` — in-browser editor for all `docs/agent-core/*.md` files
+- `/admin/assistant` — test AI assistant with full tool call trace
+- `/admin/audit` — paginated audit event log with filters
+
 ### API routes
 
-`/api/auth/[...nextauth]`, `/api/auth/signup`, `/api/boards`, `/api/boards/[id]`, `/api/boards/from-template`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/chat`, `/api/chat/thread`, `/api/health`, `/api/tasks`, `/api/tasks/[id]`, `/api/telegram/account`, `/api/telegram/bot`, `/api/telegram/webhook`, `/api/telegram/webhook/[connectionId]`, `/api/workspace`
+`/api/auth/[...nextauth]`, `/api/auth/signup`, `/api/boards`, `/api/boards/[id]`, `/api/boards/from-template`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/chat`, `/api/chat/thread`, `/api/health`, `/api/tasks`, `/api/tasks/[id]`, `/api/telegram/account`, `/api/telegram/bot`, `/api/telegram/webhook`, `/api/telegram/webhook/[connectionId]`, `/api/workspace`, `/api/admin/stats`, `/api/admin/users`, `/api/admin/users/[id]`, `/api/admin/api-keys`, `/api/admin/api-keys/[id]`, `/api/admin/core-files`, `/api/admin/core-files/[filename]`, `/api/admin/assistant/debug`, `/api/admin/audit`
 
 ### Deployment
 
@@ -99,8 +113,6 @@ Continue the remaining P1 backlog beyond PLAN.md: `organize_board`, `rollback_ca
 
 ## What does NOT exist yet
 
-- `organize_board` tool (auto-layout).
-- Assistant `rollback_canvas_change` tool.
 - Telegram `/remind` and `/summarize`.
 - Telegram photo/file capture and voice transcription.
 - Canvas minimap / grouping (P2).

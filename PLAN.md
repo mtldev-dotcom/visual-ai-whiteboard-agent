@@ -1,5 +1,27 @@
 # Remaining Work Plan
 
+---
+
+## Admin Dashboard (completed 2026-05-05)
+
+Full admin dashboard at `/admin` with dark sidebar nav.
+
+**How to create the first admin:**
+```bash
+npx tsx scripts/create-admin.ts <email> <password>
+```
+
+**Sections:** Dashboard stats · User management · API key management · Core file editor · AI assistant debugger · Audit log
+
+**Key files:**
+- `src/lib/admin.ts` — `requireAdmin()` guard
+- `src/app/admin/` — all UI pages
+- `src/app/api/admin/` — all API routes
+- `src/middleware.ts` — `/admin` route protection
+- `scripts/create-admin.ts` — seed script
+
+---
+
 ## P1 — Next 3 tasks (in order)
 
 ### Task 8: Undo/rollback for canvas changes — done
