@@ -2,6 +2,7 @@
 
 import {
   Bot,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
   Code2,
@@ -145,6 +146,22 @@ export function WorkspaceShell({ initialBoards, userEmail }: Props) {
           }
         >
           Tasks
+        </Link>
+
+        <Link
+          className="hidden h-7 w-7 items-center justify-center rounded-lg transition-colors lg:flex"
+          href="/settings"
+          style={{ color: "var(--text-2)" }}
+          title="Settings"
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLElement).style.background =
+              "var(--accent-light)")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLElement).style.background = "")
+          }
+        >
+          <Settings size={15} />
         </Link>
 
         {/* Theme toggle */}
@@ -300,16 +317,16 @@ export function WorkspaceShell({ initialBoards, userEmail }: Props) {
           },
           {
             id: "tasks",
-            icon: <Settings size={20} />,
+            icon: <CheckSquare size={20} />,
             label: "Tasks",
             href: "/tasks",
             active: false,
           },
           {
-            id: "core",
-            icon: <Code2 size={20} />,
-            label: "Core",
-            href: "/core",
+            id: "settings",
+            icon: <Settings size={20} />,
+            label: "Settings",
+            href: "/settings",
             active: false,
           },
         ].map((item) =>
