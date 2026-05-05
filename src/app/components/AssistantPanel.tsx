@@ -1,7 +1,15 @@
 "use client";
 
 import { Bot, Send, Wrench } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  FormEvent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 type ChatMessage = {
   id: string;
@@ -32,11 +40,176 @@ type Props = {
   onCanvasChanged?: () => void;
 };
 
+type TextBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "unordered-list"; items: string[] }
+  | { type: "ordered-list"; items: string[] };
+
 const WELCOME: Message = {
   id: "welcome",
   role: "assistant",
   text: "I can help shape this board. Ask me to create boards, add notes, or organize your workspace.",
 };
+
+function normalizeAssistantText(text: string) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\s+(\*\*[^*]+:\*\*)/g, "\n$1")
+    .replace(/\s+(\d+\.\s+)/g, "\n$1")
+    .replace(/\s+-\s+(`[^`]+`\s+-\s+|[A-Z][^:\n]{1,36}:\s+)/g, "\n- $1")
+    .replace(/(\*\*[^*]+:\*\*)\s+(?=-|\d+\.)/g, "$1\n")
+    .trim();
+}
+
+function parseAssistantBlocks(text: string): TextBlock[] {
+  const lines = normalizeAssistantText(text)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const blocks: TextBlock[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    const heading = line.match(/^#{1,3}\s+(.+)$/);
+    const boldHeading = line.match(/^\*\*(.+)\*\*$/);
+    const ordered = line.match(/^\d+\.\s+(.+)$/);
+    const unordered = line.match(/^[-*]\s+(.+)$/);
+
+    if (heading || boldHeading) {
+      blocks.push({
+        type: "heading",
+        text: heading?.[1] ?? boldHeading?.[1] ?? "",
+      });
+      index += 1;
+      continue;
+    }
+
+    if (ordered) {
+      const items: string[] = [];
+      while (index < lines.length) {
+        const item = lines[index].match(/^\d+\.\s+(.+)$/);
+        if (!item) break;
+        items.push(item[1]);
+        index += 1;
+      }
+      blocks.push({ type: "ordered-list", items });
+      continue;
+    }
+
+    if (unordered) {
+      const items: string[] = [];
+      while (index < lines.length) {
+        const item = lines[index].match(/^[-*]\s+(.+)$/);
+        if (!item) break;
+        items.push(item[1]);
+        index += 1;
+      }
+      blocks.push({ type: "unordered-list", items });
+      continue;
+    }
+
+    const paragraphLines = [line];
+    index += 1;
+    while (
+      index < lines.length &&
+      !/^#{1,3}\s+/.test(lines[index]) &&
+      !/^\d+\.\s+/.test(lines[index]) &&
+      !/^[-*]\s+/.test(lines[index])
+    ) {
+      paragraphLines.push(lines[index]);
+      index += 1;
+    }
+    blocks.push({ type: "paragraph", text: paragraphLines.join(" ") });
+  }
+
+  return blocks;
+}
+
+function renderInlineText(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong className="font-semibold" key={`${part}-${index}`}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          className="break-words rounded border px-1 py-0.5 text-[0.82em]"
+          key={`${part}-${index}`}
+          style={{
+            background: "var(--bg-elevated)",
+            borderColor: "var(--border)",
+            color: "var(--text-1)",
+          }}
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    return <Fragment key={`${part}-${index}`}>{part}</Fragment>;
+  });
+}
+
+function AssistantMessageText({ text }: { text: string }) {
+  const blocks = parseAssistantBlocks(text);
+
+  return (
+    <div className="space-y-2">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          return (
+            <h3
+              className="text-sm font-semibold leading-snug"
+              key={`${block.type}-${index}`}
+            >
+              {renderInlineText(block.text)}
+            </h3>
+          );
+        }
+
+        if (block.type === "unordered-list") {
+          return (
+            <ul
+              className="list-disc space-y-1 pl-4"
+              key={`${block.type}-${index}`}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`${item}-${itemIndex}`}>{renderInlineText(item)}</li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (block.type === "ordered-list") {
+          return (
+            <ol
+              className="list-decimal space-y-1 pl-4"
+              key={`${block.type}-${index}`}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li key={`${item}-${itemIndex}`}>{renderInlineText(item)}</li>
+              ))}
+            </ol>
+          );
+        }
+
+        return (
+          <p key={`${block.type}-${index}`}>{renderInlineText(block.text)}</p>
+        );
+      })}
+    </div>
+  );
+}
 
 function dbToMessage(m: DbMessage): Message {
   if (m.role === "tool") {
@@ -308,7 +481,7 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
 
           return (
             <div
-              className={`animate-fade-in max-w-[92%] rounded-xl px-3 py-2.5 text-sm leading-relaxed ${
+              className={`animate-fade-in max-w-[92%] break-words rounded-xl px-3 py-2.5 text-sm leading-relaxed ${
                 message.role === "user" ? "ml-auto" : "mr-auto"
               }`}
               key={message.id}
@@ -325,7 +498,11 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
                     }
               }
             >
-              {message.text}
+              {message.role === "assistant" ? (
+                <AssistantMessageText text={message.text} />
+              ) : (
+                message.text
+              )}
             </div>
           );
         })}
