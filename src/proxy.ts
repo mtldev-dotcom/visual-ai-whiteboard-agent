@@ -1,8 +1,9 @@
+import { getToken } from "next-auth/jwt";
 import { type NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/api/auth", "/api/health"];
 
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic =
@@ -14,14 +15,25 @@ export default function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie =
-    request.cookies.get("next-auth.session-token") ??
-    request.cookies.get("__Secure-next-auth.session-token");
+  const token = await getToken({
+    req: request,
+    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  });
 
-  if (!sessionCookie) {
+  if (!token) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Admin UI routes: non-admins get redirected to /core
+  // API admin routes enforce ADMIN role themselves via requireAdmin()
+  if (
+    pathname.startsWith("/admin") &&
+    !pathname.startsWith("/api/admin") &&
+    token.role !== "ADMIN"
+  ) {
+    return NextResponse.redirect(new URL("/core", request.url));
   }
 
   return NextResponse.next();

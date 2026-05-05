@@ -18,11 +18,12 @@ async function main() {
   const existing = await prisma.user.findUnique({ where: { email: normalized } });
 
   if (existing) {
+    const passwordHash = await hashPassword(password);
     await prisma.user.update({
       where: { email: normalized },
-      data: { role: "ADMIN" },
+      data: { role: "ADMIN", passwordHash },
     });
-    console.log(`Promoted existing user ${normalized} to ADMIN.`);
+    console.log(`Promoted existing user ${normalized} to ADMIN and reset password.`);
   } else {
     const passwordHash = await hashPassword(password);
     await prisma.user.create({

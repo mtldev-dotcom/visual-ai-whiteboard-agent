@@ -29,7 +29,13 @@
       "Bash(Write-Output \"done\")",
       "PowerShell(New-Item -ItemType Directory -Force -Path \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\\\\src\\\\app\\\\api\\\\reminders\\\\check\")",
       "PowerShell(\"done\")",
-      "PowerShell(New-Item -ItemType Directory -Force -Path \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\\\\src\\\\app\\\\api\\\\notification-preferences\")"
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\\\\src\\\\app\\\\api\\\\notification-preferences\")",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Path \"d:\\\\DEV-D\\\\visual-ai-whiteboard-agent\" -Recurse -File -Filter \"*.md\")",
+      "Bash(Select-Object FullName)",
+      "Bash(xargs wc *)",
+      "Bash(npx tsx *)",
+      "Bash(npx dotenv-cli *)"
     ],
     "additionalDirectories": [
       "d:\\DEV-D\\visual-ai-whiteboard-agent\\src\\app\\api\\auth",
