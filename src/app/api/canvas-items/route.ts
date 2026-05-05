@@ -17,6 +17,8 @@ const VALID_TYPES = [
   "board_link",
   "section",
   "kanban",
+  "drawing",
+  "arrow",
   "shape",
   "frame",
   "notes",

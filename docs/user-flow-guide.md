@@ -1,6 +1,6 @@
 # User Flow Guide - Manual Testing Reference
 
-**App stage:** Production-ready MVP. Auth, real DB-backed canvas, persistent chat, OpenRouter LLM support, widget previews, canvas undo, and Telegram webhook wiring are implemented.
+**App stage:** Production-ready MVP. Auth, real DB-backed canvas, persistent chat, OpenRouter LLM support, widget previews, canvas undo, native whiteboard toolbar tools, and Telegram webhook wiring are implemented.
 
 **Before testing:**
 
@@ -126,24 +126,30 @@ Canvas items are persisted structured objects. The following types render in the
 | `image`       | Image preview card                            |
 | `task_list`   | Checkbox list card                            |
 | `kanban`      | Three-column workflow board                   |
+| `drawing`     | Freehand pen stroke                           |
+| `arrow`       | Connector arrow                               |
+| `shape`       | Rectangle, ellipse, or diamond                |
+| `frame`       | Dashed whiteboard frame                       |
 | `html_widget` | Sandboxed iframe widget with run confirmation |
 
 Add items via the canvas toolbar, assistant chat, or widget library.
 
 ---
 
-## Flow 7 - Click-to-create canvas tools
+## Flow 7 - Whiteboard toolbar tools
 
 **Where:** `/`, canvas toolbar
 
-1. Pick Text, Sticky, or Task List from the bottom toolbar.
-2. Click on the canvas.
-3. Confirm the item appears at the clicked location and is selected.
-4. Try keyboard shortcuts outside inputs: `V`, `H`, `T`, `S`, `K`, `W`, `+`, and `-`.
+1. Pick Pen and drag on the canvas; confirm a freehand stroke appears and persists after refresh.
+2. Pick Shape, choose rectangle/ellipse/diamond, drag on the canvas, and confirm the selected shape appears.
+3. Pick Arrow and drag from start to end; confirm an arrow appears.
+4. Pick Frame and drag a region; confirm a dashed frame appears.
+5. Pick Text or Sticky, click or drag on the canvas, and confirm the new item enters inline edit.
+6. Pick Task List and click on the canvas; confirm a task list item appears.
+7. Pick Widget and confirm the board/widgets panel opens or focuses the widget library.
+8. Try keyboard shortcuts outside inputs: `V`, `H`, `P`, `R`, `F`, `A`, `T`, `S`, `K`, `W`, `+`, and `-`.
 
-**What works now:** toolbar mode selection, keyboard shortcuts, persisted POST to `/api/canvas-items`.
-
-**Known limitations:** the Widget toolbar button only selects widget mode; widgets are inserted through the widget library.
+**What works now:** toolbar mode selection, drag-create gestures, inline edit for simple items, keyboard shortcuts, and persisted POST to `/api/canvas-items`.
 
 ---
 
@@ -196,9 +202,9 @@ Add items via the canvas toolbar, assistant chat, or widget library.
 
 ### Edit
 
-1. Select an item and click **Edit**.
-2. Update title/text in the modal.
-3. Click **Save**.
+1. Double-click a text, sticky note, shape, or frame item, or select it and click the inline edit action.
+2. Update title/text directly inside the item.
+3. Click the check button, press Ctrl/Cmd+Enter, or blur the editor.
 4. Refresh and confirm edited content persists.
 
 ### Copy
@@ -214,7 +220,7 @@ Add items via the canvas toolbar, assistant chat, or widget library.
 3. Confirm delete.
 4. Refresh and confirm the item does not reappear.
 
-**What works now:** edit PATCH, copy POST, delete confirmation, soft delete.
+**What works now:** inline edit PATCH for simple items, copy POST, delete confirmation, soft delete.
 
 ---
 

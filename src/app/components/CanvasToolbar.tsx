@@ -4,6 +4,8 @@ import {
   AlignJustify,
   ArrowRight,
   CheckSquare,
+  Circle,
+  Diamond,
   Frame,
   Hand,
   LayoutGrid,
@@ -29,8 +31,20 @@ export type CanvasTool =
   | "task_list"
   | "widget";
 
-export const PALETTE: { value: string | null; label: string; bg: string; ring: string }[] = [
-  { value: null, label: "None", bg: "var(--bg-surface)", ring: "var(--border-strong)" },
+export type ShapeKind = "rectangle" | "ellipse" | "diamond";
+
+export const PALETTE: {
+  value: string | null;
+  label: string;
+  bg: string;
+  ring: string;
+}[] = [
+  {
+    value: null,
+    label: "None",
+    bg: "var(--bg-surface)",
+    ring: "var(--border-strong)",
+  },
   { value: "#fef9c3", label: "Yellow", bg: "#fef9c3", ring: "#fde047" },
   { value: "#dbeafe", label: "Blue", bg: "#dbeafe", ring: "#93c5fd" },
   { value: "#dcfce7", label: "Green", bg: "#dcfce7", ring: "#86efac" },
@@ -41,31 +55,46 @@ export const PALETTE: { value: string | null; label: string; bg: string; ring: s
   { value: "#1e293b", label: "Dark", bg: "#1e293b", ring: "#475569" },
 ];
 
-const NAV_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] = [
-  { id: "select", Icon: MousePointer2, label: "Select  V" },
-  { id: "hand", Icon: Hand, label: "Pan  H" },
-];
+const NAV_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] =
+  [
+    { id: "select", Icon: MousePointer2, label: "Select  V" },
+    { id: "hand", Icon: Hand, label: "Pan  H" },
+  ];
 
-const DRAW_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] = [
-  { id: "pen", Icon: PenTool, label: "Pen  P" },
-  { id: "shape", Icon: Square, label: "Shape  R" },
-  { id: "frame", Icon: Frame, label: "Frame  F" },
-  { id: "arrow", Icon: ArrowRight, label: "Arrow  A" },
-];
+const DRAW_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] =
+  [
+    { id: "pen", Icon: PenTool, label: "Pen  P" },
+    { id: "shape", Icon: Square, label: "Shape  R" },
+    { id: "frame", Icon: Frame, label: "Frame  F" },
+    { id: "arrow", Icon: ArrowRight, label: "Arrow  A" },
+  ];
 
-const CREATE_TOOLS: { id: CanvasTool; Icon: React.ElementType; label: string }[] = [
+const CREATE_TOOLS: {
+  id: CanvasTool;
+  Icon: React.ElementType;
+  label: string;
+}[] = [
   { id: "text", Icon: Type, label: "Text  T" },
   { id: "sticky_note", Icon: StickyNote, label: "Sticky  S" },
   { id: "task_list", Icon: CheckSquare, label: "Task list  K" },
   { id: "widget", Icon: LayoutGrid, label: "Widget  W" },
 ];
 
+const SHAPE_KINDS: { id: ShapeKind; Icon: React.ElementType; label: string }[] =
+  [
+    { id: "rectangle", Icon: Square, label: "Rectangle" },
+    { id: "ellipse", Icon: Circle, label: "Ellipse" },
+    { id: "diamond", Icon: Diamond, label: "Diamond" },
+  ];
+
 type Props = {
   activeTool: CanvasTool;
   activeColor: string | null;
+  activeShapeKind: ShapeKind;
   zoom: number;
   onToolChange: (tool: CanvasTool) => void;
   onColorChange: (color: string | null) => void;
+  onShapeKindChange: (shape: ShapeKind) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onTidy: () => void;
@@ -74,9 +103,11 @@ type Props = {
 export function CanvasToolbar({
   activeTool,
   activeColor,
+  activeShapeKind,
   zoom,
   onToolChange,
   onColorChange,
+  onShapeKindChange,
   onZoomIn,
   onZoomOut,
   onTidy,
@@ -90,19 +121,43 @@ export function CanvasToolbar({
       )
         return;
       switch (e.key.toLowerCase()) {
-        case "v": onToolChange("select"); break;
-        case "h": onToolChange("hand"); break;
-        case "p": onToolChange("pen"); break;
-        case "r": onToolChange("shape"); break;
-        case "f": onToolChange("frame"); break;
-        case "a": onToolChange("arrow"); break;
-        case "t": onToolChange("text"); break;
-        case "s": onToolChange("sticky_note"); break;
-        case "k": onToolChange("task_list"); break;
-        case "w": onToolChange("widget"); break;
+        case "v":
+          onToolChange("select");
+          break;
+        case "h":
+          onToolChange("hand");
+          break;
+        case "p":
+          onToolChange("pen");
+          break;
+        case "r":
+          onToolChange("shape");
+          break;
+        case "f":
+          onToolChange("frame");
+          break;
+        case "a":
+          onToolChange("arrow");
+          break;
+        case "t":
+          onToolChange("text");
+          break;
+        case "s":
+          onToolChange("sticky_note");
+          break;
+        case "k":
+          onToolChange("task_list");
+          break;
+        case "w":
+          onToolChange("widget");
+          break;
         case "+":
-        case "=": onZoomIn(); break;
-        case "-": onZoomOut(); break;
+        case "=":
+          onZoomIn();
+          break;
+        case "-":
+          onZoomOut();
+          break;
       }
     }
     window.addEventListener("keydown", onKey);
@@ -136,14 +191,48 @@ export function CanvasToolbar({
               onClick={() => onColorChange(c.value)}
             >
               {c.value === null && (
-                <svg viewBox="0 0 12 12" className="absolute inset-0.5" aria-hidden>
-                  <line x1="1" y1="11" x2="11" y2="1" stroke="var(--text-3)" strokeWidth="1.5" strokeLinecap="round" />
+                <svg
+                  viewBox="0 0 12 12"
+                  className="absolute inset-0.5"
+                  aria-hidden
+                >
+                  <line
+                    x1="1"
+                    y1="11"
+                    x2="11"
+                    y2="1"
+                    stroke="var(--text-3)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
                 </svg>
               )}
             </button>
           );
         })}
       </div>
+
+      {activeTool === "shape" && (
+        <div
+          className="pointer-events-auto flex items-center gap-1 rounded-xl border p-1"
+          style={{
+            background: "var(--bg-elevated)",
+            borderColor: "var(--border)",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          {SHAPE_KINDS.map(({ id, Icon, label }) => (
+            <ToolBtn
+              key={id}
+              active={activeShapeKind === id}
+              label={label}
+              onClick={() => onShapeKindChange(id)}
+            >
+              <Icon size={16} />
+            </ToolBtn>
+          ))}
+        </div>
+      )}
 
       {/* Main toolbar */}
       <div
@@ -155,7 +244,12 @@ export function CanvasToolbar({
         }}
       >
         {NAV_TOOLS.map(({ id, Icon, label }) => (
-          <ToolBtn key={id} active={activeTool === id} label={label} onClick={() => onToolChange(id)}>
+          <ToolBtn
+            key={id}
+            active={activeTool === id}
+            label={label}
+            onClick={() => onToolChange(id)}
+          >
             <Icon size={17} />
           </ToolBtn>
         ))}
@@ -163,7 +257,12 @@ export function CanvasToolbar({
         <Divider />
 
         {DRAW_TOOLS.map(({ id, Icon, label }) => (
-          <ToolBtn key={id} active={activeTool === id} label={label} onClick={() => onToolChange(id)}>
+          <ToolBtn
+            key={id}
+            active={activeTool === id}
+            label={label}
+            onClick={() => onToolChange(id)}
+          >
             <Icon size={17} />
           </ToolBtn>
         ))}
@@ -171,7 +270,12 @@ export function CanvasToolbar({
         <Divider />
 
         {CREATE_TOOLS.map(({ id, Icon, label }) => (
-          <ToolBtn key={id} active={activeTool === id} label={label} onClick={() => onToolChange(id)}>
+          <ToolBtn
+            key={id}
+            active={activeTool === id}
+            label={label}
+            onClick={() => onToolChange(id)}
+          >
             <Icon size={17} />
           </ToolBtn>
         ))}
@@ -226,7 +330,8 @@ function ToolBtn({
       type="button"
       onMouseEnter={(e) => {
         if (!active)
-          (e.currentTarget as HTMLElement).style.background = "var(--accent-light)";
+          (e.currentTarget as HTMLElement).style.background =
+            "var(--accent-light)";
       }}
       onMouseLeave={(e) => {
         if (!active) (e.currentTarget as HTMLElement).style.background = "";
@@ -238,5 +343,7 @@ function ToolBtn({
 }
 
 function Divider() {
-  return <div className="mx-1 h-5 w-px" style={{ background: "var(--border)" }} />;
+  return (
+    <div className="mx-1 h-5 w-px" style={{ background: "var(--border)" }} />
+  );
 }

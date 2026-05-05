@@ -15,6 +15,8 @@ This file documents assistant tools. It must stay synchronized with implemented 
 - `summarize_board`
 - `list_canvas_items`
 
+`add_canvas_item` can create text, sticky notes, task lists, Kanban, markdown, images, links, HTML widgets, drawings, arrows, shapes, and frames.
+
 Board and item answers must be grounded in tool results. Use `summarize_board` before describing what is visible on a board. Use `list_canvas_items` before targeting an existing item for update or delete.
 
 ## Telegram commands

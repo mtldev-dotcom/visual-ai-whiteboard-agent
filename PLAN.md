@@ -56,7 +56,7 @@
 ## P2 — Later
 
 - Canvas minimap
-- Grouping / frames
+- Grouping
 - Realtime collaboration
 - OAuth / magic link auth
 - Production deployment (Vercel + Railway)

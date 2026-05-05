@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { AssistantPanel } from "./AssistantPanel";
 import { BoardCanvas } from "./BoardCanvas";
@@ -51,6 +51,21 @@ export function WorkspaceShell({ initialBoards, userEmail }: Props) {
 
   const refreshCanvas = useCallback(() => {
     setCanvasRefreshKey((k) => k + 1);
+  }, []);
+
+  useEffect(() => {
+    function openWidgetsPanel() {
+      setLeftOpen(true);
+      if (window.matchMedia("(max-width: 1023px)").matches) {
+        setMobilePanel("boards");
+      }
+    }
+    window.addEventListener("visual-whiteboard:open-widgets", openWidgetsPanel);
+    return () =>
+      window.removeEventListener(
+        "visual-whiteboard:open-widgets",
+        openWidgetsPanel,
+      );
   }, []);
 
   const handleBoardCreated = useCallback((board: Board) => {

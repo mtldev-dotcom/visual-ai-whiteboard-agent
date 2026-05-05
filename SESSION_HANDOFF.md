@@ -4,60 +4,44 @@ Date: 2026-05-05
 
 ## Summary
 
-Implemented the user-owned Telegram BotFather connection flow. Users now connect a bot token from `/settings`, send `/start` to that bot, paste the returned Telegram ID, and then use Telegram commands through their own bot.
+Implemented the native board toolbar and inline whiteboard UX upgrade. The canvas now supports real pen strokes, drag-created shapes, frames, arrows, inline editing for simple items, compact icon item actions, and a working Widget toolbar button that focuses/opens the widget library.
 
 ## What changed
 
-- Added `TelegramBotConnection` and `TelegramStartIdentity` persistence with a migration.
-- Added server-only Telegram token encryption, webhook secret hashing, Bot API validation, webhook registration, webhook deletion, and send-message helpers.
-- Added `/api/telegram/bot`, updated `/api/telegram/account`, and moved live webhook processing to `/api/telegram/webhook/[connectionId]`.
-- Removed the old settings link-token UI/API and the deployment-level webhook registration script.
-- Rebuilt the Telegram settings UI around `Connect token` then `Connect ID`.
-- Updated Telegram command lookup to require both bot connection ID and Telegram user ID.
-- Added tests for credential encryption, Bot API helpers, bot-specific webhook handling, and updated command tests.
-- Updated Telegram architecture, data model, security, QA, deployment, README, status, and TODO docs.
+- Added structured `drawing` and `arrow` canvas item support.
+- Made existing `shape` and `frame` item support user-facing and documented.
+- Reworked toolbar creation from click-only placeholders to drag gestures for pen, shape, frame, arrow, text, and sticky notes.
+- Added rectangle/ellipse/diamond shape selection.
+- Replaced the centered edit modal for text/sticky/shape/frame/notes with inline editing, blur save, check save, Escape cancel, and Ctrl/Cmd+Enter save.
+- Replaced selected desktop item action labels with compact icon buttons.
+- Fixed tidy persistence so multiple item position updates can save independently.
+- Updated the canvas API and assistant `add_canvas_item` validation to accept drawing, arrow, shape, and frame.
+- Updated specs, architecture docs, agent core tools docs, product scope, QA/manual flow docs, status, TODO, PLAN, and ADHD quick reference.
 
 ## Files changed this session
 
-- `.env.example`
+- `ADHD.md`
 - `CURRENT_STATUS.md`
 - `PLAN.md`
-- `README.md`
 - `TODO.md`
 - `SESSION_HANDOFF.md`
 - `docs/agent-core/TOOLS.md`
-- `docs/architecture/DATA_MODEL.md`
-- `docs/architecture/SECURITY_PERMISSIONS.md`
-- `docs/architecture/TELEGRAM_INTEGRATION.md`
-- `docs/deployment/DOKPLOY_HETZNER.md`
+- `docs/architecture/ASSISTANT_TOOLS.md`
+- `docs/architecture/CANVAS_ENGINE.md`
+- `docs/product/MVP_SCOPE.md`
 - `docs/qa/MANUAL_QA.md`
 - `docs/user-flow-guide.md`
-- `package.json`
-- `prisma/schema.prisma`
-- `prisma/migrations/20260505000100_user_owned_telegram_bots/migration.sql`
-- `scripts/db-smoke.ts`
-- `scripts/register-telegram-webhook.ts` removed
-- `src/app/api/telegram/account/route.ts`
-- `src/app/api/telegram/bot/route.ts`
-- `src/app/api/telegram/link-token/route.ts` removed
-- `src/app/api/telegram/webhook/route.ts`
-- `src/app/api/telegram/webhook/[connectionId]/route.ts`
-- `src/app/api/telegram/webhook/[connectionId]/route.test.ts`
-- `src/app/settings/TelegramSettings.tsx`
-- `src/app/settings/page.tsx`
-- `src/db/telegram.ts`
-- `src/server/telegram/bot-api.ts`
-- `src/server/telegram/bot-api.test.ts`
-- `src/server/telegram/commands.ts`
-- `src/server/telegram/commands.test.ts`
-- `src/server/telegram/credentials.ts`
-- `src/server/telegram/credentials.test.ts`
+- `specs/canvas-item.schema.json`
+- `src/app/api/canvas-items/route.ts`
+- `src/app/components/BoardCanvas.tsx`
+- `src/app/components/CanvasToolbar.tsx`
+- `src/app/components/WidgetLibrary.tsx`
+- `src/app/components/WorkspaceShell.tsx`
+- `src/server/assistant/canvas-tools.ts`
+- `src/server/assistant/canvas-tools.test.ts`
 
 ## Checks run
 
-- `npm run db:format`: passed
-- `npm run db:generate`: passed
-- `npm run db:validate`: passed
 - `npm run typecheck`: passed
 - `npm run lint`: passed
 - `npm test -- --run`: passed, 70 tests
@@ -66,15 +50,15 @@ Implemented the user-owned Telegram BotFather connection flow. Users now connect
 
 ## Checks skipped
 
-- Live Telegram QA was not run; it requires public HTTPS `APP_URL`, `APP_ENCRYPTION_KEY`, and a real BotFather token.
-- Full `npm run format:check` was attempted but not counted as passing because existing generated/reference files under `docs/about/` and `index.html` fail before this session's changes. Touched source/docs files were formatted directly with Prettier where applicable.
+- Browser/manual QA was not run. The updated manual QA checklist in `docs/qa/MANUAL_QA.md` should be exercised in desktop and 390px mobile emulation.
+- Local dev server was started at `http://localhost:3000` for manual review, but I did not perform browser interaction QA.
 
 ## Known issues
 
-- Telegram `/remind`, `/summarize`, file/photo capture, and voice transcription remain unimplemented.
-- The legacy `TelegramLinkToken` model and helper tests still exist but are no longer used by the Settings UI.
-- Removing a bot best-effort calls Telegram `deleteWebhook`; local revocation still succeeds if Telegram is unreachable.
+- Toolbar undo still only covers move/resize, not create/edit/delete.
+- Shape styling is intentionally simple for this native v1; rich shape formatting is still future work.
+- Existing unrelated dirty files were present/left alone: `.claude/settings.local.json` and `docs/about/repomix-output.xml`.
 
 ## Next recommended task
 
-Deploy with `APP_ENCRYPTION_KEY`, connect a real BotFather token from `/settings`, and run the Telegram smoke test in `docs/qa/MANUAL_QA.md`.
+Run the new whiteboard toolbar manual QA flow in `docs/qa/MANUAL_QA.md`, then implement board links as canvas items or `organize_board`.

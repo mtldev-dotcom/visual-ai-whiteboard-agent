@@ -36,6 +36,10 @@ Every canvas item must have:
 - `board_link`
 - `section`
 - `kanban`
+- `drawing`
+- `arrow`
+- `shape`
+- `frame`
 
 ## User interactions
 
@@ -48,9 +52,15 @@ MVP must support:
 - Resize.
 - Undo the last move/resize with `Ctrl+Z` / `Cmd+Z`.
 - Add.
-- Edit.
+- Edit simple text-bearing items inline.
 - Delete.
 - Open full screen for complex widgets.
+
+The floating toolbar supports selection, panning, freehand drawing, drag-created
+shapes, frames, arrows, text, sticky notes, task lists, widgets, color selection,
+zoom, and tidy/organize. Freehand drawings and arrows are stored as structured
+canvas items with their geometry in `content`; they are not screenshots or raw
+HTML blobs.
 
 ## Mobile behavior
 

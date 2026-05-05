@@ -47,7 +47,7 @@ Priority legend:
 - [x] `P0` Add mobile bottom sheet for selected item controls.
 - [x] `P0` Add floating assistant button on board.
 - [ ] `P1` Add grouping/sections.
-- [ ] `P1` Add frames.
+- [x] `P1` Add frames.
 - [ ] `P1` Add canvas minimap or board overview.
 - [ ] `P2` Add realtime presence/collaboration.
 

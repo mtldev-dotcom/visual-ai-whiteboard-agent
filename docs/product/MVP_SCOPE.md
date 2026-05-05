@@ -32,6 +32,10 @@ Prove that an AI assistant can create and edit useful visual boards from chat.
 - HTML widget.
 - Task list.
 - Board link.
+- Freehand drawing.
+- Arrow.
+- Shape.
+- Frame.
 
 ## Initial assistant tools
 

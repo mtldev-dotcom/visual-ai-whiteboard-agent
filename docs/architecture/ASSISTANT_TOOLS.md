@@ -95,6 +95,7 @@ Input:
 Behavior:
 
 - Validates structured item input before execution.
+- Accepts `text`, `sticky_note`, `task_list`, `kanban`, `markdown`, `image`, `link`, `html_widget`, `drawing`, `arrow`, `shape`, and `frame`.
 - Verifies the target board belongs to the current workspace.
 - Creates a canvas item in the current workspace and target board.
 - Returns a structured output containing the item ID and type.

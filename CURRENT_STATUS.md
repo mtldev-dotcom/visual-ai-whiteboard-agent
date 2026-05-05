@@ -1,6 +1,6 @@
 # Current Status
 
-Last updated: 2026-05-04
+Last updated: 2026-05-05
 
 ## Stage
 
@@ -33,9 +33,10 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - 3 board templates: Project Kickoff, Brainstorm Session, Weekly Review.
 - `BoardCanvas`: pan/zoom, drag-to-move, resize, select, floating action bar, mobile bottom sheet.
 - Client undo for the last move/resize states with `Ctrl+Z` / `Cmd+Z`, optimistic PATCH rollback, and a 3-second toast.
-- Item types: text, sticky_note, task_list, kanban, markdown, image, link, html_widget.
-- Click-to-create via toolbar tools (V/H/T/S/K shortcuts).
-- Edit modal, copy, delete with confirmation. Debounced PATCH on move/resize.
+- Item types: text, sticky_note, task_list, kanban, markdown, image, link, html_widget, drawing, arrow, shape, frame.
+- Whiteboard toolbar tools: select, hand/pan, pen, shape variants, frame, arrow, text, sticky note, task list, widget focus, color palette, tidy, and zoom shortcuts.
+- Text/sticky/shape/frame/notes use inline editing; centered edit modal is no longer used for simple items.
+- Copy, delete with confirmation, drag-create gestures, and debounced PATCH on move/resize.
 - Card shadow system and composite canvas grid texture.
 
 ### AI Assistant
@@ -100,7 +101,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 - Telegram `/remind` and `/summarize`.
 - Telegram photo/file capture and voice transcription.
 - Widget version history / generated-widget rollback.
-- Canvas minimap / grouping / frames (P2).
+- Canvas minimap / grouping (P2).
 - Realtime collaboration (P2).
 - OAuth / magic link auth (P2).
 - Production deployment config (P2).

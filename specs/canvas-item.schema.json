@@ -38,7 +38,11 @@
         "task_list",
         "board_link",
         "section",
-        "kanban"
+        "kanban",
+        "drawing",
+        "arrow",
+        "shape",
+        "frame"
       ]
     },
     "x": {

@@ -1,9 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import { Check, Copy, Edit3, RefreshCcw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { CanvasToolbar, type CanvasTool } from "./CanvasToolbar";
+import {
+  CanvasToolbar,
+  type CanvasTool,
+  type ShapeKind,
+} from "./CanvasToolbar";
 import { SandboxedHtmlWidget } from "./SandboxedHtmlWidget";
 
 const zoomStep = 0.1;
@@ -20,6 +25,14 @@ type CanvasItemContent = {
   html?: string;
   src?: string;
   bgColor?: string;
+  stroke?: string;
+  fill?: string;
+  shape?: ShapeKind;
+  points?: { x: number; y: number }[];
+  start?: { x: number; y: number };
+  end?: { x: number; y: number };
+  sourceWidth?: number;
+  sourceHeight?: number;
   tasks?: { completed: boolean; title: string }[];
   columns?: {
     id: string;
@@ -38,7 +51,14 @@ type CanvasItem = {
   content: CanvasItemContent;
 };
 
-type EditState = { itemId: string; title: string; text: string } | null;
+type InlineEditState = {
+  itemId: string;
+  title: string;
+  text: string;
+} | null;
+type InlineEditPatch = Partial<
+  Pick<NonNullable<InlineEditState>, "title" | "text">
+>;
 type ConfirmState = { itemId: string } | null;
 type UndoSnapshot = {
   id: string;
@@ -47,57 +67,263 @@ type UndoSnapshot = {
   width: number;
   height: number;
 };
+type CanvasPoint = { x: number; y: number };
+type DraftState =
+  | {
+      type: "drawing";
+      pointerId: number;
+      points: CanvasPoint[];
+    }
+  | {
+      type: "shape" | "frame" | "arrow" | "text" | "sticky_note";
+      pointerId: number;
+      start: CanvasPoint;
+      current: CanvasPoint;
+    }
+  | null;
+
+const MIN_DRAW_SIZE = 8;
+const DEFAULT_STROKE = "var(--text-1)";
 
 function clampZoom(v: number) {
   return Math.min(maxZoom, Math.max(minZoom, v));
 }
 
+function getBounds(start: CanvasPoint, end: CanvasPoint) {
+  const x = Math.min(start.x, end.x);
+  const y = Math.min(start.y, end.y);
+  return {
+    x,
+    y,
+    width: Math.abs(end.x - start.x),
+    height: Math.abs(end.y - start.y),
+  };
+}
+
+function getPointsBounds(points: CanvasPoint[]) {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX),
+    height: Math.max(1, maxY - minY),
+  };
+}
+
+function pointsToPath(points: CanvasPoint[]) {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+}
+
+function isInlineEditableType(type: string) {
+  return ["text", "sticky_note", "shape", "frame", "notes"].includes(type);
+}
+
+function InlineFields({
+  compact = false,
+  inlineEdit,
+  isEditing,
+  onInlineCancel,
+  onInlineChange,
+  onInlineCommit,
+  textColor = "var(--text-1)",
+}: {
+  compact?: boolean;
+  inlineEdit: InlineEditState;
+  isEditing: boolean;
+  onInlineCancel: () => void;
+  onInlineChange: (patch: InlineEditPatch) => void;
+  onInlineCommit: () => void;
+  textColor?: string;
+}) {
+  if (!isEditing || !inlineEdit) return null;
+  return (
+    <div
+      className="absolute inset-0 z-10 flex flex-col gap-2 p-2"
+      style={{ background: "inherit" }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          onInlineCommit();
+        }
+      }}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <input
+        autoFocus
+        className="min-h-8 w-full rounded-md border px-2 text-xs font-semibold outline-none"
+        onChange={(e) => onInlineChange({ title: e.target.value })}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onInlineCancel();
+          }
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            onInlineCommit();
+          }
+        }}
+        placeholder="Title"
+        style={{
+          background: "rgba(255,255,255,0.72)",
+          borderColor: "rgba(0,0,0,0.12)",
+          color: textColor,
+        }}
+        value={inlineEdit.title}
+      />
+      {!compact && (
+        <textarea
+          className="min-h-0 flex-1 resize-none rounded-md border px-2 py-1.5 text-xs leading-relaxed outline-none"
+          onChange={(e) => onInlineChange({ text: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              onInlineCancel();
+            }
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              onInlineCommit();
+            }
+          }}
+          placeholder="Write here"
+          style={{
+            background: "rgba(255,255,255,0.72)",
+            borderColor: "rgba(0,0,0,0.12)",
+            color: textColor,
+          }}
+          value={inlineEdit.text}
+        />
+      )}
+      {compact && <div className="flex-1" />}
+      <div className="flex justify-end gap-1">
+        <button
+          aria-label="Cancel edit"
+          className="flex h-7 w-7 items-center justify-center rounded-md border"
+          onClick={onInlineCancel}
+          style={{
+            background: "var(--bg-elevated)",
+            borderColor: "var(--border)",
+            color: "var(--text-2)",
+          }}
+          type="button"
+        >
+          <X size={14} />
+        </button>
+        <button
+          aria-label="Save edit"
+          className="flex h-7 w-7 items-center justify-center rounded-md"
+          onClick={onInlineCommit}
+          style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
+          type="button"
+        >
+          <Check size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ItemCard({
   item,
   onEdit,
+  inlineEdit,
+  onInlineChange,
+  onInlineCommit,
+  onInlineCancel,
 }: {
   item: CanvasItem;
   onEdit: () => void;
+  inlineEdit: InlineEditState;
+  onInlineChange: (patch: InlineEditPatch) => void;
+  onInlineCommit: () => void;
+  onInlineCancel: () => void;
 }) {
   const base =
     "absolute inset-0 overflow-hidden rounded-xl border text-sm transition-shadow";
+  const isEditing = inlineEdit?.itemId === item.id;
+  const inlineProps = {
+    inlineEdit,
+    isEditing,
+    onInlineCancel,
+    onInlineChange,
+    onInlineCommit,
+  };
 
   if (item.type === "shape") {
-    const bg = item.content.bgColor ?? "#dbeafe";
+    const shape = item.content.shape ?? "rectangle";
+    const fill = item.content.fill ?? item.content.bgColor ?? "#dbeafe";
+    const stroke = item.content.stroke ?? item.content.bgColor ?? "#93c5fd";
     return (
       <div
-        className="absolute inset-0 rounded-xl flex items-center justify-center overflow-hidden"
+        className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl"
         style={{
-          background: bg,
-          border: "none",
+          background: "transparent",
           boxShadow: "var(--shadow-card)",
         }}
       >
+        <svg
+          className="absolute inset-0 h-full w-full overflow-visible"
+          aria-hidden
+        >
+          {shape === "ellipse" && (
+            <ellipse
+              cx="50%"
+              cy="50%"
+              fill={fill}
+              rx="48%"
+              ry="46%"
+              stroke={stroke}
+              strokeWidth="2"
+            />
+          )}
+          {shape === "diamond" && (
+            <polygon
+              fill={fill}
+              points={`${item.width / 2},2 ${item.width - 2},${item.height / 2} ${item.width / 2},${item.height - 2} 2,${item.height / 2}`}
+              stroke={stroke}
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          )}
+          {shape === "rectangle" && (
+            <rect
+              fill={fill}
+              height={Math.max(1, item.height - 4)}
+              rx="10"
+              stroke={stroke}
+              strokeWidth="2"
+              width={Math.max(1, item.width - 4)}
+              x="2"
+              y="2"
+            />
+          )}
+        </svg>
         {item.content.text && (
           <p
-            className="px-3 text-sm font-medium text-center leading-snug"
+            className="relative px-3 text-center text-sm font-medium leading-snug"
             style={{ color: "var(--text-1)" }}
           >
             {item.content.text}
           </p>
         )}
-        {!item.content.text && (
-          <button
-            className="absolute top-1 right-1.5 rounded px-1 py-0.5 text-[10px] opacity-0 hover:opacity-100 transition-opacity"
-            style={{ color: "var(--text-3)", background: "rgba(0,0,0,0.08)" }}
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            type="button"
-          >
-            edit
-          </button>
-        )}
+        <InlineFields {...inlineProps} compact />
       </div>
     );
   }
 
   if (item.type === "frame") {
     const borderColor = item.content.bgColor ?? "var(--border-strong)";
-    const bgAlpha = item.content.bgColor ? `${item.content.bgColor}18` : "rgba(255,255,255,0.02)";
+    const bgAlpha = item.content.bgColor
+      ? `${item.content.bgColor}18`
+      : "rgba(255,255,255,0.02)";
     return (
       <div
         className="absolute inset-0 rounded-xl overflow-hidden"
@@ -106,6 +332,7 @@ function ItemCard({
           border: `2px dashed ${borderColor}`,
         }}
       >
+        <InlineFields {...inlineProps} compact />
         <div
           className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest select-none"
           style={{ color: item.content.bgColor ?? "var(--text-3)" }}
@@ -122,7 +349,8 @@ function ItemCard({
       ? `${item.content.bgColor}cc`
       : "#fef08a";
     const borderColor = item.content.bgColor ?? "#fde047";
-    const textColor = item.content.bgColor === "#1e293b" ? "#e2e8f0" : "#713f12";
+    const textColor =
+      item.content.bgColor === "#1e293b" ? "#e2e8f0" : "#713f12";
     return (
       <div
         className={`${base} flex flex-col`}
@@ -132,21 +360,20 @@ function ItemCard({
           boxShadow: "var(--shadow-card)",
         }}
       >
+        <InlineFields {...inlineProps} textColor={textColor} />
         <div
           className="flex items-center justify-between px-3 py-2"
-          style={{ background: headerBg, borderBottom: `1px solid ${borderColor}` }}
+          style={{
+            background: headerBg,
+            borderBottom: `1px solid ${borderColor}`,
+          }}
         >
-          <span className="truncate text-xs font-semibold" style={{ color: textColor }}>
+          <span
+            className="truncate text-xs font-semibold"
+            style={{ color: textColor }}
+          >
             {item.content.title || "Note"}
           </span>
-          <button
-            className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs hover:bg-black/10"
-            style={{ color: textColor }}
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            type="button"
-          >
-            Edit
-          </button>
         </div>
         <p
           className="flex-1 overflow-hidden px-3 py-2 text-xs leading-relaxed whitespace-pre-line"
@@ -169,6 +396,7 @@ function ItemCard({
           boxShadow: "var(--shadow-card)",
         }}
       >
+        <InlineFields {...inlineProps} />
         <div
           className="flex items-center justify-between border-b px-3 py-2"
           style={{ borderColor: item.content.bgColor ?? "var(--border)" }}
@@ -179,14 +407,6 @@ function ItemCard({
           >
             {item.content.title}
           </span>
-          <button
-            className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs transition-colors"
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            style={{ color: "var(--text-3)" }}
-            type="button"
-          >
-            Edit
-          </button>
         </div>
         <p
           className="flex-1 overflow-hidden px-3 py-2 text-xs leading-relaxed whitespace-pre-line"
@@ -222,6 +442,65 @@ function ItemCard({
           {item.content.text}
         </pre>
       </div>
+    );
+  }
+
+  if (item.type === "drawing") {
+    const points = item.content.points ?? [];
+    return (
+      <svg
+        aria-label="Freehand drawing"
+        className="absolute inset-0 h-full w-full overflow-visible"
+        role="img"
+        viewBox={`0 0 ${Math.max(1, item.content.sourceWidth ?? item.width)} ${Math.max(1, item.content.sourceHeight ?? item.height)}`}
+      >
+        <path
+          d={pointsToPath(points)}
+          fill="none"
+          stroke={item.content.stroke ?? DEFAULT_STROKE}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="4"
+        />
+      </svg>
+    );
+  }
+
+  if (item.type === "arrow") {
+    const start = item.content.start ?? { x: 0, y: item.height / 2 };
+    const end = item.content.end ?? { x: item.width, y: item.height / 2 };
+    const markerId = `arrow-${item.id}`;
+    const stroke = item.content.stroke ?? DEFAULT_STROKE;
+    return (
+      <svg
+        aria-label="Arrow"
+        className="absolute inset-0 h-full w-full overflow-visible"
+        role="img"
+        viewBox={`0 0 ${Math.max(1, item.content.sourceWidth ?? item.width)} ${Math.max(1, item.content.sourceHeight ?? item.height)}`}
+      >
+        <defs>
+          <marker
+            id={markerId}
+            markerHeight="8"
+            markerWidth="8"
+            orient="auto"
+            refX="7"
+            refY="4"
+          >
+            <path d="M 0 0 L 8 4 L 0 8 z" fill={stroke} />
+          </marker>
+        </defs>
+        <line
+          markerEnd={`url(#${markerId})`}
+          stroke={stroke}
+          strokeLinecap="round"
+          strokeWidth="3"
+          x1={start.x}
+          x2={end.x}
+          y1={start.y}
+          y2={end.y}
+        />
+      </svg>
     );
   }
 
@@ -327,7 +606,9 @@ function ItemCard({
               <span
                 className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-sm border flex items-center justify-center"
                 style={{
-                  borderColor: task.completed ? "var(--accent)" : "var(--border-strong)",
+                  borderColor: task.completed
+                    ? "var(--accent)"
+                    : "var(--border-strong)",
                   background: task.completed ? "var(--accent)" : "transparent",
                 }}
               >
@@ -384,7 +665,10 @@ function ItemCard({
           </span>
           <button
             className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs transition-colors"
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             style={{ color: "var(--text-3)" }}
             type="button"
           >
@@ -449,16 +733,22 @@ function ItemCard({
           boxShadow: "var(--shadow-card)",
         }}
       >
+        <InlineFields {...inlineProps} textColor="#7c2d12" />
         <div
           className="flex items-center justify-between border-b px-3 py-2"
-          style={{ borderBottom: `1px solid ${item.content.bgColor ?? "#fed7aa"}` }}
+          style={{
+            borderBottom: `1px solid ${item.content.bgColor ?? "#fed7aa"}`,
+          }}
         >
           <span className="text-xs font-semibold text-orange-900">
             {item.content.title}
           </span>
           <button
             className="ml-1 shrink-0 rounded px-1 py-0.5 text-xs text-orange-500 hover:bg-orange-100"
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             type="button"
           >
             Edit
@@ -525,8 +815,16 @@ const NEW_ITEM_DEFAULTS: Record<
   { width: number; height: number; content: CanvasItemContent }
 > = {
   text: { width: 220, height: 140, content: { title: "New text", text: "" } },
-  sticky_note: { width: 200, height: 180, content: { title: "Note", text: "" } },
-  task_list: { width: 260, height: 200, content: { title: "Tasks", tasks: [] } },
+  sticky_note: {
+    width: 200,
+    height: 180,
+    content: { title: "Note", text: "" },
+  },
+  task_list: {
+    width: 260,
+    height: 200,
+    content: { title: "Tasks", tasks: [] },
+  },
   kanban: {
     width: 480,
     height: 300,
@@ -539,11 +837,18 @@ const NEW_ITEM_DEFAULTS: Record<
       ],
     },
   },
-  shape: { width: 200, height: 150, content: { title: "", text: "" } },
+  shape: {
+    width: 200,
+    height: 150,
+    content: {
+      fill: "#dbeafe",
+      shape: "rectangle",
+      stroke: "#93c5fd",
+      text: "",
+    },
+  },
   frame: { width: 420, height: 320, content: { title: "Frame", text: "" } },
 };
-
-const AUTO_EDIT_TYPES = new Set(["text", "sticky_note", "shape", "frame", "notes"]);
 
 export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   const [items, setItems] = useState<CanvasItem[]>([]);
@@ -553,8 +858,11 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<CanvasTool>("select");
   const [activeColor, setActiveColor] = useState<string | null>(null);
-  const [editState, setEditState] = useState<EditState>(null);
+  const [activeShapeKind, setActiveShapeKind] =
+    useState<ShapeKind>("rectangle");
+  const [inlineEdit, setInlineEdit] = useState<InlineEditState>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmState>(null);
+  const [draft, setDraft] = useState<DraftState>(null);
   const [undoToast, setUndoToast] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const [dragStart, setDragStart] = useState<{
@@ -578,11 +886,12 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     before: UndoSnapshot;
   } | null>(null);
 
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const undoToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const panEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoStack = useRef<UndoSnapshot[]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const ignoreNextCanvasClick = useRef(false);
   const selectedItem = items.find((i) => i.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -606,6 +915,9 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
             y: ci.y,
           })),
         );
+        setDraft(null);
+        setInlineEdit(null);
+        setSelectedId(null);
       } catch {
         // aborted or network error
       } finally {
@@ -621,36 +933,51 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   }, [boardId]);
 
   useEffect(() => {
+    const timers = saveTimers.current;
     return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
       if (undoToastTimer.current) clearTimeout(undoToastTimer.current);
       if (panEndTimer.current) clearTimeout(panEndTimer.current);
     };
   }, []);
 
-  const persistPosition = useCallback((id: string, x: number, y: number) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      fetch(`/api/canvas-items/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ x, y }),
-      }).catch(() => null);
-    }, DEBOUNCE_MS);
-  }, []);
-
-  const persistSize = useCallback(
-    (id: string, width: number, height: number) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
+  const persistPatch = useCallback(
+    (id: string, patch: Record<string, unknown>) => {
+      const existing = saveTimers.current.get(id);
+      if (existing) clearTimeout(existing);
+      const timer = setTimeout(() => {
+        saveTimers.current.delete(id);
         fetch(`/api/canvas-items/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ width, height }),
+          body: JSON.stringify(patch),
         }).catch(() => null);
       }, DEBOUNCE_MS);
+      saveTimers.current.set(id, timer);
     },
     [],
+  );
+
+  const flushPendingPatch = useCallback((id: string) => {
+    const existing = saveTimers.current.get(id);
+    if (!existing) return;
+    clearTimeout(existing);
+    saveTimers.current.delete(id);
+  }, []);
+
+  const persistPosition = useCallback(
+    (id: string, x: number, y: number) => {
+      persistPatch(id, { x, y });
+    },
+    [persistPatch],
+  );
+
+  const persistSize = useCallback(
+    (id: string, width: number, height: number) => {
+      persistPatch(id, { width, height });
+    },
+    [persistPatch],
   );
 
   const showUndoToast = useCallback(() => {
@@ -667,11 +994,17 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     const snapshot = undoStack.current.pop();
     if (!snapshot) return;
 
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+    flushPendingPatch(snapshot.id);
     setItems((prev) =>
       prev.map((item) =>
         item.id === snapshot.id
-          ? { ...item, height: snapshot.height, width: snapshot.width, x: snapshot.x, y: snapshot.y }
+          ? {
+              ...item,
+              height: snapshot.height,
+              width: snapshot.width,
+              x: snapshot.x,
+              y: snapshot.y,
+            }
           : item,
       ),
     );
@@ -692,13 +1025,18 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     } catch {
       onRefreshNeeded();
     }
-  }, [onRefreshNeeded, showUndoToast]);
+  }, [flushPendingPatch, onRefreshNeeded, showUndoToast]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       const tagName = target?.tagName;
-      if (tagName === "INPUT" || tagName === "TEXTAREA" || target?.isContentEditable) return;
+      if (
+        tagName === "INPUT" ||
+        tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      )
+        return;
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
@@ -748,12 +1086,98 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     );
   }
 
+  function getCanvasPoint(
+    clientX: number,
+    clientY: number,
+  ): CanvasPoint | null {
+    if (!canvasRef.current) return null;
+    const rect = canvasRef.current.getBoundingClientRect();
+    return {
+      x: Math.round((clientX - rect.left - pan.x) / zoom),
+      y: Math.round((clientY - rect.top - pan.y) / zoom),
+    };
+  }
+
   function openEditFor(item: CanvasItem) {
-    setEditState({
+    if (!isInlineEditableType(item.type)) return;
+    setInlineEdit({
       itemId: item.id,
-      title: item.content.title ?? "",
       text: item.content.text ?? "",
+      title: item.content.title ?? "",
     });
+  }
+
+  function updateInlineEdit(patch: InlineEditPatch) {
+    setInlineEdit((current) => (current ? { ...current, ...patch } : current));
+  }
+
+  function cancelInlineEdit() {
+    setInlineEdit(null);
+  }
+
+  async function commitInlineEdit() {
+    if (!inlineEdit) return;
+    const item = items.find((candidate) => candidate.id === inlineEdit.itemId);
+    if (!item) {
+      setInlineEdit(null);
+      return;
+    }
+    const content = {
+      ...item.content,
+      title: inlineEdit.title,
+      text: inlineEdit.text,
+    };
+    setItems((prev) =>
+      prev.map((candidate) =>
+        candidate.id === item.id ? { ...candidate, content } : candidate,
+      ),
+    );
+    setInlineEdit(null);
+    await fetch(`/api/canvas-items/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    }).catch(() => onRefreshNeeded());
+  }
+
+  async function createCanvasItem(input: {
+    type: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    content: CanvasItemContent;
+    autoEdit?: boolean;
+  }) {
+    if (!boardId) return null;
+    const res = await fetch("/api/canvas-items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        boardId,
+        type: input.type,
+        x: input.x,
+        y: input.y,
+        width: input.width,
+        height: input.height,
+        content: input.content,
+      }),
+    });
+    const data = (await res.json()) as { item?: CanvasItem };
+    if (!data.item) return null;
+    const newItem: CanvasItem = {
+      content: data.item.content as CanvasItemContent,
+      height: data.item.height,
+      id: data.item.id,
+      type: data.item.type,
+      width: data.item.width,
+      x: data.item.x,
+      y: data.item.y,
+    };
+    setItems((prev) => [...prev, newItem]);
+    setSelectedId(newItem.id);
+    if (input.autoEdit) openEditFor(newItem);
+    return newItem;
   }
 
   async function createItemAtPosition(
@@ -761,53 +1185,158 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     clientX: number,
     clientY: number,
   ) {
-    if (!boardId || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.round((clientX - rect.left - pan.x) / zoom);
-    const y = Math.round((clientY - rect.top - pan.y) / zoom);
+    const point = getCanvasPoint(clientX, clientY);
+    if (!point) return;
     const defaults = NEW_ITEM_DEFAULTS[type] ?? {
       width: 220,
       height: 140,
       content: { title: "New item", text: "" },
     };
+    const color = activeColor ?? undefined;
     const content = {
       ...defaults.content,
-      ...(activeColor ? { bgColor: activeColor } : {}),
+      ...(type === "shape"
+        ? {
+            fill: color ?? defaults.content.fill ?? "#dbeafe",
+            shape: activeShapeKind,
+            stroke: color ?? defaults.content.stroke ?? "#93c5fd",
+          }
+        : color
+          ? { bgColor: color }
+          : {}),
     };
-    const res = await fetch("/api/canvas-items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        boardId,
-        type,
-        x: x - defaults.width / 2,
-        y: y - defaults.height / 2,
-        width: defaults.width,
-        height: defaults.height,
-        content,
-      }),
+    await createCanvasItem({
+      content,
+      autoEdit: isInlineEditableType(type),
+      height: defaults.height,
+      type,
+      width: defaults.width,
+      x: point.x - defaults.width / 2,
+      y: point.y - defaults.height / 2,
     });
-    const data = (await res.json()) as { item?: CanvasItem };
-    if (data.item) {
-      const newItem: CanvasItem = {
-        id: data.item.id,
-        type: data.item.type,
-        x: data.item.x,
-        y: data.item.y,
-        width: data.item.width,
-        height: data.item.height,
-        content: data.item.content as CanvasItemContent,
-      };
-      setItems((prev) => [...prev, newItem]);
-      setSelectedId(data.item!.id);
-      if (AUTO_EDIT_TYPES.has(type)) {
-        setEditState({
-          itemId: data.item.id,
-          title: data.item.content.title ?? "",
-          text: data.item.content.text ?? "",
-        });
-      }
+  }
+
+  async function createItemFromDraft(currentDraft: NonNullable<DraftState>) {
+    if (currentDraft.type === "drawing") {
+      if (currentDraft.points.length < 2) return;
+      const bounds = getPointsBounds(currentDraft.points);
+      if (bounds.width < MIN_DRAW_SIZE && bounds.height < MIN_DRAW_SIZE) return;
+      const pad = 10;
+      const x = bounds.x - pad;
+      const y = bounds.y - pad;
+      const points = currentDraft.points.map((point) => ({
+        x: point.x - x,
+        y: point.y - y,
+      }));
+      await createCanvasItem({
+        content: {
+          points,
+          sourceHeight: bounds.height + pad * 2,
+          sourceWidth: bounds.width + pad * 2,
+          stroke: activeColor ?? DEFAULT_STROKE,
+        },
+        height: bounds.height + pad * 2,
+        type: "drawing",
+        width: bounds.width + pad * 2,
+        x,
+        y,
+      });
+      return;
     }
+
+    const bounds = getBounds(currentDraft.start, currentDraft.current);
+    const isSmall =
+      bounds.width < MIN_DRAW_SIZE && bounds.height < MIN_DRAW_SIZE;
+    if (currentDraft.type === "text" || currentDraft.type === "sticky_note") {
+      if (isSmall) {
+        await createItemAtPosition(
+          currentDraft.type,
+          currentDraft.start.x * zoom +
+            pan.x +
+            (canvasRef.current?.getBoundingClientRect().left ?? 0),
+          currentDraft.start.y * zoom +
+            pan.y +
+            (canvasRef.current?.getBoundingClientRect().top ?? 0),
+        );
+        return;
+      }
+      const content =
+        currentDraft.type === "text"
+          ? {
+              title: "New text",
+              text: "",
+              ...(activeColor ? { bgColor: activeColor } : {}),
+            }
+          : {
+              title: "Note",
+              text: "",
+              ...(activeColor ? { bgColor: activeColor } : {}),
+            };
+      await createCanvasItem({
+        content,
+        autoEdit: true,
+        height: Math.max(96, bounds.height),
+        type: currentDraft.type,
+        width: Math.max(160, bounds.width),
+        x: bounds.x,
+        y: bounds.y,
+      });
+      return;
+    }
+
+    if (isSmall) return;
+    if (currentDraft.type === "arrow") {
+      const pad = 16;
+      const x = bounds.x - pad;
+      const y = bounds.y - pad;
+      await createCanvasItem({
+        content: {
+          end: { x: currentDraft.current.x - x, y: currentDraft.current.y - y },
+          sourceHeight: bounds.height + pad * 2,
+          sourceWidth: bounds.width + pad * 2,
+          start: { x: currentDraft.start.x - x, y: currentDraft.start.y - y },
+          stroke: activeColor ?? DEFAULT_STROKE,
+        },
+        height: bounds.height + pad * 2,
+        type: "arrow",
+        width: bounds.width + pad * 2,
+        x,
+        y,
+      });
+      return;
+    }
+
+    if (currentDraft.type === "shape") {
+      await createCanvasItem({
+        content: {
+          fill: activeColor ?? "#dbeafe",
+          shape: activeShapeKind,
+          stroke: activeColor ?? "#93c5fd",
+          text: "",
+        },
+        autoEdit: true,
+        height: Math.max(64, bounds.height),
+        type: "shape",
+        width: Math.max(96, bounds.width),
+        x: bounds.x,
+        y: bounds.y,
+      });
+      return;
+    }
+
+    await createCanvasItem({
+      content: {
+        bgColor: activeColor ?? undefined,
+        title: "Frame",
+        text: "",
+      },
+      autoEdit: true,
+      height: Math.max(160, bounds.height),
+      type: "frame",
+      width: Math.max(240, bounds.width),
+      x: bounds.x,
+      y: bounds.y,
+    });
   }
 
   async function deleteItem(id: string) {
@@ -815,22 +1344,6 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     setItems((prev) => prev.filter((i) => i.id !== id));
     setSelectedId(null);
     setConfirmDelete(null);
-  }
-
-  async function saveEdit() {
-    if (!editState) return;
-    const { itemId, title, text } = editState;
-    await fetch(`/api/canvas-items/${itemId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: { title, text } }),
-    });
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === itemId ? { ...i, content: { ...i.content, title, text } } : i,
-      ),
-    );
-    setEditState(null);
   }
 
   async function copyItem(item: CanvasItem) {
@@ -923,8 +1436,17 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
     panEndTimer.current = setTimeout(() => setIsPanning(false), 800);
   }
 
+  function handleToolChange(tool: CanvasTool) {
+    if (tool === "widget") {
+      window.dispatchEvent(new CustomEvent("visual-whiteboard:open-widgets"));
+      setActiveTool("select");
+      return;
+    }
+    setActiveTool(tool);
+  }
+
   const isPanMode = activeTool === "hand";
-  const isCreateMode = !["select", "hand", "widget", "arrow"].includes(activeTool);
+  const isCreateMode = !["select", "hand", "widget"].includes(activeTool);
 
   const gridBgSize = GRID_SIZE * zoom;
   const gridBgPosX = pan.x % gridBgSize;
@@ -952,7 +1474,10 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
           >
             <span
               className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
-              style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
+              style={{
+                borderColor: "var(--accent)",
+                borderTopColor: "transparent",
+              }}
             />
             Loading board…
           </div>
@@ -970,7 +1495,10 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               boxShadow: "var(--shadow-md)",
             }}
           >
-            <p className="text-sm font-medium" style={{ color: "var(--text-2)" }}>
+            <p
+              className="text-sm font-medium"
+              style={{ color: "var(--text-2)" }}
+            >
               No board selected
             </p>
             <p className="mt-1 text-xs" style={{ color: "var(--text-3)" }}>
@@ -990,7 +1518,10 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               boxShadow: "var(--shadow-md)",
             }}
           >
-            <p className="text-sm font-medium" style={{ color: "var(--text-1)" }}>
+            <p
+              className="text-sm font-medium"
+              style={{ color: "var(--text-1)" }}
+            >
               Canvas is empty
             </p>
             <p className="mt-1 text-xs" style={{ color: "var(--text-3)" }}>
@@ -1006,33 +1537,64 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
         className="canvas-surface absolute inset-0 touch-none"
         style={{
           cursor: isPanMode
-            ? dragStart ? "grabbing" : "grab"
+            ? dragStart
+              ? "grabbing"
+              : "grab"
             : isCreateMode
-            ? "crosshair"
-            : "default",
+              ? "crosshair"
+              : "default",
           backgroundImage: `radial-gradient(circle, rgba(100,116,139,0.28) 1.5px, transparent 1.5px)`,
           backgroundSize: `${gridBgSize}px ${gridBgSize}px`,
           backgroundPosition: `${gridBgPosX}px ${gridBgPosY}px`,
         }}
-        onClick={(e) => {
-          if (activeTool === "arrow") {
-            setActiveTool("select");
-            return;
-          }
-          if (isCreateMode) {
-            const itemType = activeTool === "pen" ? "sticky_note" : activeTool;
-            void createItemAtPosition(itemType, e.clientX, e.clientY);
-            setActiveTool("select");
+        onClick={() => {
+          if (ignoreNextCanvasClick.current) {
+            ignoreNextCanvasClick.current = false;
             return;
           }
           setSelectedId(null);
         }}
         onPointerCancel={() => {
+          setDraft(null);
           setDragStart(null);
           setIsPanning(false);
         }}
         onPointerDown={(e) => {
-          if (isCreateMode) return;
+          if (isCreateMode) {
+            if (activeTool === "task_list") {
+              ignoreNextCanvasClick.current = true;
+              void createItemAtPosition(activeTool, e.clientX, e.clientY).then(
+                () => setActiveTool("select"),
+              );
+              return;
+            }
+            const point = getCanvasPoint(e.clientX, e.clientY);
+            if (!point) return;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setSelectedId(null);
+            setInlineEdit(null);
+            if (activeTool === "pen") {
+              setDraft({
+                points: [point],
+                pointerId: e.pointerId,
+                type: "drawing",
+              });
+            } else if (
+              activeTool === "shape" ||
+              activeTool === "frame" ||
+              activeTool === "arrow" ||
+              activeTool === "text" ||
+              activeTool === "sticky_note"
+            ) {
+              setDraft({
+                current: point,
+                pointerId: e.pointerId,
+                start: point,
+                type: activeTool,
+              });
+            }
+            return;
+          }
           e.currentTarget.setPointerCapture(e.pointerId);
           setDragStart({
             pointerId: e.pointerId,
@@ -1044,6 +1606,25 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
           });
         }}
         onPointerMove={(e) => {
+          if (draft?.pointerId === e.pointerId) {
+            const point = getCanvasPoint(e.clientX, e.clientY);
+            if (!point) return;
+            setDraft((current) => {
+              if (!current || current.pointerId !== e.pointerId) return current;
+              if (current.type === "drawing") {
+                const last = current.points[current.points.length - 1];
+                if (
+                  last &&
+                  Math.hypot(last.x - point.x, last.y - point.y) < 2
+                ) {
+                  return current;
+                }
+                return { ...current, points: [...current.points, point] };
+              }
+              return { ...current, current: point };
+            });
+            return;
+          }
           if (!dragStart || dragStart.pointerId !== e.pointerId) return;
           setPan({
             x: dragStart.panX + e.clientX - dragStart.x,
@@ -1053,6 +1634,15 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
         }}
         onPointerUp={(e) => {
           e.currentTarget.releasePointerCapture(e.pointerId);
+          if (draft?.pointerId === e.pointerId) {
+            const currentDraft = draft;
+            setDraft(null);
+            ignoreNextCanvasClick.current = true;
+            void createItemFromDraft(currentDraft).then(() =>
+              setActiveTool("select"),
+            );
+            return;
+          }
           setDragStart(null);
         }}
         onWheel={(e) => {
@@ -1067,7 +1657,9 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
       >
         <div
           className="origin-top-left"
-          style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})` }}
+          style={{
+            transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`,
+          }}
         >
           <div className="relative h-[3000px] w-[3000px]">
             {items.map((item) => {
@@ -1098,6 +1690,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       setSelectedId(item.id);
+                      if (e.key === "Enter") openEditFor(item);
                     }
                     if (e.key === "Delete" || e.key === "Backspace") {
                       if (selected) setConfirmDelete({ itemId: item.id });
@@ -1106,6 +1699,7 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                   onPointerCancel={() => setItemDrag(null)}
                   onPointerDown={(e) => {
                     e.stopPropagation();
+                    if (inlineEdit?.itemId === item.id) return;
                     e.currentTarget.setPointerCapture(e.pointerId);
                     setSelectedId(item.id);
                     setItemDrag({
@@ -1136,14 +1730,26 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                     finishItemDrag(e.pointerId);
                   }}
                 >
-                  <ItemCard item={item} onEdit={() => openEditFor(item)} />
+                  <ItemCard
+                    inlineEdit={inlineEdit}
+                    item={item}
+                    onEdit={() => openEditFor(item)}
+                    onInlineCancel={cancelInlineEdit}
+                    onInlineChange={updateInlineEdit}
+                    onInlineCommit={() => {
+                      void commitInlineEdit();
+                    }}
+                  />
 
                   {/* Selection ring + handles */}
                   {selected && (
                     <>
                       <div
                         className="pointer-events-none absolute -inset-1 rounded-xl"
-                        style={{ outline: "2px solid var(--accent)", outlineOffset: "2px" }}
+                        style={{
+                          outline: "2px solid var(--accent)",
+                          outlineOffset: "2px",
+                        }}
                       />
 
                       {/* Context actions */}
@@ -1157,14 +1763,27 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
                       >
-                        <ActionBtn label="Edit" onClick={() => openEditFor(item)} />
-                        <ActionBtn label="Copy" onClick={() => copyItem(item)} />
-                        <ActionBtn label="Refresh" onClick={onRefreshNeeded} />
+                        {isInlineEditableType(item.type) && (
+                          <ActionBtn
+                            label="Edit inline"
+                            onClick={() => openEditFor(item)}
+                          >
+                            <Edit3 size={15} />
+                          </ActionBtn>
+                        )}
+                        <ActionBtn label="Copy" onClick={() => copyItem(item)}>
+                          <Copy size={15} />
+                        </ActionBtn>
+                        <ActionBtn label="Refresh" onClick={onRefreshNeeded}>
+                          <RefreshCcw size={15} />
+                        </ActionBtn>
                         <ActionBtn
                           danger
                           label="Delete"
                           onClick={() => setConfirmDelete({ itemId: item.id })}
-                        />
+                        >
+                          <Trash2 size={15} />
+                        </ActionBtn>
                       </div>
 
                       {/* Resize handle */}
@@ -1211,6 +1830,13 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                 </div>
               );
             })}
+            {draft && (
+              <DraftPreview
+                activeColor={activeColor}
+                draft={draft}
+                shapeKind={activeShapeKind}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1251,10 +1877,12 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
 
       {/* Floating canvas toolbar */}
       <CanvasToolbar
+        activeShapeKind={activeShapeKind}
         activeTool={activeTool}
         activeColor={activeColor}
         zoom={zoom}
-        onToolChange={setActiveTool}
+        onShapeKindChange={setActiveShapeKind}
+        onToolChange={handleToolChange}
         onColorChange={setActiveColor}
         onZoomIn={() => setZoom((z) => clampZoom(z + zoomStep))}
         onZoomOut={() => setZoom((z) => clampZoom(z - zoomStep))}
@@ -1297,7 +1925,9 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
           </div>
           <div className="mt-3 grid grid-cols-4 gap-2">
             {[
-              { label: "Edit", action: () => openEditFor(selectedItem) },
+              ...(isInlineEditableType(selectedItem.type)
+                ? [{ label: "Edit", action: () => openEditFor(selectedItem) }]
+                : []),
               { label: "Copy", action: () => copyItem(selectedItem) },
               { label: "Refresh", action: onRefreshNeeded },
               {
@@ -1311,7 +1941,9 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                 key={label}
                 onClick={action}
                 style={{
-                  background: danger ? "var(--danger-light)" : "var(--bg-surface)",
+                  background: danger
+                    ? "var(--danger-light)"
+                    : "var(--bg-surface)",
                   borderColor: danger ? "var(--danger)" : "var(--border)",
                   color: danger ? "var(--danger)" : "var(--text-1)",
                 }}
@@ -1320,81 +1952,6 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
                 {label}
               </button>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Edit modal */}
-      {editState && (
-        <div
-          className="absolute inset-0 z-40 flex items-center justify-center p-4"
-          style={{ background: "var(--bg-overlay)" }}
-          onClick={() => setEditState(null)}
-        >
-          <div
-            className="animate-scale-in w-full max-w-sm rounded-2xl border p-5"
-            style={{
-              background: "var(--bg-elevated)",
-              borderColor: "var(--border)",
-              boxShadow: "var(--shadow-xl)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="mb-4 text-sm font-semibold" style={{ color: "var(--text-1)" }}>
-              Edit item
-            </h3>
-            <input
-              autoFocus
-              className="mb-3 w-full rounded-xl border px-3 py-2 text-sm outline-none"
-              onChange={(e) =>
-                setEditState((s) => s && { ...s, title: e.target.value })
-              }
-              placeholder="Title"
-              style={{
-                background: "var(--bg-surface)",
-                borderColor: "var(--border)",
-                color: "var(--text-1)",
-              }}
-              value={editState.title}
-            />
-            <textarea
-              className="mb-4 w-full resize-y rounded-xl border px-3 py-2 text-sm outline-none"
-              onChange={(e) =>
-                setEditState((s) => s && { ...s, text: e.target.value })
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault();
-                  void saveEdit();
-                }
-              }}
-              placeholder="Content"
-              rows={4}
-              style={{
-                background: "var(--bg-surface)",
-                borderColor: "var(--border)",
-                color: "var(--text-1)",
-              }}
-              value={editState.text}
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                className="rounded-xl border px-4 py-2 text-sm"
-                onClick={() => setEditState(null)}
-                style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="rounded-xl px-4 py-2 text-sm font-semibold"
-                onClick={saveEdit}
-                style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
-                type="button"
-              >
-                Save
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1415,7 +1972,10 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-1 text-sm font-semibold" style={{ color: "var(--text-1)" }}>
+            <h3
+              className="mb-1 text-sm font-semibold"
+              style={{ color: "var(--text-1)" }}
+            >
               Delete this item?
             </h3>
             <p className="mb-5 text-xs" style={{ color: "var(--text-3)" }}>
@@ -1433,7 +1993,10 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
               <button
                 className="rounded-xl px-4 py-2 text-sm font-semibold"
                 onClick={() => deleteItem(confirmDelete.itemId)}
-                style={{ background: "var(--danger)", color: "var(--danger-fg)" }}
+                style={{
+                  background: "var(--danger)",
+                  color: "var(--danger-fg)",
+                }}
                 type="button"
               >
                 Delete
@@ -1446,18 +2009,177 @@ export function BoardCanvas({ boardId, refreshKey, onRefreshNeeded }: Props) {
   );
 }
 
+function DraftPreview({
+  activeColor,
+  draft,
+  shapeKind,
+}: {
+  activeColor: string | null;
+  draft: NonNullable<DraftState>;
+  shapeKind: ShapeKind;
+}) {
+  const stroke = activeColor ?? DEFAULT_STROKE;
+  if (draft.type === "drawing") {
+    const bounds = getPointsBounds(draft.points);
+    const pad = 10;
+    const x = bounds.x - pad;
+    const y = bounds.y - pad;
+    const points = draft.points.map((point) => ({
+      x: point.x - x,
+      y: point.y - y,
+    }));
+    return (
+      <svg
+        className="pointer-events-none absolute overflow-visible opacity-80"
+        style={{
+          height: bounds.height + pad * 2,
+          left: x,
+          top: y,
+          width: bounds.width + pad * 2,
+        }}
+        viewBox={`0 0 ${bounds.width + pad * 2} ${bounds.height + pad * 2}`}
+      >
+        <path
+          d={pointsToPath(points)}
+          fill="none"
+          stroke={stroke}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="4"
+        />
+      </svg>
+    );
+  }
+
+  const bounds = getBounds(draft.start, draft.current);
+  const style = {
+    height: Math.max(1, bounds.height),
+    left: bounds.x,
+    top: bounds.y,
+    width: Math.max(1, bounds.width),
+  };
+
+  if (draft.type === "arrow") {
+    return (
+      <svg
+        className="pointer-events-none absolute overflow-visible opacity-80"
+        style={style}
+        viewBox={`0 0 ${Math.max(1, bounds.width)} ${Math.max(1, bounds.height)}`}
+      >
+        <defs>
+          <marker
+            id="draft-arrow"
+            markerHeight="8"
+            markerWidth="8"
+            orient="auto"
+            refX="7"
+            refY="4"
+          >
+            <path d="M 0 0 L 8 4 L 0 8 z" fill={stroke} />
+          </marker>
+        </defs>
+        <line
+          markerEnd="url(#draft-arrow)"
+          stroke={stroke}
+          strokeLinecap="round"
+          strokeWidth="3"
+          x1={draft.start.x <= draft.current.x ? 0 : bounds.width}
+          x2={draft.start.x <= draft.current.x ? bounds.width : 0}
+          y1={draft.start.y <= draft.current.y ? 0 : bounds.height}
+          y2={draft.start.y <= draft.current.y ? bounds.height : 0}
+        />
+      </svg>
+    );
+  }
+
+  if (draft.type === "frame") {
+    return (
+      <div
+        className="pointer-events-none absolute rounded-xl border-2 border-dashed opacity-80"
+        style={{
+          ...style,
+          background: activeColor
+            ? `${activeColor}18`
+            : "rgba(255,255,255,0.04)",
+          borderColor: activeColor ?? "var(--border-strong)",
+        }}
+      />
+    );
+  }
+
+  if (draft.type === "shape") {
+    return (
+      <svg
+        className="pointer-events-none absolute overflow-visible opacity-80"
+        style={style}
+        viewBox={`0 0 ${Math.max(1, bounds.width)} ${Math.max(1, bounds.height)}`}
+      >
+        {shapeKind === "ellipse" && (
+          <ellipse
+            cx="50%"
+            cy="50%"
+            fill={activeColor ?? "#dbeafe"}
+            rx="48%"
+            ry="46%"
+            stroke={activeColor ?? "#93c5fd"}
+            strokeWidth="2"
+          />
+        )}
+        {shapeKind === "diamond" && (
+          <polygon
+            fill={activeColor ?? "#dbeafe"}
+            points={`${bounds.width / 2},2 ${bounds.width - 2},${bounds.height / 2} ${bounds.width / 2},${bounds.height - 2} 2,${bounds.height / 2}`}
+            stroke={activeColor ?? "#93c5fd"}
+            strokeLinejoin="round"
+            strokeWidth="2"
+          />
+        )}
+        {shapeKind === "rectangle" && (
+          <rect
+            fill={activeColor ?? "#dbeafe"}
+            height={Math.max(1, bounds.height - 4)}
+            rx="10"
+            stroke={activeColor ?? "#93c5fd"}
+            strokeWidth="2"
+            width={Math.max(1, bounds.width - 4)}
+            x="2"
+            y="2"
+          />
+        )}
+      </svg>
+    );
+  }
+
+  return (
+    <div
+      className="pointer-events-none absolute rounded-xl border opacity-70"
+      style={{
+        ...style,
+        background:
+          draft.type === "sticky_note"
+            ? (activeColor ?? "#fef9c3")
+            : "var(--bg-surface)",
+        borderColor: activeColor ?? "var(--border-strong)",
+      }}
+    />
+  );
+}
+
 function ActionBtn({
   label,
   onClick,
   danger,
+  children,
 }: {
   label: string;
   onClick: () => void;
   danger?: boolean;
+  children: React.ReactNode;
 }) {
   return (
     <button
-      className="rounded-md px-2 py-1 text-xs font-medium transition-colors"
+      aria-label={label}
+      className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -1471,9 +2193,10 @@ function ActionBtn({
       onMouseLeave={(e) =>
         ((e.currentTarget as HTMLElement).style.background = "")
       }
+      title={label}
       type="button"
     >
-      {label}
+      {children}
     </button>
   );
 }

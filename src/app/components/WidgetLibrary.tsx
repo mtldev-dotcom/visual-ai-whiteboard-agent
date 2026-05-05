@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckSquare, Columns3, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const widgets = [
   {
@@ -39,11 +39,24 @@ type Props = {
 };
 
 export function WidgetLibrary({ activeBoardId, onItemAdded }: Props) {
+  const sectionRef = useRef<HTMLElement>(null);
   const [adding, setAdding] = useState<string | null>(null);
   const [previewWidget, setPreviewWidget] = useState<
     (typeof widgets)[number] | null
   >(null);
   const PreviewIcon = previewWidget?.icon;
+
+  useEffect(() => {
+    function openWidgets() {
+      sectionRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    }
+    window.addEventListener("visual-whiteboard:open-widgets", openWidgets);
+    return () =>
+      window.removeEventListener("visual-whiteboard:open-widgets", openWidgets);
+  }, []);
 
   async function addWidget(widget: (typeof widgets)[number]) {
     if (!activeBoardId) return;
@@ -70,7 +83,7 @@ export function WidgetLibrary({ activeBoardId, onItemAdded }: Props) {
   }
 
   return (
-    <section className="mt-4">
+    <section className="mt-4" ref={sectionRef}>
       <div className="mb-2 flex items-center justify-between">
         <span
           className="text-[11px] font-semibold uppercase tracking-widest"
