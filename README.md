@@ -51,6 +51,8 @@ Copy `.env.example` to `.env.local` and fill in:
 DATABASE_URL=postgresql://visual_whiteboard:visual_whiteboard_dev@localhost:5444/visual_whiteboard_ai
 AUTH_SECRET=<generate with: openssl rand -base64 32>
 NEXTAUTH_URL=http://localhost:3000
+APP_URL=http://localhost:3000
+APP_ENCRYPTION_KEY=<generate with: openssl rand -base64 32>
 APP_SIGNUP=enable
 LLM_PROVIDER=openrouter
 OPENROUTER_API_KEY=<your key from openrouter.ai>
@@ -103,10 +105,9 @@ npm run docs:check
 npm run db:validate
 npm run db:generate
 npm run db:smoke
-npm run telegram:webhook
 ```
 
-`npm run telegram:webhook` registers `APP_URL/api/telegram/webhook` with Telegram using `TELEGRAM_BOT_TOKEN` and optional `TELEGRAM_WEBHOOK_SECRET`.
+Telegram bots are connected per user from `/settings`: create a bot with BotFather, paste the token, send `/start` to that bot, then paste the returned Telegram ID.
 
 For a Dokploy/Hetzner test deploy, see `docs/deployment/DOKPLOY_HETZNER.md`.
 

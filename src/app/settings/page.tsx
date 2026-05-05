@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getPrismaClient } from "@/db/client";
@@ -14,24 +15,34 @@ export default async function SettingsPage() {
   }
 
   const prisma = getPrismaClient();
-  const account = await prisma.telegramAccount.findFirst({
-    where: { ownerUserId: session.user.id, unlinkedAt: null },
-    select: {
-      telegramUserId: true,
-      username: true,
-      firstName: true,
-      lastName: true,
-      linkedAt: true,
-    },
-  });
-
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? null;
+  const [account, bot] = await Promise.all([
+    prisma.telegramAccount.findFirst({
+      where: { ownerUserId: session.user.id, unlinkedAt: null },
+      select: {
+        firstName: true,
+        lastName: true,
+        linkedAt: true,
+        telegramChatId: true,
+        telegramUserId: true,
+        username: true,
+      },
+    }),
+    prisma.telegramBotConnection.findFirst({
+      where: { ownerUserId: session.user.id, revokedAt: null },
+      select: {
+        botFirstName: true,
+        botId: true,
+        botUsername: true,
+        createdAt: true,
+        id: true,
+        revokedAt: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
 
   return (
-    <div
-      className="min-h-dvh"
-      style={{ background: "var(--bg-app)" }}
-    >
+    <div className="min-h-dvh" style={{ background: "var(--bg-app)" }}>
       {/* Header */}
       <header
         className="flex h-11 items-center gap-3 border-b px-4"
@@ -41,22 +52,28 @@ export default async function SettingsPage() {
           boxShadow: "var(--shadow-sm)",
         }}
       >
-        <a
+        <Link
           href="/"
           className="flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-70"
           style={{ color: "var(--text-2)" }}
         >
           ← Back
-        </a>
+        </Link>
         <div className="h-5 w-px" style={{ background: "var(--border)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text-1)" }}>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "var(--text-1)" }}
+        >
           Settings
         </span>
       </header>
 
       {/* Content */}
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <h1 className="mb-8 text-xl font-bold" style={{ color: "var(--text-1)" }}>
+        <h1
+          className="mb-8 text-xl font-bold"
+          style={{ color: "var(--text-1)" }}
+        >
           Account Settings
         </h1>
 
@@ -69,14 +86,31 @@ export default async function SettingsPage() {
           }}
         >
           <TelegramSettings
-            initialAccount={account ? {
-              telegramUserId: account.telegramUserId,
-              username: account.username,
-              firstName: account.firstName,
-              lastName: account.lastName,
-              linkedAt: account.linkedAt.toISOString(),
-            } : null}
-            botUsername={botUsername}
+            initialAccount={
+              account
+                ? {
+                    firstName: account.firstName,
+                    lastName: account.lastName,
+                    linkedAt: account.linkedAt.toISOString(),
+                    telegramChatId: account.telegramChatId,
+                    telegramUserId: account.telegramUserId,
+                    username: account.username,
+                  }
+                : null
+            }
+            initialBot={
+              bot
+                ? {
+                    botFirstName: bot.botFirstName,
+                    botId: bot.botId,
+                    botUsername: bot.botUsername,
+                    createdAt: bot.createdAt.toISOString(),
+                    id: bot.id,
+                    revokedAt: bot.revokedAt?.toISOString() ?? null,
+                    updatedAt: bot.updatedAt.toISOString(),
+                  }
+                : null
+            }
           />
         </section>
       </div>

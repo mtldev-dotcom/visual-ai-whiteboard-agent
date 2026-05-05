@@ -74,6 +74,7 @@ NODE_ENV=production
 PORT=3000
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/visual_whiteboard_ai
 AUTH_SECRET=<generate-a-long-random-secret>
+APP_ENCRYPTION_KEY=<generate-a-32-byte-secret>
 NEXTAUTH_URL=https://your-domain.example
 APP_URL=https://your-domain.example
 APP_SIGNUP=enable
@@ -88,12 +89,7 @@ Generate `AUTH_SECRET` locally with:
 openssl rand -base64 32
 ```
 
-Optional Telegram variables:
-
-```bash
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_WEBHOOK_SECRET=<generate-a-long-random-secret>
-```
+Generate `APP_ENCRYPTION_KEY` the same way. It encrypts user-owned BotFather tokens at rest.
 
 Optional fallback for no real LLM during first deploy:
 
@@ -157,28 +153,21 @@ Then test:
 
 After the initial account exists, you may set `APP_SIGNUP=disable`, redeploy/restart the app, and confirm `/signup` no longer allows account creation while `/login` still works.
 
-## 6. Optional Telegram Webhook
+## 6. Optional Telegram Bot Connection
 
 Only do this after the app is reachable over HTTPS.
 
-Set:
+1. Confirm `APP_URL` and `APP_ENCRYPTION_KEY` are set.
+2. Sign in and open `/settings`.
+3. Create a bot in BotFather with `/newbot`.
+4. Paste the token and click **Connect token**.
+5. Send `/start` to the new bot.
+6. Paste the returned Telegram ID in Settings and click **Connect ID**.
 
-```bash
-TELEGRAM_BOT_TOKEN=<botfather-token>
-TELEGRAM_WEBHOOK_SECRET=<random-secret>
-APP_URL=https://your-domain.example
-```
-
-Then run this command in the app container shell or as a one-off Dokploy command:
-
-```bash
-npm run telegram:webhook
-```
-
-Telegram will send updates to:
+Telegram will send updates to a bot-specific URL:
 
 ```text
-https://your-domain.example/api/telegram/webhook
+https://your-domain.example/api/telegram/webhook/[connectionId]
 ```
 
 ## Rollback

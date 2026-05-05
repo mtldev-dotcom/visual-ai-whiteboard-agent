@@ -36,10 +36,9 @@
 **File:** `src/app/api/telegram/webhook/route.ts`, `.env.example`
 
 - Register the webhook URL via Telegram Bot API:
-  `POST https://api.telegram.org/bot<TOKEN>/setWebhook?url=<APP_URL>/api/telegram/webhook`
-- Add `TELEGRAM_BOT_TOKEN` and `APP_URL` to `.env.example`
-- Add a one-time setup script: `scripts/register-telegram-webhook.ts`
-- Test: send `/boards` from Telegram → should list boards
+  `POST https://api.telegram.org/bot<TOKEN>/setWebhook?url=<APP_URL>/api/telegram/webhook/[connectionId]`
+- Users connect BotFather tokens from `/settings`; tokens are encrypted with `APP_ENCRYPTION_KEY`.
+- Test: connect token, send `/start`, paste returned ID, then send `/boards`.
 
 ---
 

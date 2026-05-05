@@ -6,6 +6,7 @@ import { listOpenTasksForWorkspace } from "@/db/tasks";
 import { getActiveTelegramAccount } from "@/db/telegram";
 
 export type TelegramCommandInput = {
+  botConnectionId: string;
   telegramUserId: string;
   text: string;
 };
@@ -16,6 +17,7 @@ export type TelegramCommandReply = {
 
 type TelegramCommandDependencies = {
   getActiveTelegramAccount: (
+    botConnectionId: string,
     telegramUserId: string,
   ) => Promise<TelegramAccount | null>;
   createBoard: (input: {
@@ -78,6 +80,7 @@ export async function handleTelegramTextCommand(
   }
 
   const account = await dependencies.getActiveTelegramAccount(
+    input.botConnectionId,
     input.telegramUserId,
   );
 

@@ -11,7 +11,6 @@ import { createTask } from "../src/db/tasks";
 import {
   consumeTelegramLinkToken,
   createTelegramLinkTokenRecord,
-  getActiveTelegramAccount,
   unlinkTelegramAccount,
 } from "../src/db/telegram";
 import { createWorkspace } from "../src/db/workspaces";
@@ -98,7 +97,9 @@ async function main() {
     throw new Error(linkedAccount.error);
   }
 
-  const activeTelegramAccount = await getActiveTelegramAccount(telegramUserId);
+  const activeTelegramAccount = await prisma.telegramAccount.findFirst({
+    where: { telegramUserId, unlinkedAt: null },
+  });
 
   if (!activeTelegramAccount) {
     throw new Error("Expected linked Telegram account in smoke test.");

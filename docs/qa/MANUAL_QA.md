@@ -132,3 +132,15 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Type in the "Search boards" input.
 - [ ] Board list filters to matching names in real time (client-side filter).
 - [ ] Clearing the input restores the full list.
+
+## 16. Telegram user-owned bot
+
+- [ ] Ensure deployed app has public HTTPS `APP_URL` and `APP_ENCRYPTION_KEY`.
+- [ ] In BotFather, run `/newbot` and copy the new token.
+- [ ] Open `/settings`, paste the token, and click "Connect token".
+- [ ] Send `/start` to the new bot.
+- [ ] Bot replies with a Telegram ID.
+- [ ] Paste that ID in `/settings` and click "Connect ID".
+- [ ] Send `/boards` and `/tasks`; bot replies with workspace data.
+- [ ] Send `/newboard Test` and `/addnote Test: hello`; web app shows the created board/note.
+- [ ] Click "Remove bot"; later commands from Telegram no longer execute.

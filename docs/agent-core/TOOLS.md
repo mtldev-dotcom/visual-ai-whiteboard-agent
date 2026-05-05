@@ -25,7 +25,7 @@ Telegram commands are not assistant tools yet, but they are implemented server c
 - `/tasks`
 - `/newboard`
 - `/addnote`
-- `/start <token>` for one-time Telegram account linking
+- `/start` on a user-owned bot replies with the Telegram ID needed for Settings linking
 
 Telegram mutation commands require linked accounts and audit events.
 

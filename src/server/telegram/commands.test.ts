@@ -13,11 +13,13 @@ import {
 } from "./commands";
 
 const linkedAccount = {
+  botConnectionId: "bot-connection-1",
   firstName: "Ada",
   id: "telegram-account-1",
   lastName: null,
   linkedAt: new Date("2026-05-03T12:00:00.000Z"),
   ownerUserId: "user-1",
+  telegramChatId: "123",
   telegramUserId: "123",
   unlinkedAt: null,
   updatedAt: new Date("2026-05-03T12:00:00.000Z"),
@@ -61,11 +63,22 @@ function createTask(title: string, input: Partial<Task> = {}): Task {
 const baseDependencies = {
   createBoard: async () => createBoard("Created"),
   createCanvasItem: async () => ({ id: "item-1" }),
-  getActiveTelegramAccount: async () => linkedAccount,
+  getActiveTelegramAccount: async (botConnectionId: string) => {
+    expect(botConnectionId).toBe("bot-connection-1");
+    return linkedAccount;
+  },
   listBoardsForWorkspace: async () => [],
   listOpenTasksForWorkspace: async () => [],
   recordAuditEvent: async () => ({}),
 };
+
+function commandInput(text: string) {
+  return {
+    botConnectionId: "bot-connection-1",
+    telegramUserId: "123",
+    text,
+  };
+}
 
 describe("Telegram command parsing", () => {
   it("parses bot-addressed commands case-insensitively", () => {
@@ -93,18 +106,15 @@ describe("handleTelegramTextCommand", () => {
     let listedBoards = false;
 
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/boards" },
-        {
-          ...baseDependencies,
-          getActiveTelegramAccount: async () => null,
-          listBoardsForWorkspace: async () => {
-            listedBoards = true;
-            return [];
-          },
-          listOpenTasksForWorkspace: async () => [],
+      handleTelegramTextCommand(commandInput("/boards"), {
+        ...baseDependencies,
+        getActiveTelegramAccount: async () => null,
+        listBoardsForWorkspace: async () => {
+          listedBoards = true;
+          return [];
         },
-      ),
+        listOpenTasksForWorkspace: async () => [],
+      }),
     ).resolves.toEqual({
       text: "Link your account from the web app before using Telegram commands.",
     });
@@ -113,17 +123,14 @@ describe("handleTelegramTextCommand", () => {
 
   it("lists recent boards for linked users", async () => {
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/boards" },
-        {
-          ...baseDependencies,
-          getActiveTelegramAccount: async () => linkedAccount,
-          listBoardsForWorkspace: async (workspaceId) => {
-            expect(workspaceId).toBe("workspace-1");
-            return [createBoard("Launch"), createBoard("Ideas")];
-          },
+      handleTelegramTextCommand(commandInput("/boards"), {
+        ...baseDependencies,
+        getActiveTelegramAccount: async () => linkedAccount,
+        listBoardsForWorkspace: async (workspaceId) => {
+          expect(workspaceId).toBe("workspace-1");
+          return [createBoard("Launch"), createBoard("Ideas")];
         },
-      ),
+      }),
     ).resolves.toEqual({
       text: "Recent boards:\n1. Launch\n2. Ideas",
     });
@@ -131,13 +138,10 @@ describe("handleTelegramTextCommand", () => {
 
   it("returns an empty-state reply when no boards exist", async () => {
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/boards" },
-        {
-          ...baseDependencies,
-          listBoardsForWorkspace: async () => [],
-        },
-      ),
+      handleTelegramTextCommand(commandInput("/boards"), {
+        ...baseDependencies,
+        listBoardsForWorkspace: async () => [],
+      }),
     ).resolves.toEqual({
       text: "No boards yet. Use /newboard <title> to create one.",
     });
@@ -149,17 +153,14 @@ describe("handleTelegramTextCommand /tasks", () => {
     let listedTasks = false;
 
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/tasks" },
-        {
-          ...baseDependencies,
-          getActiveTelegramAccount: async () => null,
-          listOpenTasksForWorkspace: async () => {
-            listedTasks = true;
-            return [];
-          },
+      handleTelegramTextCommand(commandInput("/tasks"), {
+        ...baseDependencies,
+        getActiveTelegramAccount: async () => null,
+        listOpenTasksForWorkspace: async () => {
+          listedTasks = true;
+          return [];
         },
-      ),
+      }),
     ).resolves.toEqual({
       text: "Link your account from the web app before using Telegram commands.",
     });
@@ -168,22 +169,19 @@ describe("handleTelegramTextCommand /tasks", () => {
 
   it("lists open tasks for linked users", async () => {
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/tasks" },
-        {
-          ...baseDependencies,
-          listOpenTasksForWorkspace: async (workspaceId) => {
-            expect(workspaceId).toBe("workspace-1");
-            return [
-              createTask("Review launch", {
-                dueAt: new Date("2026-05-04T09:30:00.000Z"),
-                priority: "high",
-              }),
-              createTask("Clean notes"),
-            ];
-          },
+      handleTelegramTextCommand(commandInput("/tasks"), {
+        ...baseDependencies,
+        listOpenTasksForWorkspace: async (workspaceId) => {
+          expect(workspaceId).toBe("workspace-1");
+          return [
+            createTask("Review launch", {
+              dueAt: new Date("2026-05-04T09:30:00.000Z"),
+              priority: "high",
+            }),
+            createTask("Clean notes"),
+          ];
         },
-      ),
+      }),
     ).resolves.toEqual({
       text: "Open tasks:\n1. Review launch [high] due 2026-05-04 09:30\n2. Clean notes",
     });
@@ -191,10 +189,7 @@ describe("handleTelegramTextCommand /tasks", () => {
 
   it("returns an empty-state reply when no open tasks exist", async () => {
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/tasks" },
-        baseDependencies,
-      ),
+      handleTelegramTextCommand(commandInput("/tasks"), baseDependencies),
     ).resolves.toEqual({
       text: "No open tasks.",
     });
@@ -206,17 +201,14 @@ describe("handleTelegramTextCommand /newboard", () => {
     let createdBoard = false;
 
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/newboard Launch" },
-        {
-          ...baseDependencies,
-          createBoard: async () => {
-            createdBoard = true;
-            return createBoard("Launch");
-          },
-          getActiveTelegramAccount: async () => null,
+      handleTelegramTextCommand(commandInput("/newboard Launch"), {
+        ...baseDependencies,
+        createBoard: async () => {
+          createdBoard = true;
+          return createBoard("Launch");
         },
-      ),
+        getActiveTelegramAccount: async () => null,
+      }),
     ).resolves.toEqual({
       text: "Link your account from the web app before using Telegram commands.",
     });
@@ -225,10 +217,7 @@ describe("handleTelegramTextCommand /newboard", () => {
 
   it("returns usage when title is missing", async () => {
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/newboard" },
-        baseDependencies,
-      ),
+      handleTelegramTextCommand(commandInput("/newboard"), baseDependencies),
     ).resolves.toEqual({
       text: "Usage: /newboard <title>",
     });
@@ -238,25 +227,22 @@ describe("handleTelegramTextCommand /newboard", () => {
     const auditEvents: unknown[] = [];
 
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/newboard Launch Plan" },
-        {
-          ...baseDependencies,
-          createBoard: async (input) => {
-            expect(input).toEqual({
-              createdBy: "user",
-              title: "Launch Plan",
-              workspaceId: "workspace-1",
-            });
+      handleTelegramTextCommand(commandInput("/newboard Launch Plan"), {
+        ...baseDependencies,
+        createBoard: async (input) => {
+          expect(input).toEqual({
+            createdBy: "user",
+            title: "Launch Plan",
+            workspaceId: "workspace-1",
+          });
 
-            return createBoard("Launch Plan");
-          },
-          recordAuditEvent: async (input) => {
-            auditEvents.push(input);
-            return {};
-          },
+          return createBoard("Launch Plan");
         },
-      ),
+        recordAuditEvent: async (input) => {
+          auditEvents.push(input);
+          return {};
+        },
+      }),
     ).resolves.toEqual({
       text: "Created board: Launch Plan",
     });
@@ -280,17 +266,14 @@ describe("handleTelegramTextCommand /addnote", () => {
     let createdItem = false;
 
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/addnote Ideas: Build" },
-        {
-          ...baseDependencies,
-          createCanvasItem: async () => {
-            createdItem = true;
-            return { id: "item-1" };
-          },
-          getActiveTelegramAccount: async () => null,
+      handleTelegramTextCommand(commandInput("/addnote Ideas: Build"), {
+        ...baseDependencies,
+        createCanvasItem: async () => {
+          createdItem = true;
+          return { id: "item-1" };
         },
-      ),
+        getActiveTelegramAccount: async () => null,
+      }),
     ).resolves.toEqual({
       text: "Link your account from the web app before using Telegram commands.",
     });
@@ -300,7 +283,7 @@ describe("handleTelegramTextCommand /addnote", () => {
   it("returns usage when board title or note is missing", async () => {
     await expect(
       handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/addnote Ideas" },
+        commandInput("/addnote Ideas"),
         baseDependencies,
       ),
     ).resolves.toEqual({
@@ -310,13 +293,10 @@ describe("handleTelegramTextCommand /addnote", () => {
 
   it("returns not found when the target board does not exist", async () => {
     await expect(
-      handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/addnote Missing: Build" },
-        {
-          ...baseDependencies,
-          listBoardsForWorkspace: async () => [createBoard("Ideas")],
-        },
-      ),
+      handleTelegramTextCommand(commandInput("/addnote Missing: Build"), {
+        ...baseDependencies,
+        listBoardsForWorkspace: async () => [createBoard("Ideas")],
+      }),
     ).resolves.toEqual({
       text: "Board not found: Missing",
     });
@@ -327,7 +307,7 @@ describe("handleTelegramTextCommand /addnote", () => {
 
     await expect(
       handleTelegramTextCommand(
-        { telegramUserId: "123", text: "/addnote Ideas: Build mobile flow" },
+        commandInput("/addnote Ideas: Build mobile flow"),
         {
           ...baseDependencies,
           createCanvasItem: async (input) => {

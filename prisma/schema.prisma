@@ -18,21 +18,23 @@ model User {
 }
 
 model Workspace {
-  id                 String              @id @default(cuid())
-  ownerUserId        String
-  name               String
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  owner              User                @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  boards             Board[]
-  canvasItems        CanvasItem[]
-  widgets            WidgetInstance[]
-  tasks              Task[]
-  reminders          Reminder[]
-  telegramLinkTokens TelegramLinkToken[]
-  telegramAccounts   TelegramAccount[]
-  auditEvents        AuditEvent[]
-  chatThreads        ChatThread[]
+  id                      String                  @id @default(cuid())
+  ownerUserId             String
+  name                    String
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  owner                   User                    @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  boards                  Board[]
+  canvasItems             CanvasItem[]
+  widgets                 WidgetInstance[]
+  tasks                   Task[]
+  reminders               Reminder[]
+  telegramLinkTokens      TelegramLinkToken[]
+  telegramAccounts        TelegramAccount[]
+  telegramBotConnections  TelegramBotConnection[]
+  telegramStartIdentities TelegramStartIdentity[]
+  auditEvents             AuditEvent[]
+  chatThreads             ChatThread[]
 
   @@index([ownerUserId])
 }
@@ -214,29 +216,79 @@ model TelegramLinkToken {
 }
 
 model TelegramAccount {
-  id             String    @id @default(cuid())
-  ownerUserId    String    @unique
-  workspaceId    String
-  telegramUserId String    @unique
-  username       String?
-  firstName      String?
-  lastName       String?
-  linkedAt       DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  unlinkedAt     DateTime?
+  id              String    @id @default(cuid())
+  ownerUserId     String    @unique
+  workspaceId     String
+  botConnectionId String?
+  telegramUserId  String    @unique
+  telegramChatId  String?
+  username        String?
+  firstName       String?
+  lastName        String?
+  linkedAt        DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  unlinkedAt      DateTime?
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace     Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  botConnection TelegramBotConnection? @relation(fields: [botConnectionId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId])
+  @@index([botConnectionId])
   @@index([unlinkedAt])
 }
 
+model TelegramBotConnection {
+  id                String    @id @default(cuid())
+  ownerUserId       String    @unique
+  workspaceId       String
+  botId             String    @unique
+  botUsername       String?
+  botFirstName      String?
+  tokenCiphertext   String
+  tokenIv           String
+  tokenAuthTag      String
+  tokenHash         String    @unique
+  webhookSecretHash String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  revokedAt         DateTime?
+
+  workspace        Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  telegramAccounts TelegramAccount[]
+  startIdentities  TelegramStartIdentity[]
+
+  @@index([workspaceId])
+  @@index([revokedAt])
+}
+
+model TelegramStartIdentity {
+  id              String    @id @default(cuid())
+  botConnectionId String
+  workspaceId     String
+  telegramUserId  String
+  telegramChatId  String
+  username        String?
+  firstName       String?
+  lastName        String?
+  seenAt          DateTime  @default(now())
+  expiresAt       DateTime
+  consumedAt      DateTime?
+
+  botConnection TelegramBotConnection @relation(fields: [botConnectionId], references: [id], onDelete: Cascade)
+  workspace     Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([botConnectionId, telegramUserId])
+  @@index([workspaceId])
+  @@index([expiresAt])
+  @@index([consumedAt])
+}
+
 model ChatThread {
-  id          String        @id @default(cuid())
+  id          String   @id @default(cuid())
   workspaceId String
   boardId     String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   messages  ChatMessage[]

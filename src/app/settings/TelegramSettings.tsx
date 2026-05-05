@@ -1,73 +1,152 @@
 "use client";
 
-import { Check, Copy, ExternalLink, Send, Unlink } from "lucide-react";
+import { Check, KeyRound, Send, Trash2, Unlink } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 type TelegramAccount = {
   telegramUserId: string;
+  telegramChatId: string | null;
   username: string | null;
   firstName: string | null;
   lastName: string | null;
   linkedAt: string;
 };
 
-type Props = {
-  initialAccount: TelegramAccount | null;
+type TelegramBot = {
+  id: string;
+  botId: string;
   botUsername: string | null;
+  botFirstName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  revokedAt: string | null;
 };
 
-export function TelegramSettings({ initialAccount, botUsername }: Props) {
-  const [account, setAccount] = useState<TelegramAccount | null>(initialAccount);
-  const [token, setToken] = useState<string | null>(null);
-  const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+type Props = {
+  initialAccount: TelegramAccount | null;
+  initialBot: TelegramBot | null;
+};
+
+export function TelegramSettings({ initialAccount, initialBot }: Props) {
+  const [account, setAccount] = useState<TelegramAccount | null>(
+    initialAccount,
+  );
+  const [bot, setBot] = useState<TelegramBot | null>(initialBot);
+  const [botToken, setBotToken] = useState("");
+  const [telegramUserId, setTelegramUserId] = useState("");
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const command = token ? `/start ${token}` : null;
-  const deepLink = token && botUsername
-    ? `https://t.me/${botUsername}?start=${token}`
-    : null;
-
-  async function generateToken() {
-    setLoading(true);
+  async function connectToken() {
+    setLoadingAction("token");
     setError(null);
+    setNotice(null);
+
     try {
-      const res = await fetch("/api/telegram/link-token", { method: "POST" });
-      if (!res.ok) throw new Error("Failed to generate link token.");
-      const data = await res.json() as { token: string; expiresAt: string };
-      setToken(data.token);
-      setExpiresAt(data.expiresAt);
-    } catch {
-      setError("Could not generate a link token. Try again.");
+      const res = await fetch("/api/telegram/bot", {
+        body: JSON.stringify({ token: botToken }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      const data = (await res.json()) as { bot?: TelegramBot; error?: string };
+
+      if (!res.ok || !data.bot) {
+        throw new Error(data.error ?? "Could not connect Telegram bot.");
+      }
+
+      setBot(data.bot);
+      setAccount(null);
+      setBotToken("");
+      setNotice(
+        "Token connected. Send /start to your bot, then paste the ID it replies with.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not connect Telegram bot.",
+      );
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
-  async function unlinkAccount() {
-    setLoading(true);
+  async function connectId() {
+    setLoadingAction("id");
     setError(null);
+    setNotice(null);
+
+    try {
+      const res = await fetch("/api/telegram/account", {
+        body: JSON.stringify({ telegramUserId }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
+      const data = (await res.json()) as {
+        account?: TelegramAccount;
+        error?: string;
+      };
+
+      if (!res.ok || !data.account) {
+        throw new Error(data.error ?? "Could not connect Telegram ID.");
+      }
+
+      setAccount(data.account);
+      setTelegramUserId("");
+      setNotice("Telegram ID connected. Try /boards or /tasks in your bot.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not connect Telegram ID.",
+      );
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
+  async function disconnectId() {
+    setLoadingAction("disconnect-id");
+    setError(null);
+    setNotice(null);
+
     try {
       const res = await fetch("/api/telegram/account", { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to unlink account.");
+      if (!res.ok) throw new Error("Could not disconnect Telegram ID.");
       setAccount(null);
-      setToken(null);
-      setExpiresAt(null);
-    } catch {
-      setError("Could not unlink account. Try again.");
+      setNotice("Telegram ID disconnected. The bot token is still saved.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not disconnect Telegram ID.",
+      );
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   }
 
-  async function copyCommand() {
-    if (!command) return;
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function removeBot() {
+    setLoadingAction("remove-bot");
+    setError(null);
+    setNotice(null);
+
+    try {
+      const res = await fetch("/api/telegram/bot", { method: "DELETE" });
+      if (!res.ok) throw new Error("Could not remove Telegram bot.");
+      setBot(null);
+      setAccount(null);
+      setNotice("Telegram bot removed.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not remove Telegram bot.",
+      );
+    } finally {
+      setLoadingAction(null);
+    }
   }
 
+  const botLabel = bot?.botUsername
+    ? `@${bot.botUsername}`
+    : (bot?.botFirstName ?? "your bot");
   const displayName = account
     ? [account.firstName, account.lastName].filter(Boolean).join(" ") ||
       (account.username ? `@${account.username}` : account.telegramUserId)
@@ -75,7 +154,6 @@ export function TelegramSettings({ initialAccount, botUsername }: Props) {
 
   return (
     <div>
-      {/* Section heading */}
       <div className="mb-5 flex items-center gap-3">
         <div
           className="flex h-9 w-9 items-center justify-center rounded-lg"
@@ -84,164 +162,234 @@ export function TelegramSettings({ initialAccount, botUsername }: Props) {
           <Send size={18} />
         </div>
         <div>
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-1)" }}>
+          <h2
+            className="text-sm font-semibold"
+            style={{ color: "var(--text-1)" }}
+          >
             Telegram
           </h2>
           <p className="text-xs" style={{ color: "var(--text-3)" }}>
-            Connect your Telegram account to use bot commands for boards and tasks.
+            Use your own BotFather bot for board and task commands.
           </p>
         </div>
       </div>
 
-      {error && (
-        <p
-          className="mb-4 rounded-lg px-3 py-2 text-xs"
-          style={{ background: "var(--danger-light, #fee2e2)", color: "var(--danger, #dc2626)" }}
-        >
-          {error}
-        </p>
-      )}
+      {error && <StatusMessage tone="danger" text={error} />}
+      {notice && <StatusMessage tone="success" text={notice} />}
 
-      {account ? (
-        /* ── Connected state ── */
-        <div>
-          <div
-            className="mb-4 flex items-center gap-3 rounded-lg border px-4 py-3"
-            style={{ borderColor: "var(--border)", background: "var(--bg-elevated, var(--bg-app))" }}
-          >
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-              style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
-            >
-              {(account.firstName?.[0] ?? account.username?.[0] ?? "T").toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate" style={{ color: "var(--text-1)" }}>
-                {displayName}
-              </p>
-              {account.username && (
-                <p className="text-xs" style={{ color: "var(--text-3)" }}>
-                  @{account.username}
-                </p>
-              )}
-            </div>
-            <span
-              className="rounded-full px-2 py-0.5 text-xs font-medium"
-              style={{ background: "var(--success-light, #dcfce7)", color: "var(--success, #16a34a)" }}
-            >
-              Connected
-            </span>
-          </div>
-
-          <p className="mb-4 text-xs" style={{ color: "var(--text-3)" }}>
-            Linked on {new Date(account.linkedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}.
-            You can use{botUsername ? ` @${botUsername}` : " the bot"} in Telegram to manage boards and tasks.
-          </p>
-
-          <button
-            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
-            disabled={loading}
-            onClick={unlinkAccount}
-            style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
-            type="button"
-          >
-            <Unlink size={14} />
-            {loading ? "Disconnecting…" : "Disconnect Telegram"}
-          </button>
-        </div>
-      ) : token ? (
-        /* ── Token generated state ── */
-        <div>
+      <div className="space-y-6">
+        <section>
+          <StepHeader
+            active={!bot}
+            complete={Boolean(bot)}
+            icon={<KeyRound size={14} />}
+            label="1"
+            title="Connect token"
+          />
           <p className="mb-3 text-xs" style={{ color: "var(--text-2)" }}>
-            Send the command below to{" "}
-            {botUsername ? (
-              <strong>@{botUsername}</strong>
-            ) : (
-              "your Telegram bot"
-            )}{" "}
-            to link your account. This link expires in 15 minutes.
+            In Telegram, open BotFather, run /newbot, create a bot, then paste
+            the token here.
           </p>
-
-          <div
-            className="mb-3 flex items-center gap-2 rounded-lg border px-3 py-2.5"
-            style={{ borderColor: "var(--border)", background: "var(--bg-elevated, var(--bg-app))" }}
-          >
-            <code
-              className="flex-1 truncate text-sm font-mono"
-              style={{ color: "var(--text-1)" }}
-            >
-              {command}
-            </code>
-            <button
-              className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors"
-              onClick={copyCommand}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
+              disabled={loadingAction !== null}
+              onChange={(event) => setBotToken(event.target.value)}
+              placeholder="123456789:AA..."
               style={{
-                background: copied ? "var(--accent-light)" : "var(--bg-surface)",
-                color: copied ? "var(--accent)" : "var(--text-2)",
+                background: "var(--bg-elevated, var(--bg-app))",
+                borderColor: "var(--border)",
+                color: "var(--text-1)",
               }}
+              type="password"
+              value={botToken}
+            />
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
+              disabled={loadingAction !== null || !botToken.trim()}
+              onClick={connectToken}
+              style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
               type="button"
             >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? "Copied!" : "Copy"}
+              <KeyRound size={14} />
+              {loadingAction === "token" ? "Connecting..." : "Connect token"}
             </button>
           </div>
-
-          {deepLink && (
-            <a
-              className="mb-4 flex items-center gap-2 text-xs font-medium transition-opacity hover:opacity-70"
-              href={deepLink}
-              rel="noopener noreferrer"
-              style={{ color: "var(--accent)" }}
-              target="_blank"
+          {bot && (
+            <div
+              className="mt-3 rounded-lg border px-3 py-2 text-xs"
+              style={{
+                background: "var(--bg-elevated, var(--bg-app))",
+                borderColor: "var(--border)",
+                color: "var(--text-2)",
+              }}
             >
-              <ExternalLink size={13} />
-              Open in Telegram
-            </a>
+              Token connected for{" "}
+              <strong style={{ color: "var(--text-1)" }}>{botLabel}</strong>.
+            </div>
           )}
+        </section>
 
-          <p className="mb-4 text-xs" style={{ color: "var(--text-3)" }}>
-            Expires at {new Date(expiresAt!).toLocaleTimeString(undefined, { timeStyle: "short" })}.
-            Already sent it?{" "}
+        <section>
+          <StepHeader
+            active={Boolean(bot && !account)}
+            complete={Boolean(account)}
+            icon={<Send size={14} />}
+            label="2"
+            title="Connect ID"
+          />
+          <p className="mb-3 text-xs" style={{ color: "var(--text-2)" }}>
+            Send /start to {bot ? botLabel : "the bot you connected"}. It will
+            reply with your Telegram ID. Paste that ID here.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
+              disabled={!bot || loadingAction !== null}
+              inputMode="numeric"
+              onChange={(event) =>
+                setTelegramUserId(event.target.value.replace(/\D/g, ""))
+              }
+              placeholder="Telegram ID"
+              style={{
+                background: "var(--bg-elevated, var(--bg-app))",
+                borderColor: "var(--border)",
+                color: "var(--text-1)",
+              }}
+              value={telegramUserId}
+            />
             <button
-              className="underline transition-opacity hover:opacity-70"
-              onClick={() => window.location.reload()}
-              style={{ color: "var(--text-2)" }}
+              className="flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
+              disabled={!bot || loadingAction !== null || !telegramUserId}
+              onClick={connectId}
+              style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
               type="button"
             >
-              Refresh to check status
+              <Check size={14} />
+              {loadingAction === "id" ? "Connecting..." : "Connect ID"}
             </button>
-            .
-          </p>
+          </div>
+        </section>
 
-          <button
-            className="text-xs underline transition-opacity hover:opacity-70"
-            onClick={generateToken}
-            style={{ color: "var(--text-3)" }}
-            type="button"
-          >
-            Generate a new link
-          </button>
-        </div>
-      ) : (
-        /* ── Not connected state ── */
-        <div>
-          <p className="mb-4 text-xs" style={{ color: "var(--text-2)" }}>
-            Not connected.{botUsername ? ` Connect to @${botUsername}` : " Connect a Telegram bot"} to
-            manage your boards and tasks directly from Telegram.
-          </p>
+        {account && (
+          <section>
+            <StepHeader
+              active={false}
+              complete
+              icon={<Check size={14} />}
+              label="3"
+              title="Connected"
+            />
+            <div
+              className="mb-3 flex flex-col gap-3 rounded-lg border px-4 py-3 sm:flex-row sm:items-center"
+              style={{
+                background: "var(--bg-elevated, var(--bg-app))",
+                borderColor: "var(--border)",
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <p
+                  className="truncate text-sm font-medium"
+                  style={{ color: "var(--text-1)" }}
+                >
+                  {displayName}
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                  Telegram ID {account.telegramUserId}
+                </p>
+              </div>
+              <span
+                className="w-fit rounded-full px-2 py-0.5 text-xs font-medium"
+                style={{
+                  background: "var(--success-light, #dcfce7)",
+                  color: "var(--success, #16a34a)",
+                }}
+              >
+                Connected
+              </span>
+            </div>
+          </section>
+        )}
 
-          <button
-            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
-            disabled={loading}
-            onClick={generateToken}
-            style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
-            type="button"
-          >
-            <Send size={14} />
-            {loading ? "Generating…" : "Connect Telegram"}
-          </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {account && (
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+              disabled={loadingAction !== null}
+              onClick={disconnectId}
+              style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
+              type="button"
+            >
+              <Unlink size={14} />
+              {loadingAction === "disconnect-id"
+                ? "Disconnecting..."
+                : "Disconnect ID"}
+            </button>
+          )}
+          {bot && (
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+              disabled={loadingAction !== null}
+              onClick={removeBot}
+              style={{ borderColor: "var(--border)", color: "var(--danger)" }}
+              type="button"
+            >
+              <Trash2 size={14} />
+              {loadingAction === "remove-bot" ? "Removing..." : "Remove bot"}
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </div>
+  );
+}
+
+function StepHeader(props: {
+  active: boolean;
+  complete: boolean;
+  icon: ReactNode;
+  label: string;
+  title: string;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-2">
+      <div
+        className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold"
+        style={{
+          background:
+            props.complete || props.active
+              ? "var(--accent)"
+              : "var(--bg-elevated, var(--bg-app))",
+          border: `1px solid ${props.complete || props.active ? "var(--accent)" : "var(--border)"}`,
+          color:
+            props.complete || props.active
+              ? "var(--accent-fg)"
+              : "var(--text-3)",
+        }}
+      >
+        {props.complete ? props.icon : props.label}
+      </div>
+      <h3 className="text-sm font-semibold" style={{ color: "var(--text-1)" }}>
+        {props.title}
+      </h3>
+    </div>
+  );
+}
+
+function StatusMessage(props: { tone: "danger" | "success"; text: string }) {
+  const isDanger = props.tone === "danger";
+
+  return (
+    <p
+      className="mb-4 rounded-lg px-3 py-2 text-xs"
+      style={{
+        background: isDanger
+          ? "var(--danger-light, #fee2e2)"
+          : "var(--success-light, #dcfce7)",
+        color: isDanger ? "var(--danger, #dc2626)" : "var(--success, #16a34a)",
+      }}
+    >
+      {props.text}
+    </p>
   );
 }

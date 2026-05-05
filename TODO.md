@@ -140,7 +140,7 @@ Priority legend:
 - [~] `P0` Verify mobile UX on small screen width. (layout verified at 390px; live device test pending)
 - [x] `P0` Verify permission boundaries. (requireSession() on all routes; soft-delete enforced)
 - [x] `P0` Verify generated widget sandboxing. (iframe sandbox confirmed; confirmation gate in place)
-- [~] `P0` Verify Telegram account linking and command safety. (webhook wired; live bot test still requires public HTTPS APP_URL and TELEGRAM_BOT_TOKEN)
+- [~] `P0` Verify Telegram account linking and command safety. (user-owned BotFather token flow implemented; live bot test still requires public HTTPS `APP_URL` and `APP_ENCRYPTION_KEY`)
 - [x] `P1` Add onboarding flow.
 - [x] `P1` Add empty states and loading states.
 - [~] `P1` Add error states and recovery actions. (API error responses typed; toast on fetch failure; full recovery UX pending)

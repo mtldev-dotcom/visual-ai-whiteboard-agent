@@ -14,7 +14,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 
 ### Foundation
 
-- Prisma schema: 13 models (User, Workspace, Board, CanvasItem, WidgetDefinition, WidgetInstance, CustomHtmlWidgetSource, Task, Reminder, TelegramLinkToken, TelegramAccount, AuditEvent, ChatThread, ChatMessage).
+- Prisma schema: 16 models (User, Workspace, Board, CanvasItem, WidgetDefinition, WidgetInstance, CustomHtmlWidgetSource, Task, Reminder, TelegramLinkToken, TelegramBotConnection, TelegramStartIdentity, TelegramAccount, AuditEvent, ChatThread, ChatMessage).
 - All DB helpers in `src/db/`.
 - Docker Compose Postgres on port 5444.
 
@@ -56,7 +56,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 
 ### API routes
 
-`/api/auth/[...nextauth]`, `/api/auth/signup`, `/api/boards`, `/api/boards/[id]`, `/api/boards/from-template`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/chat`, `/api/chat/thread`, `/api/health`, `/api/tasks`, `/api/tasks/[id]`, `/api/telegram/webhook`, `/api/workspace`
+`/api/auth/[...nextauth]`, `/api/auth/signup`, `/api/boards`, `/api/boards/[id]`, `/api/boards/from-template`, `/api/canvas-items`, `/api/canvas-items/[id]`, `/api/chat`, `/api/chat/thread`, `/api/health`, `/api/tasks`, `/api/tasks/[id]`, `/api/telegram/account`, `/api/telegram/bot`, `/api/telegram/webhook`, `/api/telegram/webhook/[connectionId]`, `/api/workspace`
 
 ### Deployment
 
@@ -80,10 +80,12 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 
 ### Telegram
 
-- Account-link token DB model and secure consume flow.
+- User-owned BotFather bot token setup from `/settings`.
+- Bot tokens are validated with Telegram `getMe`, encrypted at rest with `APP_ENCRYPTION_KEY`, and registered with per-bot webhook secrets.
+- `/start` on the connected bot records a short-lived Telegram identity and replies with the Telegram ID to paste into Settings.
+- Telegram account linking now requires the user to paste that returned ID and click **Connect ID**.
 - Server command handlers for `/boards`, `/tasks`, `/newboard`, and `/addnote`.
-- `POST /api/telegram/webhook` receives message updates, validates `TELEGRAM_WEBHOOK_SECRET` when configured, links `/start <token>`, dispatches commands, and replies through Telegram `sendMessage`.
-- `npm run telegram:webhook` registers `APP_URL/api/telegram/webhook` with Telegram.
+- `POST /api/telegram/webhook/[connectionId]` receives message updates, validates the bot-specific Telegram secret header, dispatches commands, and replies through Telegram `sendMessage`.
 
 ### Documentation
 
@@ -107,7 +109,7 @@ Continue the remaining P1 backlog beyond PLAN.md: board links, `organize_board`,
 
 ## Known risks
 
-- Telegram webhook was built and compiled, but live bot delivery still needs a public HTTPS `APP_URL`, `TELEGRAM_BOT_TOKEN`, and optional `TELEGRAM_WEBHOOK_SECRET`.
+- Telegram webhook was built and compiled, but live bot delivery still needs a public HTTPS `APP_URL`, a configured `APP_ENCRYPTION_KEY`, and a real BotFather token connected from `/settings`.
 - `npm audit` reports moderate PostCSS and `@hono/node-server` advisories. Do not apply `--force`.
 - `AUTH_SECRET=dev-auth-secret-replace-in-production` in `.env`: replace before any real deployment.
 - Generated HTML widgets: sandbox + confirmation gate in place; do not relax.

@@ -340,17 +340,21 @@ The assistant has access to these implemented tools:
 
 ---
 
-## Flow 18 - Telegram webhook smoke test
+## Flow 18 - Telegram user-owned bot smoke test
 
-**Where:** deployed public HTTPS app and Telegram
+**Where:** deployed public HTTPS app, `/settings`, BotFather, and Telegram
 
-1. Set `APP_URL`, `TELEGRAM_BOT_TOKEN`, and optional `TELEGRAM_WEBHOOK_SECRET`.
-2. Run `npm run telegram:webhook`.
-3. In Telegram, send `/start <link-token>` from a valid web-issued token.
-4. After linking, send `/boards`.
-5. Confirm the bot replies with recent boards.
+1. Set `APP_URL` to the deployed HTTPS URL and configure `APP_ENCRYPTION_KEY`.
+2. In Telegram, open BotFather and run `/newbot`.
+3. Copy the token, open `/settings`, paste it, and click **Connect token**.
+4. Send `/start` to the new bot.
+5. Confirm the bot replies with `Your Telegram ID is <id>...`.
+6. Paste that ID in `/settings` and click **Connect ID**.
+7. Send `/boards` and confirm the bot replies with recent boards.
+8. Send `/tasks`, `/newboard Test`, and `/addnote Test: hello`.
+9. Confirm Telegram replies and the web app reflects created data.
 
-**What works now:** webhook route, optional secret-header check, `/start <token>` linking, command dispatch, Telegram `sendMessage` replies.
+**What works now:** per-user BotFather token connection, encrypted token storage, bot-specific webhook route, `/start` ID handshake, command dispatch, Telegram `sendMessage` replies.
 
 **Known limitations:** live verification requires a real bot token and public HTTPS URL. `/remind`, `/summarize`, photo/file capture, and voice transcription are not implemented.
 

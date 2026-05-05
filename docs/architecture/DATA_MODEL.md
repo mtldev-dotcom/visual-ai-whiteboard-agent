@@ -12,7 +12,9 @@ WidgetInstance    ← implemented
 CustomHtmlWidgetSource ← implemented
 Task              ← implemented
 Reminder          ← implemented
-TelegramLinkToken ← implemented
+TelegramLinkToken ← legacy implemented
+TelegramBotConnection ← implemented
+TelegramStartIdentity ← implemented
 TelegramAccount   ← implemented
 ChatThread        ← schema only (no API persistence yet)
 ChatMessage       ← schema only (no API persistence yet)
@@ -137,6 +139,8 @@ Reminders belong to a workspace and can optionally attach to a board, canvas ite
 
 ## TelegramLinkToken
 
+Legacy model retained for older account-linking code/tests. The active Settings flow uses `TelegramBotConnection` and `TelegramStartIdentity`.
+
 Implemented in `prisma/schema.prisma`.
 
 Telegram link tokens belong to a workspace and owner user. Only the SHA-256 token hash is stored. Tokens are short-lived, one-time credentials with an expiry timestamp and optional consumption timestamp.
@@ -157,17 +161,61 @@ Telegram link tokens belong to a workspace and owner user. Only the SHA-256 toke
 
 Implemented in `prisma/schema.prisma`.
 
-Telegram accounts link one app owner user to one Telegram user ID and default workspace. A linked account can be soft-unlinked with `unlinkedAt`; command handlers must only use active accounts.
+Telegram accounts link one app owner user to one Telegram user ID, chat ID, bot connection, and default workspace. A linked account can be soft-unlinked with `unlinkedAt`; command handlers must only use active accounts for the matching bot connection.
 
 ```json
 {
   "id": "telegram_account_123",
   "ownerUserId": "user_123",
   "workspaceId": "workspace_123",
+  "botConnectionId": "telegram_bot_connection_123",
   "telegramUserId": "123456789",
+  "telegramChatId": "123456789",
   "username": "telegram_user",
   "linkedAt": "timestamp",
   "unlinkedAt": null
+}
+```
+
+## TelegramBotConnection
+
+Implemented in `prisma/schema.prisma`.
+
+Stores one active user-owned BotFather bot per app user/workspace. The raw token is encrypted at rest and never returned after submit.
+
+```json
+{
+  "id": "telegram_bot_connection_123",
+  "ownerUserId": "user_123",
+  "workspaceId": "workspace_123",
+  "botId": "987654321",
+  "botUsername": "my_whiteboard_bot",
+  "botFirstName": "My Whiteboard Bot",
+  "tokenCiphertext": "encrypted",
+  "tokenIv": "iv",
+  "tokenAuthTag": "tag",
+  "tokenHash": "sha256_hex",
+  "webhookSecretHash": "sha256_hex",
+  "revokedAt": null
+}
+```
+
+## TelegramStartIdentity
+
+Implemented in `prisma/schema.prisma`.
+
+Stores a short-lived `/start` identity observed from a saved bot connection. Settings can link a Telegram ID only if a matching unconsumed record exists.
+
+```json
+{
+  "id": "telegram_start_identity_123",
+  "botConnectionId": "telegram_bot_connection_123",
+  "workspaceId": "workspace_123",
+  "telegramUserId": "123456789",
+  "telegramChatId": "123456789",
+  "seenAt": "timestamp",
+  "expiresAt": "timestamp",
+  "consumedAt": null
 }
 ```
 

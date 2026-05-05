@@ -14,6 +14,7 @@
 
 - Auth.
 - Telegram linking.
+- User-owned Telegram bot tokens.
 - Assistant tool calls.
 - Generated HTML widgets.
 - External APIs.
@@ -64,3 +65,10 @@ Audit these actions:
 - Widget generated/updated.
 - Permission granted/denied.
 - Reminder scheduled/cancelled.
+
+## Telegram token policy
+
+- BotFather tokens are submitted only through authenticated Settings APIs.
+- Raw bot tokens are validated with Telegram, encrypted with `APP_ENCRYPTION_KEY`, and never returned to the browser after submit.
+- Telegram webhook secrets are stored only as hashes and validated through `X-Telegram-Bot-Api-Secret-Token`.
+- Telegram commands must match both the bot connection ID and Telegram user ID before workspace data is read or changed.
