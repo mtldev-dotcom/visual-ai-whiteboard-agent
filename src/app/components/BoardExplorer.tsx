@@ -34,7 +34,7 @@ export function BoardExplorer({
   const [newTitle, setNewTitle] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [templates, setTemplates] = useState<{ id: string; name: string; description: string }[]>([]);
+  const [templates, setTemplates] = useState<{ id: string; name: string; description: string; category: string }[]>([]);
   const [applyingTemplate, setApplyingTemplate] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -89,7 +89,7 @@ export function BoardExplorer({
     setShowTemplates(true);
     if (templates.length) return;
     const res = await fetch("/api/boards/from-template");
-    const data = (await res.json()) as { templates?: { id: string; name: string; description: string }[] };
+    const data = (await res.json()) as { templates?: { id: string; name: string; description: string; category: string }[] };
     setTemplates(data.templates ?? []);
   }
 
@@ -177,25 +177,37 @@ export function BoardExplorer({
               ✕
             </button>
           </div>
-          <div className="flex flex-col gap-1.5">
-            {templates.map((t) => (
-              <button
-                className="rounded-lg border p-2 text-left text-xs transition-colors disabled:opacity-50"
-                disabled={applyingTemplate === t.id}
-                key={t.id}
-                onClick={() => applyTemplate(t.id)}
-                style={{ background: "var(--bg-sidebar)", borderColor: "var(--border)", color: "var(--text-1)" }}
-                type="button"
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLElement).style.borderColor = "var(--accent)")
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLElement).style.borderColor = "var(--border)")
-                }
-              >
-                <div className="font-semibold">{t.name}</div>
-                <div style={{ color: "var(--text-3)" }}>{t.description}</div>
-              </button>
+          <div className="flex max-h-[55vh] flex-col gap-3 overflow-y-auto pr-0.5">
+            {Array.from(new Set(templates.map((t) => t.category))).map((cat) => (
+              <div key={cat}>
+                <div
+                  className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--text-3)" }}
+                >
+                  {cat}
+                </div>
+                <div className="flex flex-col gap-1">
+                  {templates.filter((t) => t.category === cat).map((t) => (
+                    <button
+                      className="rounded-lg border p-2 text-left text-xs transition-colors disabled:opacity-50"
+                      disabled={applyingTemplate === t.id}
+                      key={t.id}
+                      onClick={() => applyTemplate(t.id)}
+                      style={{ background: "var(--bg-sidebar)", borderColor: "var(--border)", color: "var(--text-1)" }}
+                      type="button"
+                      onMouseEnter={(e) =>
+                        ((e.currentTarget as HTMLElement).style.borderColor = "var(--accent)")
+                      }
+                      onMouseLeave={(e) =>
+                        ((e.currentTarget as HTMLElement).style.borderColor = "var(--border)")
+                      }
+                    >
+                      <div className="font-semibold">{t.name}</div>
+                      <div style={{ color: "var(--text-3)" }}>{t.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>

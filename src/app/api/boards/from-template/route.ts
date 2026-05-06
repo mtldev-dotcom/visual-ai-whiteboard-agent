@@ -7,7 +7,7 @@ import {
 } from "@/server/board-templates";
 
 export async function GET() {
-  return NextResponse.json({ templates: BOARD_TEMPLATES.map(({ id, name, description }) => ({ id, name, description })) });
+  return NextResponse.json({ templates: BOARD_TEMPLATES.map(({ id, name, description, category }) => ({ id, name, description, category })) });
 }
 
 export async function POST(request: Request) {
