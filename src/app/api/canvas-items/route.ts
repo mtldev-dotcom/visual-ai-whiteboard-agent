@@ -24,6 +24,8 @@ const VALID_TYPES = [
   "shape",
   "frame",
   "notes",
+  "video",
+  "audio",
 ];
 
 function isObject(input: unknown): input is Record<string, unknown> {

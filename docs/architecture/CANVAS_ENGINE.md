@@ -23,14 +23,16 @@ Every canvas item must have:
 - Soft-delete field or equivalent.
 - Version/audit trail for assistant-made changes where possible.
 
-## Initial item types
+## Item types
 
 - `text`
 - `sticky_note`
 - `markdown`
-- `image`
+- `image` — full-card image; `content.src` URL, optional `title` and `alt`
+- `video` — HTML5 video player; `content.src` URL, optional `title`
+- `audio` — HTML5 audio player with waveform decoration; `content.src` URL, optional `title`
+- `iframe_embed` — sandboxed iframe; `content.src` must be an embed URL (not a watch URL). For YouTube: convert `youtube.com/watch?v=ID` → `youtube.com/embed/ID`
 - `link`
-- `iframe_embed`
 - `html_widget`
 - `task_list`
 - `board_link`
@@ -38,6 +40,7 @@ Every canvas item must have:
 - `kanban`
 - `rich_text`
 - `reminders`
+- `notes`
 - `drawing`
 - `arrow`
 - `shape`
@@ -62,9 +65,17 @@ MVP must support:
 
 The floating toolbar supports selection, panning, freehand drawing, drag-created
 shapes, frames, arrows, text, sticky notes, task lists, widgets, color selection,
-zoom, and tidy/organize. Freehand drawings and arrows are stored as structured
-canvas items with their geometry in `content`; they are not screenshots or raw
-HTML blobs.
+zoom, tidy/organize, and media upload.
+
+**Desktop (`md:` and above):** horizontal bar centered at the bottom of the canvas.
+
+**Mobile (below `md`):** vertical strip pinned to the right edge of the canvas,
+vertically centered and scrollable. Shape sub-kinds appear in a secondary panel
+to the left when the Shape tool is active. The color palette runs as a vertical
+strip of swatches at the bottom of the panel.
+
+Freehand drawings and arrows are stored as structured canvas items with their
+geometry in `content`; they are not screenshots or raw HTML blobs.
 
 ## Mobile behavior
 

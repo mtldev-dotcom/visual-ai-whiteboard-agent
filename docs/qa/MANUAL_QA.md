@@ -128,7 +128,22 @@ Set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` in `.env.local` for LLM f
 - [ ] Bottom nav Core navigates to `/core`.
 - [ ] At 1024px+: three-column layout, bottom nav hidden.
 
-## 15. Security checks
+## 15. Media upload and embed
+
+- [ ] Drag a JPEG from the OS file manager onto the canvas — image card appears at the drop position.
+- [ ] Drag an MP4 onto the canvas — video card with native controls appears.
+- [ ] Drag an MP3 onto the canvas — audio card with waveform and player appears.
+- [ ] Dragging an existing image card on the canvas does **not** create a duplicate.
+- [ ] Click the Upload toolbar button (or press `U`) → file picker opens → image card appears at viewport center.
+- [ ] Click the paperclip (📎) in the chat input → attach an image → `[name](url)` inserted in draft.
+- [ ] Paste a YouTube URL in the chat input → blue banner "YouTube detected" appears → click **Embed** → iframe card appears on canvas.
+- [ ] Ask assistant: "Embed https://www.youtube.com/watch?v=dQw4w9WgXcQ" → assistant creates `iframe_embed` with correct embed URL.
+- [ ] Drop a `.pdf` or `.exe` onto the canvas — no card created, upload silently rejected.
+- [ ] At 390px viewport width, the toolbar is a vertical strip on the right side of the canvas, not the bottom.
+- [ ] Toolbar scrolls vertically if content overflows the viewport height.
+- [ ] Selecting the Shape tool at mobile width shows the shape sub-kind panel to the left of the main strip.
+
+## 16. Security checks
 
 - [ ] No `AUTH_SECRET` or API keys visible in browser network inspector.
 - [ ] Accessing `/api/boards` without a session returns 401.

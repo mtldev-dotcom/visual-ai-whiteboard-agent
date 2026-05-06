@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   ArrowUpRight,
   Check,
@@ -40,6 +39,10 @@ function minimapColor(type: string): string {
     case "arrow": return "#94a3b8";
     case "html_widget": return "#c4b5fd";
     case "rich_text": return "#f9a8d4";
+    case "image":
+    case "video": return "#60a5fa";
+    case "audio": return "#a78bfa";
+    case "iframe_embed": return "#34d399";
     default: return "#d1d5db";
   }
 }
@@ -72,6 +75,8 @@ type CanvasItemContent = {
     title: string;
     cards: { id: string; title: string }[];
   }[];
+  mimeType?: string;
+  embedUrl?: string;
 };
 
 type CanvasItem = {
@@ -635,26 +640,143 @@ function ItemCard({
   if (item.type === "image") {
     return (
       <div
-        className={`${base} flex flex-col items-center justify-center gap-2 p-3`}
+        className={`${base} flex flex-col overflow-hidden`}
         style={{
           background: "var(--bg-surface)",
           borderColor: "var(--border)",
           boxShadow: "var(--shadow-card)",
         }}
       >
-        <Image
-          alt={item.content.alt ?? ""}
-          className="h-16 w-full object-contain opacity-80"
-          height={64}
-          src={item.content.src ?? "/globe.svg"}
-          width={200}
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt={item.content.alt ?? item.content.title ?? ""}
+            className="absolute inset-0 h-full w-full object-contain"
+            draggable={false}
+            src={item.content.src ?? "/globe.svg"}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = "/globe.svg";
+            }}
+          />
+        </div>
+        {item.content.title && (
+          <p
+            className="shrink-0 truncate border-t px-2 py-1.5 text-center text-[11px] font-medium"
+            style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
+          >
+            {item.content.title}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (item.type === "iframe_embed") {
+    const embedSrc = item.content.embedUrl ?? item.content.src ?? "";
+    return (
+      <div
+        className={`${base} overflow-hidden`}
+        style={{
+          background: "#000",
+          borderColor: "var(--border)",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        {embedSrc ? (
+          <iframe
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            className="h-full w-full border-0"
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
+            src={embedSrc}
+            title={item.content.title ?? "Embed"}
+          />
+        ) : (
+          <div
+            className="flex h-full w-full items-center justify-center text-xs"
+            style={{ color: "var(--text-3)" }}
+          >
+            No embed URL
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (item.type === "video") {
+    return (
+      <div
+        className={`${base} flex flex-col overflow-hidden`}
+        style={{
+          background: "#000",
+          borderColor: "var(--border)",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <video
+            className="absolute inset-0 h-full w-full object-contain"
+            controls
+            playsInline
+            preload="metadata"
+            src={item.content.src ?? ""}
+          >
+            Your browser does not support the video element.
+          </video>
+        </div>
+        {item.content.title && (
+          <p
+            className="shrink-0 truncate border-t px-2 py-1.5 text-center text-[11px] font-medium"
+            style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
+          >
+            {item.content.title}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (item.type === "audio") {
+    return (
+      <div
+        className={`${base} flex flex-col items-center justify-center gap-3 p-4`}
+        style={{
+          background: "var(--bg-surface)",
+          borderColor: "var(--border)",
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        {/* Decorative waveform bars */}
+        <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div
+              key={i}
+              className="w-1.5 rounded-sm"
+              style={{
+                height: `${20 + Math.sin(i * 0.8) * 14 + Math.cos(i * 1.3) * 8}%`,
+                background: "var(--accent)",
+              }}
+            />
+          ))}
+        </div>
+        {item.content.title && (
+          <p
+            className="w-full truncate text-center text-xs font-semibold"
+            style={{ color: "var(--text-1)" }}
+          >
+            {item.content.title}
+          </p>
+        )}
+        {/* Audio caption handled via title label above */}
+        <audio
+          className="w-full"
+          controls
+          preload="metadata"
+          src={item.content.src ?? ""}
+          onPointerDown={(e) => e.stopPropagation()}
         />
-        <p
-          className="text-center text-xs font-medium"
-          style={{ color: "var(--text-1)" }}
-        >
-          {item.content.title}
-        </p>
       </div>
     );
   }
@@ -1087,6 +1209,10 @@ const NEW_ITEM_DEFAULTS: Record<
   },
   frame: { width: 420, height: 320, content: { title: "Frame", text: "" } },
   section: { width: 480, height: 360, content: { title: "Section", text: "" } },
+  image: { width: 320, height: 240, content: { title: "", src: "" } },
+  video: { width: 400, height: 280, content: { title: "Video", src: "" } },
+  audio: { width: 320, height: 140, content: { title: "Audio", src: "" } },
+  iframe_embed: { width: 480, height: 320, content: { title: "Embed", src: "" } },
 };
 
 export function BoardCanvas({
@@ -1108,6 +1234,7 @@ export function BoardCanvas({
   const [confirmDelete, setConfirmDelete] = useState<ConfirmState>(null);
   const [draft, setDraft] = useState<DraftState>(null);
   const [undoToast, setUndoToast] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ filename: string } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [dragStart, setDragStart] = useState<{
     pointerId: number;
@@ -1272,6 +1399,22 @@ export function BoardCanvas({
   }, [flushPendingPatch, onRefreshNeeded, showUndoToast]);
 
   useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    function handleWheel(e: WheelEvent) {
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) {
+        setZoom((z) => clampZoom(z - e.deltaY * 0.01));
+      } else {
+        setPan((p) => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
+        triggerPanIndicator();
+      }
+    }
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       const tagName = target?.tagName;
@@ -1422,6 +1565,42 @@ export function BoardCanvas({
     setSelectedId(newItem.id);
     if (input.autoEdit) openEditFor(newItem);
     return newItem;
+  }
+
+  async function uploadFileToCanvas(file: File, canvasX: number, canvasY: number) {
+    if (!boardId) return;
+    setUploadProgress({ filename: file.name });
+    const formData = new FormData();
+    formData.append("file", file);
+    let res: Response;
+    try {
+      res = await fetch("/api/upload", { method: "POST", body: formData });
+    } catch {
+      setUploadProgress(null);
+      return;
+    }
+    setUploadProgress(null);
+    if (!res.ok) return;
+    const data = (await res.json()) as { url?: string; mimeType?: string };
+    if (!data.url) return;
+    const mime = data.mimeType ?? "";
+    const type = mime.startsWith("image/") ? "image"
+      : mime.startsWith("video/") ? "video"
+      : mime.startsWith("audio/") ? "audio"
+      : null;
+    if (!type) return;
+    const dimMap: Record<string, [number, number]> = {
+      image: [320, 240], video: [400, 280], audio: [320, 140],
+    };
+    const [w, h] = dimMap[type]!;
+    await createCanvasItem({
+      type,
+      x: canvasX - w / 2,
+      y: canvasY - h / 2,
+      width: w,
+      height: h,
+      content: { src: data.url, title: file.name.replace(/\.[^.]+$/, ""), mimeType: mime },
+    });
   }
 
   async function createItemAtPosition(
@@ -1758,6 +1937,28 @@ export function BoardCanvas({
         </div>
       )}
 
+      {/* Upload progress overlay */}
+      {uploadProgress && (
+        <div
+          className="absolute bottom-20 left-1/2 z-40 -translate-x-1/2 flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm"
+          style={{
+            background: "var(--bg-elevated)",
+            borderColor: "var(--accent)",
+            boxShadow: "var(--shadow-md)",
+            color: "var(--text-1)",
+          }}
+        >
+          <span
+            className="h-4 w-4 animate-spin rounded-full border-2"
+            style={{
+              borderColor: "var(--accent)",
+              borderTopColor: "transparent",
+            }}
+          />
+          <span className="text-xs">Uploading {uploadProgress.filename}…</span>
+        </div>
+      )}
+
       {/* Empty states */}
       {!boardId && !loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -1920,14 +2121,26 @@ export function BoardCanvas({
           }
           setDragStart(null);
         }}
-        onWheel={(e) => {
+        onDragOver={(e) => {
           e.preventDefault();
-          if (e.ctrlKey || e.metaKey) {
-            setZoom((z) => clampZoom(z - e.deltaY * 0.01));
-          } else {
-            setPan((p) => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
-            triggerPanIndicator();
-          }
+          e.dataTransfer.dropEffect = "copy";
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const files = Array.from(e.dataTransfer.files)
+            .filter(
+              (f) =>
+                f.type.startsWith("image/") ||
+                f.type.startsWith("video/") ||
+                f.type.startsWith("audio/"),
+            )
+            .slice(0, 5);
+          if (!files.length) return;
+          const point = getCanvasPoint(e.clientX, e.clientY);
+          if (!point) return;
+          files.forEach((file, i) => {
+            void uploadFileToCanvas(file, point.x + i * 24, point.y + i * 24);
+          });
         }}
       >
         <div
@@ -2211,6 +2424,13 @@ export function BoardCanvas({
         onZoomIn={() => setZoom((z) => clampZoom(z + zoomStep))}
         onZoomOut={() => setZoom((z) => clampZoom(z - zoomStep))}
         onTidy={tidyCanvas}
+        onUpload={(file) => {
+          if (!canvasRef.current) return;
+          const rect = canvasRef.current.getBoundingClientRect();
+          const cx = (rect.width / 2 - pan.x) / zoom;
+          const cy = (rect.height / 2 - pan.y) / zoom;
+          void uploadFileToCanvas(file, cx, cy);
+        }}
       />
 
       {/* Mobile bottom sheet for selected item */}

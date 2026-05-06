@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Send, Wrench } from "lucide-react";
+import { Bot, Paperclip, Send, Wrench, X } from "lucide-react";
 import {
   Fragment,
   FormEvent,
@@ -234,8 +234,14 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [youtubeSuggest, setYoutubeSuggest] = useState<{
+    videoId: string;
+    embedUrl: string;
+  } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(
@@ -275,6 +281,33 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
     void loadThread();
     return () => controller.abort();
   }, [boardId, scrollToBottom]);
+
+  function detectYouTubeUrl(text: string): { videoId: string; embedUrl: string } | null {
+    const match = text.match(
+      /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/,
+    );
+    if (!match?.[1]) return null;
+    return { videoId: match[1], embedUrl: `https://www.youtube.com/embed/${match[1]}` };
+  }
+
+  async function handleFileAttach(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!res.ok) return;
+      const data = (await res.json()) as { url?: string };
+      if (!data.url) return;
+      const label = file.name.replace(/\.[^.]+$/, "");
+      setDraft((prev) => (prev ? `${prev} [${label}](${data.url})` : `[${label}](${data.url})`));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -515,6 +548,62 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
         onSubmit={submitMessage}
         style={{ borderColor: "var(--border)" }}
       >
+        {/* YouTube embed suggestion banner */}
+        {youtubeSuggest && boardId && (
+          <div
+            className="mb-2 flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5"
+            style={{
+              background: "var(--accent-light)",
+              borderColor: "var(--accent)",
+            }}
+          >
+            <span className="text-[11px] font-medium" style={{ color: "var(--accent)" }}>
+              YouTube detected — embed on canvas?
+            </span>
+            <button
+              className="rounded-md px-2 py-0.5 text-[11px] font-semibold transition-colors"
+              style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
+              type="button"
+              onClick={async () => {
+                if (!boardId || !youtubeSuggest) return;
+                const res = await fetch("/api/canvas-items", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    boardId,
+                    type: "iframe_embed",
+                    x: 200,
+                    y: 200,
+                    width: 480,
+                    height: 320,
+                    content: {
+                      src: youtubeSuggest.embedUrl,
+                      embedUrl: youtubeSuggest.embedUrl,
+                      title: "YouTube video",
+                    },
+                  }),
+                });
+                if (res.ok) {
+                  onCanvasChanged?.();
+                  setYoutubeSuggest(null);
+                  setDraft("");
+                }
+              }}
+            >
+              Embed
+            </button>
+            <button
+              aria-label="Dismiss"
+              className="rounded p-0.5"
+              type="button"
+              style={{ color: "var(--text-3)" }}
+              onClick={() => setYoutubeSuggest(null)}
+            >
+              <X size={11} />
+            </button>
+          </div>
+        )}
+
         <div
           className="flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors"
           style={{
@@ -526,11 +615,41 @@ export function AssistantPanel({ boardId, onCanvasChanged }: Props) {
             ref={inputRef}
             className="flex-1 bg-transparent text-sm outline-none"
             disabled={pending || loadingHistory}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setYoutubeSuggest(detectYouTubeUrl(e.target.value));
+            }}
             placeholder={boardId ? "Ask AI…" : "Select a board first…"}
             style={{ color: "var(--text-1)" }}
             value={draft}
           />
+          <input
+            ref={fileInputRef}
+            accept="image/*,video/*,audio/*"
+            className="sr-only"
+            type="file"
+            onChange={handleFileAttach}
+          />
+          <button
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
+            disabled={pending || loadingHistory || uploading || !boardId}
+            style={{ color: "var(--text-3)" }}
+            title="Attach file"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploading ? (
+              <span
+                className="h-3.5 w-3.5 animate-spin rounded-full border-2"
+                style={{
+                  borderColor: "var(--accent)",
+                  borderTopColor: "transparent",
+                }}
+              />
+            ) : (
+              <Paperclip size={13} />
+            )}
+          </button>
           <button
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-40"
             disabled={pending || loadingHistory || !draft.trim() || !boardId}

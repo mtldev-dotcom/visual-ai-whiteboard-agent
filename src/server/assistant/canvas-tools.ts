@@ -52,6 +52,9 @@ const ASSISTANT_CANVAS_ITEM_TYPES = [
   "reminders",
   "markdown",
   "image",
+  "video",
+  "audio",
+  "iframe_embed",
   "link",
   "board_link",
   "html_widget",
@@ -191,7 +194,20 @@ export function validateDeleteCanvasItemInput(
 }
 
 export const addCanvasItemTool: ToolDefinition<AddCanvasItemInput> = {
-  description: "Add a structured item to a board canvas.",
+  description: `Add a structured item to a board canvas.
+
+Content shapes by type:
+- text: { title, text, bgColor? } — Default 220×140.
+- sticky_note: { title, text, bgColor? } — Default 200×180.
+- image: { src (URL), alt?, title? } — Full-card image. Default 320×240.
+- video: { src (URL), title? } — HTML5 video player. Default 400×280.
+- audio: { src (URL), title? } — HTML5 audio player. Default 320×140.
+- iframe_embed: { src (embed URL), title? } — iframe embed. Default 480×320.
+  For YouTube: convert https://youtube.com/watch?v=VIDEO_ID → https://www.youtube.com/embed/VIDEO_ID.
+- link: { href, title?, text? }
+- board_link: { targetBoardId, title?, text? }
+- task_list: { title, tasks: [{ title, completed }] }
+- kanban: { title, columns: [{ id, title, cards: [{ id, title }] }] }`,
   execute: async (input, context) => {
     const board = await getBoardById(input.boardId);
 

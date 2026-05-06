@@ -32,6 +32,14 @@ Bottom/floating controls:
 - Ask AI button.
 - Selected item bottom sheet.
 
+Canvas toolbar on mobile:
+
+- Vertical strip pinned to the right edge of the canvas, vertically centered.
+- All tools accessible: navigate, draw, create, tidy, upload, zoom, color palette.
+- Scrollable if screen height is too short to show all buttons.
+- Shape sub-kind panel floats to the left of the main strip when Shape tool is active.
+- On desktop (`md:` and above) the toolbar reverts to the standard horizontal bottom bar.
+
 ## Board explorer
 
 On desktop:

@@ -95,7 +95,11 @@ Input:
 Behavior:
 
 - Validates structured item input before execution.
-- Accepts `text`, `sticky_note`, `task_list`, `kanban`, `rich_text`, `reminders`, `markdown`, `image`, `link`, `board_link`, `html_widget`, `drawing`, `arrow`, `shape`, and `frame`.
+- Accepts `text`, `sticky_note`, `task_list`, `kanban`, `rich_text`, `reminders`, `notes`, `markdown`, `image`, `video`, `audio`, `iframe_embed`, `link`, `board_link`, `html_widget`, `drawing`, `arrow`, `shape`, `section`, and `frame`.
+- For `image`: `content.src` (URL), optional `alt` and `title`. Default size 320×240.
+- For `video`: `content.src` (URL), optional `title`. Default size 400×280.
+- For `audio`: `content.src` (URL), optional `title`. Default size 320×140.
+- For `iframe_embed`: `content.src` must be an **embed** URL. For YouTube convert `youtube.com/watch?v=ID` → `youtube.com/embed/ID`. Default size 480×320.
 - `board_link` content must include `targetBoardId`; execution verifies that the linked board belongs to the current workspace before writing.
 - Verifies the target board belongs to the current workspace.
 - Creates a canvas item in the current workspace and target board.
